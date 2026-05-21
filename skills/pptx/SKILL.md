@@ -1,6 +1,6 @@
 ---
 name: pptx
-description: .pptx 文件底层读写操作。覆盖 markitdown 提取文本、unpack/pack XML、模板加载与局部修改、跨平台中文字体 EA 字段、LibreOffice 渲染验证。被 [[pptx-deck]] 调用,也可独立用于"只读已有 PPT"或"模板小改"。触发：读取 .pptx / 提取文字 / 解包 .pptx / 改模板 / unpack / 演示文稿 / 幻灯片。
+description: .pptx 文件底层读写操作。覆盖 markitdown 提取文本、unpack/pack XML、模板加载与局部修改、跨平台中文字体 EA 字段（默认 Microsoft YaHei）、LibreOffice 渲染验证。被 [[pptx-deck]] 调用,也可独立用于"只读已有 PPT"或"模板小改"。触发：读取 .pptx / 提取文字 / 解包 .pptx / 改模板 / unpack / 演示文稿 / 幻灯片。
 ---
 
 # pptx skill — .pptx 读写底层

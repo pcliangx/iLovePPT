@@ -1,6 +1,6 @@
 ---
 name: pptx-deck
-description: 端到端 PPT 生成器。用户给主题/要点/brief.yaml/参考 .pptx 模板,skill 自动产出完整 .pptx：拓写每页文案、生成架构图、套用风格、逐页视觉自检与优化。内置科技蓝主题,支持从用户 .pptx 学风格。触发：做一份 PPT / 帮我写 PPT / 路演 deck / 汇报 / 提案 / brief.yaml / .pptx 模板。
+description: 端到端 PPT 生成器。用户给主题/要点/brief.yaml/参考 .pptx 模板,skill 自动产出完整 .pptx：拓写每页文案、生成架构图、套用风格、逐页视觉自检与优化。内置 tech_blue 科技蓝主题,支持模板学风格（从用户 .pptx 萃取设计 token）。触发：做一份 PPT / 帮我写 PPT / 路演 deck / 汇报 / 提案 / brief.yaml / .pptx 模板。
 ---
 
 # pptx-deck — 端到端 PPT 生成器

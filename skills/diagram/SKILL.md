@@ -1,6 +1,6 @@
 ---
 name: diagram
-description: 生成架构图、流程图、矩阵、决策树、数据可视化。覆盖 draw.io（多层架构/矩阵）、Mermaid（线性流程）、matplotlib（数据驱动）、python-pptx add_shape（slide 内画）四套工具。提供选型决策表、跨平台中文字体（默认 Microsoft YaHei）、PNG 嵌入 PPT 链路、8 大致丑坑规避。被 [[pptx-deck]] 调用，也可独立产出图。触发：架构图 / 流程图 / 矩阵 / 决策树 / draw.io / mermaid / sequence / 可视化。
+description: 生成架构图、流程图、矩阵、决策树、数据可视化。覆盖 draw.io（多层架构/矩阵）、Mermaid（线性流程）、matplotlib（数据驱动）、pptx-native add_shape（slide 内画 ≤5 节点）四套工具。提供选型决策表、跨平台中文字体（默认 Microsoft YaHei）、PNG 嵌入 PPT 链路、8 大致丑坑规避。被 [[pptx-deck]] 调用，也可独立产出图。触发：架构图 / 流程图 / 矩阵 / 决策树 / draw.io / mermaid / sequence / 可视化。
 ---
 
 # diagram skill — 架构图与可视化
