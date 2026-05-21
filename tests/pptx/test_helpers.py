@@ -23,12 +23,14 @@ def test_set_font_writes_ea_typeface():
     run = tb.text_frame.paragraphs[0].add_run()
     run.text = "中文测试"
     H.set_font(run, name="Microsoft YaHei", size=14)
-    # 检查 <a:ea> 写入
     from pptx.oxml.ns import qn
     rPr = run._r.find(qn("a:rPr"))
     ea = rPr.find(qn("a:ea"))
+    cs = rPr.find(qn("a:cs"))
     assert ea is not None, "set_font 必须写 <a:ea>"
     assert ea.get("typeface") == "Microsoft YaHei"
+    assert cs is not None, "set_font 必须写 <a:cs>"
+    assert cs.get("typeface") == "Microsoft YaHei"
 
 
 def test_card_creates_rounded_rect():
@@ -54,3 +56,20 @@ def test_default_brand_palette_defined():
     for c in ["BRAND_PRIMARY", "BRAND_DARK", "BRAND_TINT", "ACCENT",
               "GRAY_900", "GRAY_700", "GRAY_500", "GRAY_300", "GRAY_50", "WHITE"]:
         assert hasattr(H, c), f"missing color: {c}"
+
+
+def test_clear_template_slides_removes_all_slides():
+    prs = _new_prs()
+    # 加 3 张 slide
+    for _ in range(3):
+        prs.slides.add_slide(prs.slide_layouts[6])
+    assert len(prs.slides) == 3
+    H.clear_template_slides(prs)
+    assert len(prs.slides) == 0
+    # 验证清空后仍可继续 add_slide 并保存
+    prs.slides.add_slide(prs.slide_layouts[6])
+    import tempfile, os
+    with tempfile.NamedTemporaryFile(suffix=".pptx", delete=False) as f:
+        prs.save(f.name)
+        assert os.path.getsize(f.name) > 0
+        os.unlink(f.name)

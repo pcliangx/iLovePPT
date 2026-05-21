@@ -10,13 +10,10 @@
 - 表格关 firstRow/bandRow + 手动斑马纹
 """
 
-from pathlib import Path
-
 from lxml import etree
-from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
-from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.enum.text import PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
 
@@ -137,13 +134,14 @@ def card(slide, x, y, w, h, *, fill=WHITE, border=GRAY_300, accent=None):
     shape.fill.solid()
     shape.fill.fore_color.rgb = fill
     shape.line.color.rgb = border
-    shape.line.width = Pt(0.75)
-    shape.adjustments[0] = 0.05
+    shape.line.width = Pt(0.75)  # 0.75pt border keeps card light without being invisible
+    shape.adjustments[0] = 0.05  # corner radius = 5% of shorter side (small rounded corner)
     if accent:
-        bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, x, y, Emu(36000), h)
+        bar = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, Emu(36000), h)  # 36000 EMU ≈ 2.83pt, narrow left accent bar
         bar.fill.solid()
         bar.fill.fore_color.rgb = accent
         no_line(bar)
+        bar.adjustments[0] = 0.05
     return shape
 
 
@@ -155,7 +153,7 @@ def bullets(slide, x, y, w, h, items, *, size=14,
     tf.word_wrap = True
     for i, item in enumerate(items):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        p.line_spacing = 1.45
+        p.line_spacing = 1.45  # 中文正文行高 1.45 防止挤压
         r1 = p.add_run(); r1.text = "▎ "
         set_font(r1, size=size, color=accent_color, bold=True)
         r2 = p.add_run(); r2.text = item
@@ -197,7 +195,7 @@ def table_modern(slide, x, y, w, h, headers, rows, *,
 
 
 def page_decoration(slide, num, tint_color, *, x=Inches(8.8), y=Inches(0.25),
-                    w=Inches(4.4), h=Inches(2.0), size=140):
+                    w=Inches(4.4), h=Inches(2.0), size=140):  # 大号装饰数字典型尺寸 120-150pt
     box = slide.shapes.add_textbox(x, y, w, h)
     tf = box.text_frame
     fix_textbox_margins(tf)
@@ -211,26 +209,36 @@ def page_decoration(slide, num, tint_color, *, x=Inches(8.8), y=Inches(0.25),
     return box
 
 
-def section_header(slide, title, num, color):
+def section_header(slide, title, num, color, *,
+                   block_x=Inches(0.55), block_y=Inches(1.9),
+                   block_w=Inches(1.7), block_h=Inches(2.0),
+                   title_x=Inches(2.55), title_y=Inches(2.3),
+                   title_w=Inches(10), title_h=Inches(1.2),
+                   num_size=80, title_size=36):
     """章节扉页：左大色块 + 大数字 + 标题。"""
-    rect(slide, Inches(0.55), Inches(1.9), Inches(1.7), Inches(2.0), color)
-    box = slide.shapes.add_textbox(Inches(0.55), Inches(1.9), Inches(1.7), Inches(2.0))
+    rect(slide, block_x, block_y, block_w, block_h, color)
+    box = slide.shapes.add_textbox(block_x, block_y, block_w, block_h)
     tf = box.text_frame
     fix_textbox_margins(tf)
     p = tf.paragraphs[0]
     p.alignment = PP_ALIGN.CENTER
     r = p.add_run(); r.text = str(num)
-    set_font(r, name=FONT_NUM, size=80, bold=True, color=WHITE)
+    set_font(r, name=FONT_NUM, size=num_size, bold=True, color=WHITE)
 
-    box2 = slide.shapes.add_textbox(Inches(2.55), Inches(2.3), Inches(10), Inches(1.2))
+    box2 = slide.shapes.add_textbox(title_x, title_y, title_w, title_h)
     tf2 = box2.text_frame
     fix_textbox_margins(tf2)
     r2 = tf2.paragraphs[0].add_run(); r2.text = title
-    set_font(r2, size=36, bold=True, color=color)
+    set_font(r2, size=title_size, bold=True, color=color)
     return box, box2
 
 
 def embed_picture(slide, path, x, y, *, height=None, width=None):
+    """嵌入图片到 slide。
+
+    传 height 或 width 之一（若都传,width 会被忽略）。
+    都不传则按原始像素尺寸嵌入。
+    """
     if height is not None:
         return slide.shapes.add_picture(str(path), x, y, height=height)
     if width is not None:
