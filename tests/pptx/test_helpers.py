@@ -1,9 +1,6 @@
 # tests/pptx/test_helpers.py
 """helpers.py light test：验证 shape 数、字体名、color、文字内容。
 真正的"长得对不对"由 examples/minimal_deck.py 视觉 smoke test 验证。"""
-import os, sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../skills/pptx"))
-
 from pptx import Presentation
 from pptx.util import Inches
 import helpers as H

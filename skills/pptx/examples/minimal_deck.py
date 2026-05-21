@@ -4,8 +4,12 @@
 
 依赖：python-pptx, lxml,（可选验证）soffice + pdftoppm
 """
-import os, sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import sys
+from pathlib import Path
+
+_helpers_path = str(Path(__file__).parent.parent)
+if _helpers_path not in sys.path:
+    sys.path.insert(0, _helpers_path)
 
 from pptx import Presentation
 from pptx.util import Inches

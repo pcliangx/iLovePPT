@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iloveppt"
+version = "0.1.0"
+description = "iLovePPT — 端到端 PPT 生成 skill 库"
+requires-python = ">=3.10"
+dependencies = [
+    "python-pptx>=1.0",
+    "lxml>=4.9",
+    "pyyaml>=6.0",
+    "Pillow>=10.0",
+]
+
+[project.optional-dependencies]
+read = ["markitdown[pptx]"]
+diagram = ["matplotlib>=3.7"]
+dev = ["pytest>=7.0"]
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "skills/pptx",
+    "skills/pptx-deck",
+]
+testpaths = ["tests"]
+asyncio_default_fixture_loop_scope = "function"

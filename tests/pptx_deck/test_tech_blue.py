@@ -1,10 +1,5 @@
 # tests/pptx_deck/test_tech_blue.py
 """tech_blue 主题 11 layout light test：验证每个 layout 创建后 prs.slides 增加 1。"""
-import os, sys
-ROOT = os.path.join(os.path.dirname(__file__), "../../skills")
-sys.path.insert(0, os.path.join(ROOT, "pptx"))
-sys.path.insert(0, os.path.join(ROOT, "pptx-deck"))
-
 from pptx import Presentation
 from pptx.util import Inches
 from themes import tech_blue as T

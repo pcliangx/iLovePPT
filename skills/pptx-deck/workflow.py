@@ -15,8 +15,10 @@ from pptx import Presentation
 from pptx.util import Inches
 
 HERE = Path(__file__).parent
-sys.path.insert(0, str(HERE.parent / "pptx"))
-sys.path.insert(0, str(HERE))
+# Fallback for direct script execution (pytest uses pyproject.toml pythonpath)
+for _p in [str(HERE.parent / "pptx"), str(HERE)]:
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 import helpers as H
 from themes import tech_blue as T
@@ -73,9 +75,8 @@ def generate_outline(brief):
     specs.append({"layout": "toc", "sections": brief["outline"]})
     for i, sec in enumerate(brief["outline"], 1):
         specs.append({"layout": "section_divider", "num": i, "title": sec})
-        specs.append({"layout": "bullet_list", "title": sec,
-                      "items": brief.get("key_points",
-                                          [f"{sec} 要点 1", f"{sec} 要点 2"])[:5]})
+        kp = brief.get("key_points") or [f"{sec} 要点 1", f"{sec} 要点 2"]
+        specs.append({"layout": "bullet_list", "title": sec, "items": kp[:5]})
     specs.append({"layout": "summary",
                   "conclusions": brief.get("key_points",
                                             ["结论 1", "结论 2", "结论 3"])})
