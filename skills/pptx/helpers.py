@@ -10,12 +10,20 @@
 - 表格关 firstRow/bandRow + 手动斑马纹
 """
 
+from pathlib import Path
+from typing import Any
+
 from lxml import etree
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN
 from pptx.oxml.ns import qn
-from pptx.util import Emu, Inches, Pt
+from pptx.presentation import Presentation
+from pptx.shapes.autoshape import Shape
+from pptx.shapes.base import BaseShape
+from pptx.slide import Slide
+from pptx.text.text import _Run, TextFrame
+from pptx.util import Emu, Inches, Length, Pt
 
 
 # ============================================================================
@@ -61,7 +69,15 @@ FOOTER_TOP    = Inches(7.0)
 # 2. 字体工具
 # ============================================================================
 
-def set_font(run, *, name=FONT_CN, size=14, bold=False, italic=False, color=GRAY_900):
+def set_font(
+    run: _Run,
+    *,
+    name: str = FONT_CN,
+    size: int = 14,
+    bold: bool = False,
+    italic: bool = False,
+    color: RGBColor = GRAY_900,
+) -> None:
     """设置 run 字体；用 lxml 写 <a:ea>+<a:cs>,中文跨平台不 fallback。
 
     适用：你自己 add_textbox 加的 textbox 的 run。
@@ -80,7 +96,14 @@ def set_font(run, *, name=FONT_CN, size=14, bold=False, italic=False, color=GRAY
         elem.set("typeface", name)
 
 
-def _fix_ph_font(ph, *, name=FONT_CN, size_pt=14, bold=False, color=GRAY_900):
+def _fix_ph_font(
+    ph: Any,
+    *,
+    name: str = FONT_CN,
+    size_pt: int = 14,
+    bold: bool = False,
+    color: RGBColor = GRAY_900,
+) -> None:
     """修 placeholder 字体。set_font 只能改 run 级 latin,改不到 master 的 <a:ea>。"""
     for p in ph.text_frame.paragraphs:
         for run in p.runs:
@@ -91,7 +114,7 @@ def _fix_ph_font(ph, *, name=FONT_CN, size_pt=14, bold=False, color=GRAY_900):
 # 3. 模板生命周期
 # ============================================================================
 
-def clear_template_slides(prs):
+def clear_template_slides(prs: Presentation) -> None:
     """清空模板自带样例 slide,保留 layout / master / theme。"""
     sldIdLst = prs.slides._sldIdLst
     for sldId in list(sldIdLst):
@@ -108,20 +131,20 @@ def clear_template_slides(prs):
 # 4. 视觉元素 helper
 # ============================================================================
 
-def fix_textbox_margins(tf):
+def fix_textbox_margins(tf: TextFrame) -> None:
     tf.margin_left = tf.margin_right = Emu(0)
     tf.margin_top = tf.margin_bottom = Emu(0)
 
 
-def no_fill(shape):
+def no_fill(shape: BaseShape) -> None:
     shape.fill.background()
 
 
-def no_line(shape):
+def no_line(shape: BaseShape) -> None:
     shape.line.fill.background()
 
 
-def rect(slide, x, y, w, h, color):
+def rect(slide: Slide, x: Length, y: Length, w: Length, h: Length, color: RGBColor) -> Shape:
     shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, x, y, w, h)
     shape.fill.solid()
     shape.fill.fore_color.rgb = color
@@ -129,7 +152,17 @@ def rect(slide, x, y, w, h, color):
     return shape
 
 
-def card(slide, x, y, w, h, *, fill=WHITE, border=GRAY_300, accent=None):
+def card(
+    slide: Slide,
+    x: Length,
+    y: Length,
+    w: Length,
+    h: Length,
+    *,
+    fill: RGBColor = WHITE,
+    border: RGBColor = GRAY_300,
+    accent: RGBColor | None = None,
+) -> Shape:
     shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, w, h)
     shape.fill.solid()
     shape.fill.fore_color.rgb = fill
@@ -145,8 +178,18 @@ def card(slide, x, y, w, h, *, fill=WHITE, border=GRAY_300, accent=None):
     return shape
 
 
-def bullets(slide, x, y, w, h, items, *, size=14,
-            accent_color=BRAND_PRIMARY, body_color=GRAY_900):
+def bullets(
+    slide: Slide,
+    x: Length,
+    y: Length,
+    w: Length,
+    h: Length,
+    items: list[str],
+    *,
+    size: int = 14,
+    accent_color: RGBColor = BRAND_PRIMARY,
+    body_color: RGBColor = GRAY_900,
+) -> Shape:
     box = slide.shapes.add_textbox(x, y, w, h)
     tf = box.text_frame
     fix_textbox_margins(tf)
@@ -161,10 +204,22 @@ def bullets(slide, x, y, w, h, items, *, size=14,
     return box
 
 
-def table_modern(slide, x, y, w, h, headers, rows, *,
-                 header_fill=BRAND_DARK, header_color=WHITE,
-                 body_color=GRAY_900, zebra=GRAY_50, font_size=11,
-                 row_height=Inches(0.5)):
+def table_modern(
+    slide: Slide,
+    x: Length,
+    y: Length,
+    w: Length,
+    h: Length,
+    headers: list[str],
+    rows: list[list[str]],
+    *,
+    header_fill: RGBColor = BRAND_DARK,
+    header_color: RGBColor = WHITE,
+    body_color: RGBColor = GRAY_900,
+    zebra: RGBColor = GRAY_50,
+    font_size: int = 11,
+    row_height: Length = Inches(0.5),
+) -> Any:
     tbl_shape = slide.shapes.add_table(len(rows) + 1, len(headers), x, y, w, h)
     tbl = tbl_shape.table
     for row in tbl.rows:
@@ -194,8 +249,17 @@ def table_modern(slide, x, y, w, h, headers, rows, *,
     return tbl_shape
 
 
-def page_decoration(slide, num, tint_color, *, x=Inches(8.8), y=Inches(0.25),
-                    w=Inches(4.4), h=Inches(2.0), size=140):  # 大号装饰数字典型尺寸 120-150pt
+def page_decoration(
+    slide: Slide,
+    num: int | str,
+    tint_color: RGBColor,
+    *,
+    x: Length = Inches(8.8),
+    y: Length = Inches(0.25),
+    w: Length = Inches(4.4),
+    h: Length = Inches(2.0),
+    size: int = 140,
+) -> Shape:  # 大号装饰数字典型尺寸 120-150pt
     box = slide.shapes.add_textbox(x, y, w, h)
     tf = box.text_frame
     fix_textbox_margins(tf)
@@ -209,12 +273,23 @@ def page_decoration(slide, num, tint_color, *, x=Inches(8.8), y=Inches(0.25),
     return box
 
 
-def section_header(slide, title, num, color, *,
-                   block_x=Inches(0.55), block_y=Inches(1.9),
-                   block_w=Inches(1.7), block_h=Inches(2.0),
-                   title_x=Inches(2.55), title_y=Inches(2.3),
-                   title_w=Inches(10), title_h=Inches(1.2),
-                   num_size=80, title_size=36):
+def section_header(
+    slide: Slide,
+    title: str,
+    num: int | str,
+    color: RGBColor,
+    *,
+    block_x: Length = Inches(0.55),
+    block_y: Length = Inches(1.9),
+    block_w: Length = Inches(1.7),
+    block_h: Length = Inches(2.0),
+    title_x: Length = Inches(2.55),
+    title_y: Length = Inches(2.3),
+    title_w: Length = Inches(10),
+    title_h: Length = Inches(1.2),
+    num_size: int = 80,
+    title_size: int = 36,
+) -> tuple[Shape, Shape]:
     """章节扉页：左大色块 + 大数字 + 标题。"""
     rect(slide, block_x, block_y, block_w, block_h, color)
     box = slide.shapes.add_textbox(block_x, block_y, block_w, block_h)
@@ -233,7 +308,15 @@ def section_header(slide, title, num, color, *,
     return box, box2
 
 
-def embed_picture(slide, path, x, y, *, height=None, width=None):
+def embed_picture(
+    slide: Slide,
+    path: str | Path,
+    x: Length,
+    y: Length,
+    *,
+    height: Length | None = None,
+    width: Length | None = None,
+) -> Any:
     """嵌入图片到 slide。
 
     传 height 或 width 之一（若都传,width 会被忽略）。

@@ -16,7 +16,7 @@ from pptx.util import Inches
 import helpers as H
 
 
-def main(out="/tmp/iloveppt_minimal.pptx"):
+def main(out: str = "/tmp/iloveppt_minimal.pptx") -> None:
     prs = Presentation()
     prs.slide_width = H.SLIDE_W
     prs.slide_height = H.SLIDE_H

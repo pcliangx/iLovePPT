@@ -9,9 +9,13 @@ vision_check 当前实现为：导出 PNG,打印路径,默认接受。
 """
 import sys, subprocess, tempfile
 from pathlib import Path
+from types import ModuleType
+from typing import Any
 
 import yaml
 from pptx import Presentation
+from pptx.presentation import Presentation as _Pres
+from pptx.slide import Slide
 from pptx.util import Inches
 
 HERE = Path(__file__).parent
@@ -26,10 +30,10 @@ from themes import tech_blue as T
 
 # ----- 1. parse_brief -----
 
-REQUIRED = {"title", "outline", "theme", "output"}
+REQUIRED: set[str] = {"title", "outline", "theme", "output"}
 
 
-def parse_brief(path):
+def parse_brief(path: str | Path) -> dict[str, Any]:
     with open(path) as f:
         data = yaml.safe_load(f)
     missing = REQUIRED - set(data)
@@ -44,10 +48,10 @@ def parse_brief(path):
 
 # ----- 2. load_theme -----
 
-THEMES = {"tech_blue": T}
+THEMES: dict[str, ModuleType] = {"tech_blue": T}
 
 
-def load_theme(theme_id):
+def load_theme(theme_id: str) -> ModuleType:
     if theme_id in THEMES:
         return THEMES[theme_id]
     if str(theme_id).endswith(".pptx"):
@@ -60,13 +64,13 @@ def load_theme(theme_id):
 
 # ----- 3. outline → page_specs -----
 
-def estimate_page_count(brief):
+def estimate_page_count(brief: dict[str, Any]) -> int:
     if brief["page_count_target"]:
         return brief["page_count_target"]
     return int(len(brief["outline"]) * 1.5) + 4
 
 
-def generate_outline(brief):
+def generate_outline(brief: dict[str, Any]) -> list[dict[str, Any]]:
     """根据 brief 生成 page_spec list。LLM 在真实运行时会替换此函数。
     本骨架返回固定的简版 outline 跑通 pipeline。"""
     specs = []
@@ -86,7 +90,7 @@ def generate_outline(brief):
 
 # ----- 4. generate_slide -----
 
-def generate_slide(prs, spec, theme):
+def generate_slide(prs: _Pres, spec: dict[str, Any], theme: ModuleType) -> Slide:
     fn = getattr(theme, f"make_{spec['layout']}")
     kwargs = {k: v for k, v in spec.items() if k != "layout"}
     return fn(prs, **kwargs)
@@ -94,7 +98,7 @@ def generate_slide(prs, spec, theme):
 
 # ----- 5. render_one_slide -----
 
-def render_one_slide(prs, idx, out_png):
+def render_one_slide(prs: _Pres, idx: int, out_png: str | Path) -> None:
     """导出全 deck PDF,然后 pdftoppm 截第 idx 页。"""
     import shutil  # 局部 import 防止顶部污染
     if shutil.which("soffice") is None:
@@ -132,13 +136,13 @@ def render_one_slide(prs, idx, out_png):
     candidates[0].rename(out_png)
 
 
-def vision_check(image_path, intent):
+def vision_check(image_path: str | Path, intent: str) -> list[dict[str, Any]]:
     """占位：默认接受。真实运行时 Claude 用 Read tool 看图后输出 issue JSON。"""
     print(f"  [vision_check] {image_path} (intent: {intent})")
     return []
 
 
-def fix_slide(slide, issues):
+def fix_slide(slide: Slide, issues: list[dict[str, Any]]) -> Slide:
     """根据 issues 修 slide。骨架占位：不修。"""
     print(f"  [fix_slide] 应用 {len(issues)} 个修复")
     return slide
@@ -146,7 +150,7 @@ def fix_slide(slide, issues):
 
 # ----- 6. main loop -----
 
-def run(brief_path):
+def run(brief_path: str | Path) -> tuple[Path, list[dict[str, Any]]]:
     brief = parse_brief(brief_path)
     theme = load_theme(brief["theme"])
     outline = generate_outline(brief)

@@ -5,6 +5,7 @@
 """
 import sys, warnings
 from pathlib import Path
+from typing import Any
 
 # Fallback for direct import outside pytest (pytest uses pyproject.toml pythonpath)
 _helpers_path = str(Path(__file__).parent.parent.parent / "pptx")
@@ -15,7 +16,9 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN
-from pptx.util import Emu, Inches, Pt
+from pptx.presentation import Presentation as _Pres
+from pptx.slide import Slide
+from pptx.util import Emu, Inches, Length, Pt
 
 import helpers as H
 
@@ -33,11 +36,18 @@ ACCENT       = RGBColor(0x00, 0xD1, 0xC1)
 # Gray 沿用 helpers.py: H.GRAY_900 / H.GRAY_700 / H.GRAY_500 / H.GRAY_300 / H.GRAY_50 / H.WHITE
 
 
-def _blank_slide(prs):
+def _blank_slide(prs: _Pres) -> Slide:
     return prs.slides.add_slide(prs.slide_layouts[6])
 
 
-def _add_title(slide, text, *, y=Inches(0.6), size=28, color=PRIMARY_DEEP):
+def _add_title(
+    slide: Slide,
+    text: str,
+    *,
+    y: Length = Inches(0.6),
+    size: int = 28,
+    color: RGBColor = PRIMARY_DEEP,
+) -> Any:
     box = slide.shapes.add_textbox(Inches(0.55), y, Inches(12.2), Inches(0.8))
     tf = box.text_frame
     H.fix_textbox_margins(tf)
@@ -47,7 +57,7 @@ def _add_title(slide, text, *, y=Inches(0.6), size=28, color=PRIMARY_DEEP):
     return box
 
 
-def make_cover(prs, title, subtitle):
+def make_cover(prs: _Pres, title: str, subtitle: str) -> Slide:
     s = _blank_slide(prs)
     H.rect(s, 0, 0, H.SLIDE_W, H.SLIDE_H, PRIMARY_DEEP)
     # 大主标题
@@ -65,7 +75,7 @@ def make_cover(prs, title, subtitle):
     return s
 
 
-def make_toc(prs, sections):
+def make_toc(prs: _Pres, sections: list[str]) -> Slide:
     """目录页：标题"目录" + N 行章节,每行编号 + 标题。"""
     s = _blank_slide(prs)
     _add_title(s, "目录", size=40, y=Inches(0.6), color=PRIMARY_DEEP)
@@ -84,13 +94,19 @@ def make_toc(prs, sections):
     return s
 
 
-def make_section_divider(prs, num, title):
+def make_section_divider(prs: _Pres, num: int | str, title: str) -> Slide:
     s = _blank_slide(prs)
     H.section_header(s, title, num, PRIMARY_DEEP)
     return s
 
 
-def make_single_focus(prs, *, big_text="", big_number="", explanation=""):
+def make_single_focus(
+    prs: _Pres,
+    *,
+    big_text: str = "",
+    big_number: str = "",
+    explanation: str = "",
+) -> Slide:
     s = _blank_slide(prs)
     # 大数字
     box = s.shapes.add_textbox(Inches(0.55), Inches(2.0), Inches(12), Inches(2.5))
@@ -119,7 +135,13 @@ def make_single_focus(prs, *, big_text="", big_number="", explanation=""):
     return s
 
 
-def make_two_col_compare(prs, left_title, left_body, right_title, right_body):
+def make_two_col_compare(
+    prs: _Pres,
+    left_title: str,
+    left_body: str,
+    right_title: str,
+    right_body: str,
+) -> Slide:
     s = _blank_slide(prs)
     _add_title(s, "对比", size=28)
     # 左
@@ -151,7 +173,11 @@ def make_two_col_compare(prs, left_title, left_body, right_title, right_body):
     return s
 
 
-def make_three_col_cards(prs, cards, title="三栏"):
+def make_three_col_cards(
+    prs: _Pres,
+    cards: list[dict[str, str]],
+    title: str = "三栏",
+) -> Slide:
     if len(cards) > 3:
         warnings.warn(f"make_three_col_cards 收到 {len(cards)} 张卡片,只显前 3 张", stacklevel=2)
     s = _blank_slide(prs)
@@ -173,7 +199,7 @@ def make_three_col_cards(prs, cards, title="三栏"):
     return s
 
 
-def make_bullet_list(prs, title, items):
+def make_bullet_list(prs: _Pres, title: str, items: list[str]) -> Slide:
     s = _blank_slide(prs)
     _add_title(s, title, size=28)
     H.bullets(s, Inches(0.55), Inches(1.8), Inches(12.2), Inches(5.2),
@@ -181,7 +207,12 @@ def make_bullet_list(prs, title, items):
     return s
 
 
-def make_table(prs, title, headers, rows):
+def make_table(
+    prs: _Pres,
+    title: str,
+    headers: list[str],
+    rows: list[list[str]],
+) -> Slide:
     s = _blank_slide(prs)
     _add_title(s, title, size=28)
     H.table_modern(s, Inches(0.55), Inches(1.8), Inches(12.2), Inches(4.0),
@@ -191,7 +222,12 @@ def make_table(prs, title, headers, rows):
     return s
 
 
-def make_pic_text(prs, title, image_path, points):
+def make_pic_text(
+    prs: _Pres,
+    title: str,
+    image_path: str,
+    points: list[dict[str, str]],
+) -> Slide:
     if len(points) > 4:
         warnings.warn(f"make_pic_text 收到 {len(points)} 个要点,只显前 4 项", stacklevel=2)
     s = _blank_slide(prs)
@@ -215,7 +251,11 @@ def make_pic_text(prs, title, image_path, points):
     return s
 
 
-def make_summary(prs, conclusions, title="核心结论"):
+def make_summary(
+    prs: _Pres,
+    conclusions: list[str],
+    title: str = "核心结论",
+) -> Slide:
     if len(conclusions) > 5:
         warnings.warn(f"make_summary 收到 {len(conclusions)} 条结论,只显前 5 条", stacklevel=2)
     s = _blank_slide(prs)
@@ -240,7 +280,7 @@ def make_summary(prs, conclusions, title="核心结论"):
     return s
 
 
-def make_closing(prs, subtitle="谢谢"):
+def make_closing(prs: _Pres, subtitle: str = "谢谢") -> Slide:
     """封底页:大字 '谢谢' + 小字 subtitle (默认也是 '谢谢',可改为联系方式等)."""
     s = _blank_slide(prs)
     H.rect(s, 0, 0, H.SLIDE_W, H.SLIDE_H, PRIMARY_DEEP)
