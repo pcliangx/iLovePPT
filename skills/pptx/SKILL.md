@@ -54,7 +54,7 @@ bash scripts/check_deps.sh
 - [ ] 跨平台中文字体（用 lxml 写 `<a:ea>` + `<a:cs>`）
 - [ ] 没有文字被截断 / 溢出 / 遮挡（LibreOffice 实测）
 - [ ] 没有 emoji 滥用（仅 ⚠ ⛔ 🔒 警示性）
-- [ ] 单一主色 + 1 强调色（不超 7 个色变量）
+- [ ] 单一主色 + 1 强调色（≤ 9 个色变量：4 BRAND + 5 灰阶）
 - [ ] 表格关 `firstRow` / `bandRow`（防 banding）
 - [ ] 大字号 textbox 设 `word_wrap=False`
 - [ ] 所有 textbox 设 `margin_left/right = 0`

@@ -70,7 +70,7 @@ bash scripts/check_deps.sh
 from pptx.oxml.ns import qn
 from lxml import etree
 
-def set_font(run, *, name="Microsoft YaHei", size=14, bold=False, color=...):
+def set_font(run, *, name="Microsoft YaHei", size=14, bold=False, italic=False, color=...):
     run.font.name = name          # 写 <a:latin>（英文 / 数字走这里）
     run.font.size = Pt(size)
     run.font.bold = bold
@@ -286,13 +286,13 @@ for i, (k, v) in enumerate(points):
 左 1.7" 大色块 + 80pt 巨大数字（视觉锚点）+ 右 10" 信息区：
 
 ```python
-H.section_header(slide, "阶段名称", num=1, color=H.BRAND_PRIMARY)
+H.section_header(s, "阶段名称", 1, H.BRAND_PRIMARY)
 # 右侧信息区用 card + bullets 填充
 ```
 
 `helpers.py:section_header(slide, title, num, color, ...)` 封装了整个左色块 + 数字 + 标题逻辑。数字字号 80pt，让观众一眼记住"这是阶段 N"。也可以在右侧信息区叠加 `card` + `bullets` 加更多内容。
 
-### 12. 单一品牌色覆盖（≤ 7 色变量）
+### 12. 单一品牌色覆盖（≤ 9 色变量）
 
 `helpers.py` 顶部定义了抽象 `BRAND_*` 变量，全 deck 只改这里，联动生效：
 
@@ -303,7 +303,7 @@ BRAND_TINT    = RGBColor(0xE6, 0xF0, 0xFC)  # 浅底（装饰数字）
 ACCENT        = RGBColor(0x00, 0xD1, 0xC1)  # 强调色（少量点睛）
 ```
 
-加上 5 个灰阶（GRAY_900 / 700 / 500 / 300 / 50）= 9 个颜色变量，覆盖 95% 场景。不要超过 12 个，否则 PPT 颜色体系失控。
+默认 9 个色变量足够覆盖 90% 场景（4 BRAND + 5 灰阶 + WHITE）。极端情况不要超过 12 个。
 
 切换色板：把 `BRAND_*` 替换成 `design-system.md` 里的 10 套色板之一。
 
@@ -322,12 +322,12 @@ ACCENT        = RGBColor(0x00, 0xD1, 0xC1)  # 强调色（少量点睛）
 python3 build.py
 
 # Step 2: 转 PDF（LibreOffice 真实渲染）
-mkdir -p /tmp/preview && cd /tmp/preview
-soffice --headless --convert-to pdf /path/to/output.pptx
+mkdir -p /tmp/preview && rm -f /tmp/preview/*.pdf /tmp/preview/p*.jpg
+soffice --headless --convert-to pdf /path/to/output.pptx --outdir /tmp/preview/
 
 # Step 3: 转 PNG（每页一张）
-pdftoppm -jpeg -r 150 output.pdf slide
-# 产物: slide-1.jpg, slide-2.jpg ...
+pdftoppm -jpeg -r 100 /tmp/preview/output.pdf /tmp/preview/p
+# 产物: /tmp/preview/p-1.jpg, /tmp/preview/p-2.jpg ...
 
 # Step 4: 用 Read tool 看关键页
 # 封面页 / 第一张内容页 / 表格页 / 图文嵌入页
