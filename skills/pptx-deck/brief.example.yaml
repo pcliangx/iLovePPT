@@ -1,0 +1,23 @@
+# KillPPTs pptx-deck brief schema 完整样例
+# 必填：title / outline / theme / output
+# 可选：subtitle / audience / duration_min / key_points / page_count_target / brand_color / reference_pptx
+
+title: "AI 4A 架构评审办法 v1.0"           # 主标题,≤ 20 字
+subtitle: "技术 + 业务 协同评审机制"        # 可选,≤ 30 字
+audience: "技术 + 业务团队,约 30 人"        # 可选,影响文案风格
+duration_min: 15                            # 可选,影响页数估算
+outline:                                    # 必填,章节列表
+  - "背景与意义"
+  - "评审范围"
+  - "评审流程（5 阶段）"
+  - "组织保障"
+  - "落地节奏"
+key_points:                                 # 可选,跨章节关键信息
+  - "强制嵌入研发流程"
+  - "5 阶段评审,每阶段 ≤ 3 天"
+  - "AI 助手提前预审"
+theme: tech_blue                            # 必填: 内置主题名 或 .pptx 模板路径
+output: ./out/deck.pptx                     # 必填,产物路径
+page_count_target: 20                       # 可选,自动估算时省略
+brand_color: "#0B2A4A"                      # 可选,覆盖 theme 默认色
+reference_pptx: null                        # 可选,用户给参考 .pptx 学风格,走 template-ingest 流程

@@ -1,0 +1,14 @@
+title: "KillPPTs 自动化 PPT 生成"
+subtitle: "demo brief 跑通整条 pipeline"
+outline:
+  - "动机"
+  - "技术方案"
+  - "效果数据"
+  - "落地路径"
+key_points:
+  - "5 分钟生成一份完整 deck"
+  - "视觉自检 + 自动修复"
+  - "支持模板学风格"
+theme: tech_blue
+output: /Users/pc2026/Documents/DevTools/KillPPTs/skills/pptx-deck/examples/sample_output.pptx
+page_count_target: 12
