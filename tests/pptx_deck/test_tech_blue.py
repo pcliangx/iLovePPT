@@ -62,6 +62,7 @@ def test_make_bullet_list():
     prs = _new()
     T.make_bullet_list(prs, "标题", items=["要点1", "要点2", "要点3", "要点4", "要点5"])
     assert len(prs.slides) == 1
+    assert len(prs.slides[0].shapes) == 2  # title textbox + bullets textbox
 
 def test_make_table():
     prs = _new()
@@ -69,6 +70,7 @@ def test_make_table():
                  headers=["A", "B", "C"],
                  rows=[["1", "2", "3"], ["4", "5", "6"]])
     assert len(prs.slides) == 1
+    assert len(prs.slides[0].shapes) == 2  # title textbox + table
 
 def test_make_pic_text(tmp_path):
     from PIL import Image

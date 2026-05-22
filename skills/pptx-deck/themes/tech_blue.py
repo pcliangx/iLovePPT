@@ -60,10 +60,12 @@ def _add_title(
 
 
 def _text(slide: Slide, box: "L.Box", text: str, *, size: int,
-          bold: bool = False, color=None, align=PP_ALIGN.LEFT) -> None:
+          bold: bool = False, color=None, align=PP_ALIGN.LEFT, font=None) -> None:
     """在一个 Box 内放一段文字（textbox + margin 归零 + set_font）。"""
     if color is None:
         color = H.GRAY_900
+    if font is None:
+        font = FONT_HEADER
     tb = slide.shapes.add_textbox(box.x, box.y, box.w, box.h)
     H.fix_textbox_margins(tb.text_frame)
     tb.text_frame.word_wrap = True
@@ -71,7 +73,7 @@ def _text(slide: Slide, box: "L.Box", text: str, *, size: int,
     p.alignment = align
     r = p.add_run()
     r.text = text
-    H.set_font(r, name=FONT_HEADER, size=size, bold=bold, color=color)
+    H.set_font(r, name=font, size=size, bold=bold, color=color)
 
 
 def make_cover(prs: _Pres, title: str, subtitle: str) -> Slide:
@@ -126,35 +128,17 @@ def make_single_focus(
     region = L.content_region()
     blocks = L.stack(region, [Inches(1.6), Inches(0.8), Inches(0.5)],
                      gap=Inches(0.2), align="middle")
-    # 大数字
-    tb0 = s.shapes.add_textbox(blocks[0].x, blocks[0].y, blocks[0].w, blocks[0].h)
-    H.fix_textbox_margins(tb0.text_frame)
-    p0 = tb0.text_frame.paragraphs[0]
-    p0.alignment = PP_ALIGN.CENTER
-    r0 = p0.add_run()
-    r0.text = big_number
-    H.set_font(r0, name=FONT_NUM, size=120, bold=True, color=PRIMARY)
-    # 大文字
-    tb1 = s.shapes.add_textbox(blocks[1].x, blocks[1].y, blocks[1].w, blocks[1].h)
-    H.fix_textbox_margins(tb1.text_frame)
-    p1 = tb1.text_frame.paragraphs[0]
-    p1.alignment = PP_ALIGN.CENTER
-    r1 = p1.add_run()
-    r1.text = big_text
-    H.set_font(r1, name=FONT_HEADER, size=32, bold=True, color=PRIMARY_DEEP)
-    # 解释
-    tb2 = s.shapes.add_textbox(blocks[2].x, blocks[2].y, blocks[2].w, blocks[2].h)
-    H.fix_textbox_margins(tb2.text_frame)
-    p2 = tb2.text_frame.paragraphs[0]
-    p2.alignment = PP_ALIGN.CENTER
-    r2 = p2.add_run()
-    r2.text = explanation
-    H.set_font(r2, name=FONT_HEADER, size=14, color=H.GRAY_500)
+    _text(s, blocks[0], big_number, size=120, bold=True, color=PRIMARY,
+          font=FONT_NUM, align=PP_ALIGN.CENTER)
+    _text(s, blocks[1], big_text, size=32, bold=True, color=PRIMARY_DEEP,
+          align=PP_ALIGN.CENTER)
+    _text(s, blocks[2], explanation, size=14, color=H.GRAY_500,
+          align=PP_ALIGN.CENTER)
     return s
 
 
 def make_compare(prs: _Pres, title: str, items: list[dict[str, str]]) -> Slide:
-    """N 列对比卡片，accent 色交替。"""
+    """N 列对比卡片，accent 色交替。与 make_cards 结构相同，仅 accent 逻辑不同。"""
     s = _blank_slide(prs)
     _add_title(s, title, size=28)
     cols = L.columns(L.content_region(), len(items))
@@ -163,7 +147,7 @@ def make_compare(prs: _Pres, title: str, items: list[dict[str, str]]) -> Slide:
         H.card(s, col.x, col.y, col.w, col.h, fill=H.WHITE,
                border=H.GRAY_300, accent=accent)
         inner = L.inset(col, Inches(0.3), Inches(0.25))
-        parts = L.stack(inner, [Inches(0.5), Inches(2.0)], gap=Inches(0.15),
+        parts = L.stack(inner, [Inches(0.5), Inches(2.0)], gap=Inches(0.15),  # 卡内: 标题行 / 正文行
                         align="top")
         _text(s, parts[0], item["title"], size=18, bold=True, color=PRIMARY_DEEP)
         _text(s, parts[1], item["body"], size=13, color=H.GRAY_900)
@@ -178,7 +162,7 @@ def make_cards(prs: _Pres, title: str, cards: list[dict[str, str]]) -> Slide:
         H.card(s, col.x, col.y, col.w, col.h, fill=H.WHITE,
                border=H.GRAY_300, accent=PRIMARY)
         inner = L.inset(col, Inches(0.3), Inches(0.25))
-        parts = L.stack(inner, [Inches(0.5), Inches(2.0)], gap=Inches(0.15),
+        parts = L.stack(inner, [Inches(0.5), Inches(2.0)], gap=Inches(0.15),  # 卡内: 标题行 / 正文行
                         align="top")
         _text(s, parts[0], card["title"], size=18, bold=True, color=PRIMARY_DEEP)
         _text(s, parts[1], card["body"], size=13, color=H.GRAY_900)
@@ -189,7 +173,7 @@ def make_bullet_list(prs: _Pres, title: str, items: list[str]) -> Slide:
     s = _blank_slide(prs)
     _add_title(s, title, size=28)
     region = L.content_region()
-    line_h = Inches(0.5)
+    line_h = Emu(int(Pt(16) * 1.45))  # 匹配 H.bullets 的 size=16 + line_spacing=1.45
     block = L.stack(region, [Emu(line_h * len(items))], align="middle")[0]
     H.bullets(s, block.x, block.y, block.w, block.h, items=items, size=16,
               accent_color=PRIMARY, body_color=H.GRAY_900)
@@ -205,7 +189,7 @@ def make_table(
     s = _blank_slide(prs)
     _add_title(s, title, size=28)
     region = L.content_region()
-    H.table_modern(s, region.x, region.y, region.w, Inches(4.0),
+    H.table_modern(s, region.x, region.y, region.w, region.h,
                    headers=headers, rows=rows,
                    header_fill=PRIMARY_DEEP, header_color=H.WHITE,
                    zebra=PRIMARY_TINT, font_size=12)
@@ -274,18 +258,8 @@ def make_closing(prs: _Pres, subtitle: str = "") -> Slide:
     region = L.content_region()
     blocks = L.stack(region, [Inches(1.5), Inches(0.6)], gap=Inches(0.3),
                      align="middle")
-    tb0 = s.shapes.add_textbox(blocks[0].x, blocks[0].y, blocks[0].w, blocks[0].h)
-    H.fix_textbox_margins(tb0.text_frame)
-    p0 = tb0.text_frame.paragraphs[0]
-    p0.alignment = PP_ALIGN.CENTER
-    r0 = p0.add_run()
-    r0.text = "谢谢"
-    H.set_font(r0, name=FONT_HEADER, size=64, bold=True, color=H.WHITE)
-    tb1 = s.shapes.add_textbox(blocks[1].x, blocks[1].y, blocks[1].w, blocks[1].h)
-    H.fix_textbox_margins(tb1.text_frame)
-    p1 = tb1.text_frame.paragraphs[0]
-    p1.alignment = PP_ALIGN.CENTER
-    r1 = p1.add_run()
-    r1.text = subtitle
-    H.set_font(r1, name=FONT_BODY, size=16, color=PRIMARY_TINT)
+    _text(s, blocks[0], "谢谢", size=64, bold=True, color=H.WHITE,
+          align=PP_ALIGN.CENTER)
+    _text(s, blocks[1], subtitle, size=16, color=PRIMARY_TINT,
+          font=FONT_BODY, align=PP_ALIGN.CENTER)
     return s
