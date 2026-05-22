@@ -23,17 +23,18 @@ from pptx.util import Emu, Inches, Length, Pt
 import helpers as H
 
 
-# ===== 字体（默认微软雅黑）=====
-FONT_HEADER = "Microsoft YaHei"
-FONT_BODY   = "Microsoft YaHei"
-FONT_NUM    = "Helvetica Neue"
+# ===== 字体 / 色板 — SSOT：helpers.py =====
+# tech_blue 不重新定义字体或色值,只对 helpers.py 的常量做语义别名。
+# 改主题色 / 字体 → 改 helpers.py 顶部的 FONT_* / BRAND_* 常量,全 deck 联动。
+FONT_HEADER = H.FONT_CN   # 默认 Microsoft YaHei
+FONT_BODY   = H.FONT_CN
+FONT_NUM    = H.FONT_NUM  # 默认 Helvetica Neue
 
-# ===== 色板（科技蓝）=====
-PRIMARY_DEEP = RGBColor(0x0B, 0x2A, 0x4A)
-PRIMARY      = RGBColor(0x1E, 0x6F, 0xE0)
-PRIMARY_TINT = RGBColor(0xE6, 0xF0, 0xFC)
-ACCENT       = RGBColor(0x00, 0xD1, 0xC1)
-# Gray 沿用 helpers.py: H.GRAY_900 / H.GRAY_700 / H.GRAY_500 / H.GRAY_300 / H.GRAY_50 / H.WHITE
+PRIMARY_DEEP = H.BRAND_DARK     # #0B2A4A 深海蓝
+PRIMARY      = H.BRAND_PRIMARY  # #1E6FE0 科技蓝
+PRIMARY_TINT = H.BRAND_TINT     # #E6F0FC 浅蓝底
+ACCENT       = H.ACCENT         # #00D1C1 青绿点睛
+# 灰阶直接用 helpers.py: H.GRAY_900 / H.GRAY_700 / H.GRAY_500 / H.GRAY_300 / H.GRAY_50 / H.WHITE
 
 
 def _blank_slide(prs: _Pres) -> Slide:

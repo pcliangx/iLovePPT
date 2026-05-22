@@ -17,7 +17,6 @@ import yaml
 from pptx import Presentation
 from pptx.presentation import Presentation as _Pres
 from pptx.slide import Slide
-from pptx.util import Inches
 
 HERE = Path(__file__).parent
 # Fallback for direct script execution (pytest uses pyproject.toml pythonpath)
@@ -113,59 +112,37 @@ def _extract_design_tokens(pptx_path: str) -> dict[str, Any]:
 
 
 def _ingest_template(pptx_path: str) -> ModuleType:
-    """从用户 .pptx 学风格,生成临时主题模块。
+    """从用户 .pptx 学风格,派生一个临时主题模块。
 
-    实现策略：读取 tech_blue.py 源码 → 替换字体/颜色常量 → 写入 tmpdir →
-    importlib 动态加载。返回的模块有与 tech_blue 相同的 11 个 make_* API。
+    实现：从 tech_blue.py 源码加载一个全新模块实例（与缓存的 themes.tech_blue
+    隔离）,再用提取的 token 覆盖其 FONT_* / PRIMARY 属性。make_* 函数在调用时
+    按所在模块的 __dict__ 解析全局名,故 import 后直接设属性即可生效——无需
+    字符串替换源码（那种做法在 tech_blue 改为 SSOT 别名后已失效）。
 
-    token 提取为 best-effort：若模板 XML 结构不含目标字段,保留 tech_blue 默认值。
+    token 提取为 best-effort：未提取到的字段保留 tech_blue 默认值。
     """
     import importlib.util
 
     tokens = _extract_design_tokens(pptx_path)
 
-    # 读取 tech_blue.py 源码
     import themes.tech_blue as base_module
-    base_source_path = Path(base_module.__file__)
-    new_source = base_source_path.read_text(encoding="utf-8")
-
-    # 替换字体常量（仅精确匹配已知的默认行）
-    if "font_header" in tokens:
-        font_val = tokens["font_header"]
-        new_source = new_source.replace(
-            'FONT_HEADER = "Microsoft YaHei"',
-            f'FONT_HEADER = "{font_val}"',
-            1,
-        )
-        new_source = new_source.replace(
-            'FONT_BODY   = "Microsoft YaHei"',
-            f'FONT_BODY   = "{tokens.get("font_body", font_val)}"',
-            1,
-        )
-
-    # 替换 PRIMARY 颜色常量
-    if "primary" in tokens:
-        c = tokens["primary"]
-        new_source = new_source.replace(
-            "PRIMARY      = RGBColor(0x1E, 0x6F, 0xE0)",
-            f"PRIMARY      = RGBColor(0x{c[0]:02X}, 0x{c[1]:02X}, 0x{c[2]:02X})",
-            1,
-        )
-
-    # 写出到临时目录并动态 import
-    tmpdir = Path(tempfile.gettempdir()) / "iloveppt_ingest"
-    tmpdir.mkdir(exist_ok=True)
+    base_path = Path(base_module.__file__)
     out_name = f"ingested_{Path(pptx_path).stem}"
-    out_path = tmpdir / f"{out_name}.py"
-    out_path.write_text(new_source, encoding="utf-8")
 
-    spec = importlib.util.spec_from_file_location(out_name, out_path)
+    spec = importlib.util.spec_from_file_location(out_name, base_path)
     if spec is None or spec.loader is None:
-        raise RuntimeError(f"无法从 {out_path} 加载 ingested theme")
+        raise RuntimeError(f"无法从 {base_path} 加载 ingested theme")
     ingested = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(ingested)
 
-    print(f"  ingested theme written to {out_path}")
+    # 用提取的 token 覆盖主题常量（设属性即可,见 docstring）
+    if "font_header" in tokens:
+        ingested.FONT_HEADER = tokens["font_header"]
+        ingested.FONT_BODY = tokens.get("font_body", tokens["font_header"])
+    if "primary" in tokens:
+        ingested.PRIMARY = tokens["primary"]
+
+    print(f"  ingested theme: {out_name}")
     print(f"     fonts: {tokens.get('font_header', '(default)')}")
     print(f"     primary: {tokens.get('primary', '(default)')}")
     return ingested
@@ -397,8 +374,8 @@ def run(brief_path: str | Path) -> tuple[Path, list[dict[str, Any]]]:
     outline = generate_outline(brief, diagram_plan)
 
     prs = Presentation()
-    prs.slide_width = Inches(13.333)
-    prs.slide_height = Inches(7.5)
+    prs.slide_width = H.SLIDE_W   # SSOT: helpers.py
+    prs.slide_height = H.SLIDE_H
 
     review_needed = []
 

@@ -56,9 +56,17 @@ The most important thing to understand: the `.py` files implement the **mechanic
 
 When improving generation *quality*, edit the prompt docs (`content-writing.md`, `visual-qa.md`), not just the Python.
 
-### helpers.py is the single source for low-level pptx operations
+### SSOT standard — helpers.py is the single source of truth
 
-`skills/pptx/helpers.py` holds every font/shape/table primitive (`set_font`, `_fix_ph_font`, `card`, `bullets`, `table_modern`, `section_header`, etc.). The theme module `skills/pptx-deck/themes/tech_blue.py` builds its 11 `make_*` layout functions on top of these. Never duplicate font/shape logic into a theme — extend `helpers.py` instead.
+`skills/pptx/helpers.py` is the authoritative definition for two things; nothing downstream may redefine them, only reference or extend:
+
+1. **Low-level pptx operations** — every font/shape/table primitive (`set_font`, `_fix_ph_font`, `card`, `bullets`, `table_modern`, `section_header`, etc.). Theme modules build their `make_*` layout functions on top of these; never duplicate font/shape logic into a theme.
+2. **Design tokens** — fonts (`FONT_CN`, `FONT_NUM`), brand colors (`BRAND_PRIMARY`, `BRAND_DARK`, `BRAND_TINT`, `ACCENT`), grays, and slide dimensions (`SLIDE_W`, `SLIDE_H`). `tech_blue.py` does **not** redefine these — it aliases them (`PRIMARY = H.BRAND_PRIMARY`, `FONT_HEADER = H.FONT_CN`). `workflow.py` uses `H.SLIDE_W/H` rather than hardcoded `Inches(...)`.
+
+Consequences for changes:
+- Changing a color or font = editing `helpers.py` in **one** place; it propagates to the theme and every helper default.
+- Markdown docs cannot import, so hex values in `design-system.md` / `diagram/*.md` are **labelled copies** — they cite `helpers.py` as authoritative and must be re-synced by hand if the palette changes.
+- A genuinely different theme (e.g. a future `party_red.py`) may define its own palette — that is a new SSOT scope, not a duplication. The rule forbids re-stating the *same* value, not having distinct themes.
 
 ### Skill docs are the product
 

@@ -6,6 +6,11 @@
 
 ## 10 现成色板
 
+> **SSOT（单一事实来源）**：色值的唯一权威定义在 `helpers.py` 顶部的 `BRAND_*` 常量。
+> 下表是**参考目录**——10 套可选配色的备查清单,不是独立定义。`tech_blue.py` 等主题
+> 模块**别名引用** `helpers.py`（`PRIMARY = H.BRAND_PRIMARY`）,不重新定义色值。
+> 改色板 = 改 `helpers.py` 一处,全 deck（含 tech_blue 主题）联动。
+
 全定制路径只需修改 `helpers.py` 顶部的 `BRAND_*` 常量，全 deck 联动。以下 10 套色板直接可用。
 
 | 主题 | BRAND_PRIMARY | BRAND_DARK | BRAND_TINT | ACCENT |
