@@ -32,18 +32,30 @@ def test_make_single_focus():
     T.make_single_focus(prs, big_text="一句话", big_number="80%", explanation="解释")
     assert len(prs.slides) == 1
 
-def test_make_two_col_compare():
+def test_make_compare_two_items():
     prs = _new()
-    T.make_two_col_compare(prs, "现状", "现状描述", "目标", "目标描述")
+    T.make_compare(prs, "对比", items=[
+        {"title": "现状", "body": "手工"},
+        {"title": "目标", "body": "自动"}])
     assert len(prs.slides) == 1
 
-def test_make_three_col_cards():
+def test_make_compare_three_items():
     prs = _new()
-    T.make_three_col_cards(prs, cards=[
-        {"title": "卡1", "body": "正文1"},
-        {"title": "卡2", "body": "正文2"},
-        {"title": "卡3", "body": "正文3"},
-    ])
+    T.make_compare(prs, "三方对比", items=[
+        {"title": "A", "body": "x"}, {"title": "B", "body": "y"},
+        {"title": "C", "body": "z"}])
+    assert len(prs.slides) == 1
+
+def test_make_cards_two():
+    prs = _new()
+    T.make_cards(prs, "两栏", cards=[
+        {"title": "卡1", "body": "正文1"}, {"title": "卡2", "body": "正文2"}])
+    assert len(prs.slides) == 1
+
+def test_make_cards_four():
+    prs = _new()
+    T.make_cards(prs, "四栏", cards=[
+        {"title": f"卡{i}", "body": f"正文{i}"} for i in range(1, 5)])
     assert len(prs.slides) == 1
 
 def test_make_bullet_list():
