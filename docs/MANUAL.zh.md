@@ -1,6 +1,6 @@
 # iLovePPT 详细使用手册
 
-> 版本：v0.1.0 | 最后更新：2026-05-22 | 覆盖：完整 API、所有 layout、工作流内部、故障排查、二次开发
+> 版本：v2.0 | 最后更新：2026-05-22 | 覆盖：完整 API、所有 layout、工作流内部、故障排查、二次开发
 
 ---
 
@@ -15,7 +15,7 @@
    - [3.4 check_deps.sh 用法](#34-check_depssh-用法与输出解读)
    - [3.5 Python 版本要求](#35-python-版本要求)
 4. [第一次使用——完整走一遍](#4-第一次使用完整走一遍)
-   - [4.1 跑 demo_brief.yaml](#41-跑-demo_briefyaml-的完整命令)
+   - [4.1 跑 demo_plan.json](#41-跑-demo_planjson-的完整命令)
    - [4.2 终端输出逐步解释](#42-逐步解释终端输出)
    - [4.3 产物说明](#43-产物-sample_outputpptx-在哪长什么样)
    - [4.4 如何查看产物](#44-如何把产物转成图片查看)
@@ -32,7 +32,7 @@
    - [9.2 10 套预设色板](#92-10-套预设色板完整表格)
    - [9.3 切换色板](#93-切换色板的方法)
    - [9.4 新建主题](#94-新建一套主题的完整步骤)
-10. [用模板学风格（template-ingest）](#10-用模板学风格template-ingest)
+10. [从模板提取主色与字体（template-extract）](#10-从模板提取主色与字体template-extract)
 11. [diagram skill 用法](#11-diagram-skill-用法)
     - [11.1 工具选型决策表](#111-工具选型决策表)
     - [11.2 draw.io 用法](#112-drawio-用法)
@@ -58,7 +58,7 @@
 
 | 文档 | 定位 | 适合 |
 |---|---|---|
-| `USAGE.zh.md` | 快速上手速查（213 行） | 第一次跑通、找命令、确认字段名 |
+| `USAGE.zh.md` | 快速上手速查 | 第一次跑通、找命令、确认字段名 |
 | `docs/MANUAL.zh.md`（本文） | 完整大全（700+ 行） | 深度理解机制、定制主题、二次开发、故障排查 |
 
 两份文档并存：USAGE 是速查，MANUAL 是大全。不冲突，功能互补。
@@ -69,7 +69,7 @@
 |---|---|
 | **只想跑起来** | 第 3 章（安装）→ 第 4 章（快速试用） |
 | **想自定义 brief** | 第 5 章（brief 字段）→ 第 6 章（layout 选型） |
-| **想定制配色/主题** | 第 9 章（主题与配色）→ 第 10 章（模板学风格） |
+| **想定制配色/主题** | 第 9 章（主题与配色）→ 第 10 章（模板提取主色与字体） |
 | **想生成架构图** | 第 11 章（diagram 工具链） |
 | **想单独操作 PPT 文件** | 第 12 章（pptx skill 独用） |
 | **想二次开发** | 第 7 章（工作流内部）→ 第 15 章（扩展指南） |
@@ -125,7 +125,7 @@ iLovePPT 是一个端到端 PPT 生成 skill 库，目标是**复制人类快速
 | 配色一致性 | 手动改每个元素 | 统一色板常量，全 deck 联动 |
 | 中文字体 | 容易 fallback | lxml 写 `<a:ea>` 节点，跨平台保证 |
 | 视觉验证 | 目测，漏看 | 逐页渲染 PNG 自检，问题自动修复 |
-| 可重现性 | 不可重现 | brief.yaml + workflow.py 可任意重跑 |
+| 可重现性 | 不可重现 | brief.yaml + deck_plan.json + build.py 可任意重跑 |
 
 ---
 
@@ -282,7 +282,7 @@ python3 --version  # 应输出 Python 3.10.x 或更高
 
 ## 4. 第一次使用——完整走一遍
 
-### 4.1 跑 demo_brief.yaml 的完整命令
+### 4.1 跑 demo_plan.json 的完整命令
 
 ```bash
 # 进入项目根目录
@@ -291,34 +291,27 @@ cd /path/to/iLovePPT
 # 确认依赖已装
 bash skills/pptx/scripts/check_deps.sh
 
-# 进入 pptx-deck skill 目录并运行
-cd skills/pptx-deck
-python3 workflow.py examples/demo_brief.yaml
+# 运行 demo（从项目根目录执行）
+python3 skills/pptx-deck/build.py skills/pptx-deck/examples/demo_plan.json
 ```
 
-或从项目根目录直接执行：
+加 `--no-render` 仅生成 .pptx，跳过 PNG 渲染：
 
 ```bash
-cd /path/to/iLovePPT
-python3 skills/pptx-deck/workflow.py skills/pptx-deck/examples/demo_brief.yaml
+python3 skills/pptx-deck/build.py skills/pptx-deck/examples/demo_plan.json --no-render
 ```
 
 ### 4.2 逐步解释终端输出
 
-正常运行时，终端输出如下（以 demo_brief.yaml 的 12 页 deck 为例）：
+build.py 正常运行时，终端输出如下（以 demo_plan.json 的 deck 为例）：
 
 ```
-slide 1/12: cover
-  [vision_check] /tmp/iloveppt_render/page_01.png (intent: cover)
-slide 2/12: toc
-  [vision_check] /tmp/iloveppt_render/page_02.png (intent: toc)
-slide 3/12: section_divider
-  [vision_check] /tmp/iloveppt_render/page_03.png (intent: section_divider)
-slide 4/12: bullet_list
-  [vision_check] /tmp/iloveppt_render/page_04.png (intent: bullet_list)
+slide 1/12: cover       → /tmp/iloveppt_render/page_01.png
+slide 2/12: toc         → /tmp/iloveppt_render/page_02.png
+slide 3/12: section_divider → /tmp/iloveppt_render/page_03.png
+slide 4/12: bullet_list → /tmp/iloveppt_render/page_04.png
 ...
-slide 12/12: closing
-  [vision_check] /tmp/iloveppt_render/page_12.png (intent: closing)
+slide 12/12: closing    → /tmp/iloveppt_render/page_12.png
 
 Done: ./examples/sample_output.pptx
 ```
@@ -328,14 +321,12 @@ Done: ./examples/sample_output.pptx
 | 输出行 | 含义 |
 |---|---|
 | `slide N/M: layout` | 第 N 页（共 M 页），使用的 layout 类型 |
-| `[vision_check] /tmp/.../page_NN.png` | 渲染 PNG 后执行视觉检查（骨架版直接通过） |
-| `[fix_slide] 应用 N 个修复` | 发现问题并应用修复策略（issues 非空时出现） |
+| `→ /tmp/.../page_NN.png` | 渲染 PNG 路径（build.py 机械输出） |
 | `Done: <路径>` | 生成完成，产物路径 |
-| `Warning: N pages need review:` | 有 N 页视觉检查未通过，需人工审查 |
+| `Warning: N pages need review:` | 有 N 页渲染失败，需人工审查 |
 | `- page N: render_failed` | 第 N 页渲染失败（soffice/pdftoppm 问题） |
-| `- page N: vision_unresolved` | 第 N 页修复 3 次仍有问题，标记待审 |
 
-> ⚠️ 当前骨架版的 `vision_check` 总是返回 `[]`（无问题），所以不会出现修复行。真实使用时 Claude 会读图并输出 issue JSON。
+**视觉 QA 由 Claude 主导**：build.py 完成后，Claude 逐张 Read PNG，按 12 项 checklist 找问题，修改 deck_plan.json 后重新调用 build.py。
 
 如果渲染工具（soffice / pdftoppm）未安装，会看到：
 
@@ -348,10 +339,10 @@ slide 1/12: cover
 
 ### 4.3 产物 sample_output.pptx 在哪、长什么样
 
-产物路径由 demo_brief.yaml 的 `output` 字段决定：
+产物路径由 demo_plan.json 的 `output` 字段决定：
 
-```yaml
-output: ./examples/sample_output.pptx
+```json
+"output": "./examples/sample_output.pptx"
 ```
 
 因此产物在：`skills/pptx-deck/examples/sample_output.pptx`
@@ -412,9 +403,15 @@ open /tmp/sample_slides-1.jpg   # macOS 打开第 1 页
 
 ## 5. brief.yaml 完全参考
 
+### 关于输入与构建的分工
+
+**brief.yaml 是用户→Claude 的输入**，不是 build.py 的直接输入。build.py 的输入是 Claude 产出的 `deck_plan.json`。
+
+流程：`brief.yaml（用户写）→ Claude 读取并规划 → deck_plan.json（Claude 写）→ build.py 渲染`
+
 ### 5.1 双路输入：自由对话 vs brief.yaml
 
-`pptx-deck` skill 支持两种输入方式，均可触发完整生成流程：
+`pptx-deck` skill 支持两种输入方式，均可触发完整 7 步生成流程：
 
 **路 A — 自由对话**：在 Claude Code 对话框中说"帮我做一份 PPT"，Claude 会追问必填字段：
 
@@ -422,14 +419,14 @@ open /tmp/sample_slides-1.jpg   # macOS 打开第 1 页
 请提供以下信息以生成 PPT：
 1. 主题（≤ 20 字）
 2. 章节/大纲（建议 4-6 个）
-3. 主题风格（默认 tech_blue，或给 .pptx 模板路径让 skill 学风格）
+3. 主题风格（默认 tech_blue，或给 .pptx 模板路径提取主色与字体）
 4. 输出路径
 （可选）受众、时长、关键论点、目标页数、品牌色
 ```
 
-**路 B — brief.yaml**：直接提供 YAML 文件路径，Claude 调用 `python3 workflow.py your_brief.yaml` 执行。
+**路 B — brief.yaml**：直接提供 YAML 文件路径，Claude 读取后产出 `deck_plan.json`，再调用 build.py。
 
-两种路最终都会进入相同的 `run()` 函数流程。
+两种路最终都由 Claude 产出 `deck_plan.json` 交给 `build.py` 渲染。
 
 ### 5.2 每个字段详解
 
@@ -439,7 +436,7 @@ open /tmp/sample_slides-1.jpg   # macOS 打开第 1 页
 |---|---|---|---|---|---|
 | `title` | `str` | 是 | ≤ 30 字 | `"AI 4A 架构评审办法 v1.0"` | PPT 主标题，显示在封面大字 |
 | `outline` | `list[str]` | 是 | 建议 4-6 项 | `["背景", "方案", "数据"]` | 章节大纲，决定 section_divider 数量 |
-| `theme` | `str` | 是 | 内置主题名或 .pptx 路径 | `"tech_blue"` 或 `"./template.pptx"` | 内置只有 `tech_blue`；其他路径走 template-ingest |
+| `theme` | `str` | 是 | 内置主题名或 .pptx 路径 | `"tech_blue"` 或 `"./template.pptx"` | 内置只有 `tech_blue`；其他路径走 template-extract |
 | `output` | `str` | 是 | 支持 `~` 展开 | `"./out/deck.pptx"` | 产物 .pptx 保存路径，父目录不存在会自动创建 |
 
 #### 可选字段（7 项）
@@ -451,8 +448,8 @@ open /tmp/sample_slides-1.jpg   # macOS 打开第 1 页
 | `duration_min` | `int` | `None` | 正整数（分钟） | `15` | 影响页数估算（约 1 分钟 1.5 页） |
 | `key_points` | `list[str]` | `[]` | 每条 ≤ 18 字 | `["强制嵌入研发流程", "5 阶段评审"]` | 核心论点，用于 summary/bullet_list |
 | `page_count_target` | `int` | `None` | 正整数 | `20` | 目标页数；不填时自动估算：`len(outline) × 1.5 + 4` |
-| `brand_color` | `str` | `None` | 6 位 hex 含 # | `"#0B2A4A"` | 覆盖 theme 默认主色（当前仅文档记录，workflow.py 未自动应用） |
-| `reference_pptx` | `str` | `None` | 文件路径 | `"./corporate.pptx"` | 提供参考模板学风格（走 template-ingest 流程） |
+| `brand_color` | `str` | `None` | 6 位 hex 含 # | `"#0B2A4A"` | 覆盖 theme 默认主色（Claude 在产出 deck_plan.json 时写入 theme token） |
+| `reference_pptx` | `str` | `None` | 文件路径 | `"./corporate.pptx"` | 提供参考模板提取主色与字体（走 template-extract 流程） |
 
 ### 5.3 一个最小 brief 示例 + 一个完整 brief 示例
 
@@ -494,40 +491,19 @@ reference_pptx: null
 
 ### 5.4 字段校验规则
 
-`parse_brief()` 在 `workflow.py` 中的校验逻辑：
+brief.yaml 由 Claude 读取并校验（不是 build.py 直接解析）。Claude 检查必填字段后产出 `deck_plan.json`，build.py 只消费 `deck_plan.json`。
 
-```python
-REQUIRED: set[str] = {"title", "outline", "theme", "output"}
+必填字段：`title` / `outline` / `theme` / `output`（4 项），任意缺一 Claude 会追问。
 
-def parse_brief(path: str | Path) -> dict[str, Any]:
-    with open(path) as f:
-        data = yaml.safe_load(f)
-    missing = REQUIRED - set(data)
-    if missing:
-        raise ValueError(f"brief 缺字段: {missing}")
-    data.setdefault("subtitle", "")
-    data.setdefault("page_count_target", None)
-    data.setdefault("key_points", [])
-    data.setdefault("reference_pptx", None)
-    return data
-```
+可选字段若缺失，Claude 按默认值填充：`subtitle` → `""`，`key_points` → `[]`，`page_count_target` → 按章节数估算（`len(outline) × 1.5 + 4`）。
 
-- 4 个必填字段任意缺一，抛出 `ValueError`，错误信息包含缺失字段名
-- 可选字段若缺失，自动填充默认值（`subtitle` → `""`，`key_points` → `[]` 等）
-- `audience`、`duration_min`、`brand_color` 未设 setdefault，缺失时为 `None`（调用方按 None 处理）
-
-**常见报错及含义**：
-
-```
-ValueError: brief 缺字段: {'theme', 'output'}
-```
-→ brief.yaml 缺少 `theme` 和 `output` 字段，补充即可。
+**常见问题**：若 Claude 报告 brief 字段不完整，检查 brief.yaml 是否包含上述 4 个必填字段。
 
 ---
 
 ## 6. 11 种版式（layout）详解
 
-11 种 layout 均在 `skills/pptx-deck/themes/tech_blue.py` 中实现，文案约束来自 `content-writing.md`。
+11 种 layout 均在 `skills/pptx-deck/themes/tech_blue.py` 中实现，文案约束来自 `content-writing.md`。在 `deck_plan.json` 的每页 `"layout"` 字段中使用下方的版式名称。
 
 ---
 
@@ -547,7 +523,7 @@ def make_cover(prs: _Pres, title: str, subtitle: str) -> Slide:
 - `title`：≤ 20 字
 - `subtitle`：≤ 30 字，不堆头衔
 
-**page_spec JSON 示例**：
+**deck_plan.json 示例**：
 
 ```json
 {
@@ -573,7 +549,7 @@ def make_toc(prs: _Pres, sections: list[str]) -> Slide:
 
 **文案约束**：`sections` 列表 ≤ 6 项，每章节 ≤ 12 字，用动宾短语或名词性结构。
 
-**page_spec JSON 示例**：
+**deck_plan.json 示例**：
 
 ```json
 {
@@ -598,7 +574,7 @@ def make_section_divider(prs: _Pres, num: int | str, title: str) -> Slide:
 
 **文案约束**：`num` 为章节序号（1、2、3...），`title` ≤ 10 字，与 toc 章节名严格对应。
 
-**page_spec JSON 示例**：
+**deck_plan.json 示例**：
 
 ```json
 {
@@ -630,7 +606,7 @@ def make_single_focus(
 
 **文案约束**：`big_text` ≤ 12 字，`big_number` 为数字（如 "80%"、"3.2h"），`explanation` 1 行解释。不得放多个要点。
 
-**page_spec JSON 示例**：
+**deck_plan.json 示例**：
 
 ```json
 {
@@ -643,12 +619,12 @@ def make_single_focus(
 
 ---
 
-### 6.5 two_col_compare — 双栏对比
+### 6.5 compare — 双栏对比
 
 **函数签名**：
 
 ```python
-def make_two_col_compare(
+def make_compare(
     prs: _Pres,
     left_title: str,
     left_body: str,
@@ -663,11 +639,11 @@ def make_two_col_compare(
 
 **文案约束**：左右标题各 ≤ 6 字，句式对称（长度差不超过 2×），body 正文 ≤ 80 字。
 
-**page_spec JSON 示例**：
+**deck_plan.json 示例**：
 
 ```json
 {
-  "layout": "two_col_compare",
+  "layout": "compare",
   "left_title": "方案 A",
   "left_body": "基于微服务，部署灵活，维护成本高，需要容器编排平台。",
   "right_title": "方案 B",
@@ -677,12 +653,12 @@ def make_two_col_compare(
 
 ---
 
-### 6.6 three_col_cards — 三栏卡片
+### 6.6 cards — 三栏卡片
 
 **函数签名**：
 
 ```python
-def make_three_col_cards(
+def make_cards(
     prs: _Pres,
     cards: list[dict[str, str]],
     title: str = "三栏",
@@ -697,16 +673,16 @@ def make_three_col_cards(
 
 **文案约束**：每卡 `title` ≤ 6 字，`body` ≤ 30 字，三卡 body 长度差 ≤ 30%（视觉平衡）。
 
-**page_spec JSON 示例**：
+**deck_plan.json 示例**：
 
 ```json
 {
-  "layout": "three_col_cards",
+  "layout": "cards",
   "title": "三大核心能力",
   "cards": [
     {"title": "自动生成", "body": "从 brief 一键产出完整 PPT，无需手动排版"},
     {"title": "视觉自检", "body": "逐页渲染并检查，字体/对齐/溢出问题自动修复"},
-    {"title": "模板学风格", "body": "给参考 .pptx，提取色板字体，复刻品牌风格"}
+    {"title": "模板提取", "body": "给参考 .pptx，提取主色与字体，复刻品牌风格"}
   ]
 }
 ```
@@ -727,7 +703,7 @@ def make_bullet_list(prs: _Pres, title: str, items: list[str]) -> Slide:
 
 **文案约束**：每项 ≤ 14 字，句式一致（全动宾或全名词性，不混用），不应放 5+ 项（超出时拆页或换 table）。
 
-**page_spec JSON 示例**：
+**deck_plan.json 示例**：
 
 ```json
 {
@@ -764,7 +740,7 @@ def make_table(
 
 **文案约束**：列 ≤ 5，行 ≤ 7，单元格 ≤ 8 字（不能塞段落）。
 
-**page_spec JSON 示例**：
+**deck_plan.json 示例**：
 
 ```json
 {
@@ -802,7 +778,7 @@ def make_pic_text(
 
 **文案约束**：每卡 `title` ≤ 8 字，`body` ≤ 20 字；图片宽度 ≥ 1600px（保证清晰度）。
 
-**page_spec JSON 示例**：
+**deck_plan.json 示例**：
 
 ```json
 {
@@ -840,7 +816,7 @@ def make_summary(
 
 **文案约束**：3-5 条结论，每条 ≤ 18 字，包含数字佐证，不要重复 outline 章节名。
 
-**page_spec JSON 示例**：
+**deck_plan.json 示例**：
 
 ```json
 {
@@ -870,7 +846,7 @@ def make_closing(prs: _Pres, subtitle: str = "谢谢") -> Slide:
 
 **文案约束**：`subtitle` ≤ 30 字，通常放联系方式或 "Q&A"，不要再列要点。
 
-**page_spec JSON 示例**：
+**deck_plan.json 示例**：
 
 ```json
 {
@@ -883,22 +859,72 @@ def make_closing(prs: _Pres, subtitle: str = "谢谢") -> Slide:
 
 ## 7. 工作流程详解
 
-`workflow.py` 的核心入口是 `run(brief_path)` 函数，内部经历 6 步流程。
+v2 的生成流程由 Claude 驱动 7 步，`build.py` 负责机械渲染。
 
-### 步骤一：parse_brief — 解析与校验
+### 7 步 Claude 工作流
 
-**函数**：`parse_brief(path: str | Path) -> dict[str, Any]`
+| 步骤 | 执行者 | 工作内容 |
+|---|---|---|
+| 1. 读 brief | Claude | 读取 brief.yaml 或与用户对话，补齐必填字段 |
+| 2. 图层规划 | Claude | 判断哪些章节需要架构图/流程图/数据图（见 diagram-planning.md） |
+| 3. 拓写文案 | Claude | 按 11 种 layout 文案约束产出每页内容（见 content-writing.md） |
+| 4. 写 deck_plan.json | Claude | 输出完整 JSON，含 theme/output/slides 数组 |
+| 5. 调用 build.py | Claude | `python3 skills/pptx-deck/build.py deck_plan.json` |
+| 6. 视觉 QA | Claude | 逐页 Read PNG，按 12 项 checklist 找问题，修 deck_plan.json 后 rebuild |
+| 7. 交付 | Claude | 给用户 .pptx 路径 + review_needed 清单（若有） |
 
-**输入**：brief.yaml 文件路径
+### deck_plan.json 结构
+
+build.py 的唯一输入：
+
+```json
+{
+  "theme": "tech_blue",
+  "output": "./out/deck.pptx",
+  "slides": [
+    { "layout": "cover", "title": "标题", "subtitle": "副标题" },
+    { "layout": "toc", "sections": ["章节 1", "章节 2"] },
+    { "layout": "bullet_list", "title": "要点", "items": ["...", "..."] }
+  ]
+}
+```
+
+### build.py — 机械构建器
+
+**CLI**：
+
+```bash
+python3 skills/pptx-deck/build.py deck_plan.json
+python3 skills/pptx-deck/build.py deck_plan.json --no-render   # 仅 .pptx，跳过 PNG
+```
 
 **做什么**：
-1. 用 `yaml.safe_load()` 解析 YAML
-2. 检查 4 个必填字段（title / outline / theme / output），缺一抛 `ValueError`
-3. 用 `setdefault` 填充可选字段默认值（subtitle/page_count_target/key_points/reference_pptx）
+1. 解析 `deck_plan.json`
+2. 加载 theme（`tech_blue` 或 `_extract_theme_from_pptx` 提取的临时主题）
+3. 逐页调用 `theme.make_<layout>(**fields)` 生成 slide
+4. 保存 `.pptx`
+5. 逐页调用 `soffice + pdftoppm` 渲染 PNG（除非 `--no-render`）
 
-**输出**：标准化的 `dict`，保证所有后续步骤可以直接访问 `brief["subtitle"]` 等字段
+build.py **不含任何 LLM 调用**。视觉 QA 由 Claude 在 build.py 完成后读图处理。
 
-**相关函数**：`parse_brief()`，常量 `REQUIRED = {"title", "outline", "theme", "output"}`
+### 加载主题
+
+```
+theme in THEMES（"tech_blue"）
+  → 直接返回 tech_blue 模块
+
+theme 以 ".pptx" 结尾
+  → 检查文件存在
+  → 调用 _extract_theme_from_pptx(pptx_path) 提取主色与字体
+  → 动态生成临时主题模块并返回
+
+其他值
+  → 抛出 ValueError("未知 theme: ...")
+```
+
+**输出**：含 11 个 `make_*()` 函数的模块对象
+
+**必填字段**：`title` / `outline` / `theme` / `output`（Claude 校验，缺一追问）
 
 ---
 
@@ -916,7 +942,7 @@ theme_id in THEMES（"tech_blue"）
 
 theme_id 以 ".pptx" 结尾
   → 检查文件是否存在
-  → 调用 _ingest_template(pptx_path) 提取设计 token
+  → 调用 _extract_theme_from_pptx(pptx_path) 提取主色与字体
   → 动态生成临时主题模块并返回
 
 其他值
@@ -927,143 +953,30 @@ theme_id 以 ".pptx" 结尾
 
 **内置主题注册表**：`THEMES: dict[str, ModuleType] = {"tech_blue": T}`，新主题在此注册。
 
----
-
-### 步骤三：generate_outline — 生成 page_spec 列表
-
-**函数**：`generate_outline(brief: dict[str, Any]) -> list[dict[str, Any]]`
-
-**输入**：标准化 brief 字典
-
-**页数估算公式**（当 `page_count_target` 未指定时）：
+### build.py 逐页渲染流程
 
 ```python
-def estimate_page_count(brief: dict[str, Any]) -> int:
-    if brief["page_count_target"]:
-        return brief["page_count_target"]
-    return int(len(brief["outline"]) * 1.5) + 4
+# 每页执行：
+fn = getattr(theme, f"make_{spec['layout']}")
+kwargs = {k: v for k, v in spec.items() if k != "layout"}
+slide = fn(prs, **kwargs)
+
+# 渲染 PNG（soffice + pdftoppm）
+render_one_slide(prs, idx, out_png)
 ```
-
-即：`总页数 = 章节数 × 1.5 + 4`（+4 = 封面 + 目录 + 总结 + 封底）。
-
-例：4 章节 → 10 页；6 章节 → 13 页。
-
-**骨架版固定输出结构**：
-
-```
-cover（封面）
-toc（目录，包含所有 outline 章节）
-对每个 outline 章节：
-  section_divider（章节扉页）
-  bullet_list（内容页，使用 key_points 前 5 项）
-summary（总结，使用 key_points）
-closing（封底）
-```
-
-真实使用时，LLM 替换此函数，按每节要点数量智能选择 layout（见 content-writing.md 选型规则）。
-
-**输出**：`list[dict]`，每个 dict 是一个 page_spec，含 `layout` 字段和该 layout 的参数。
-
----
-
-### 步骤四：逐页循环
-
-每页执行：`generate_slide → render_one_slide → vision_check → fix_slide`，最多重试 3 次。
-
-#### 4a. generate_slide — 渲染 slide 对象
-
-**函数**：`generate_slide(prs: _Pres, spec: dict[str, Any], theme: ModuleType) -> Slide`
-
-```python
-def generate_slide(prs, spec, theme):
-    fn = getattr(theme, f"make_{spec['layout']}")
-    kwargs = {k: v for k, v in spec.items() if k != "layout"}
-    return fn(prs, **kwargs)
-```
-
-动态调用 `theme.make_<layout_name>(prs, **kwargs)`，将 page_spec 转化为实际 slide 对象。
-
-#### 4b. render_one_slide — 渲染 PNG
-
-**函数**：`render_one_slide(prs: _Pres, idx: int, out_png: str | Path) -> None`
-
-流程：
-1. 将当前 deck 保存到 `/tmp/iloveppt_render/current.pptx`
-2. 调 `soffice --headless --convert-to pdf` 转 PDF
-3. 调 `pdftoppm -jpeg -r 120 -f idx -l idx` 截取第 `idx` 页
-4. 将截图重命名为 `out_png`
 
 速度参考：~3-4 秒/页（soffice 启动开销约 1.5 秒）。
 
-#### 4c. vision_check — 视觉检查
+### deck_review — 跨页一致性（Claude 驱动）
 
-**函数**：`vision_check(image_path: str | Path, intent: str) -> list[dict[str, Any]]`
-
-骨架版实现：打印路径后直接返回 `[]`（接受所有）。
-
-真实使用：Claude 用 Read 工具读取 PNG，对照 visual-qa.md 的 12 项 checklist 输出 issue JSON：
-
-```json
-[
-  {
-    "severity": "high",
-    "description": "标题文字溢出右边界",
-    "suggested_fix": "缩短标题至 ≤ 25 字"
-  }
-]
-```
-
-#### 4d. fix_slide — 应用修复
-
-**函数**：`fix_slide(slide: Slide, issues: list[dict[str, Any]]) -> Slide`
-
-支持两种机械修复策略（基于 `suggested_fix` 关键词匹配）：
-
-| suggested_fix 关键词 | 修复动作 | 实现函数 |
-|---|---|---|
-| 含 `"字号"` 或 `"font"` + 大/过大 | 全 slide 所有 textbox font 缩小 20%（最小 8pt） | `_fix_fontsize_too_large()` |
-| 含 `"margin"` 或 `"归零"` | 全 slide 所有 textbox margin 归零 | `_fix_margin_not_zeroed()` |
-| 其他 | 打印 suggested_fix 但不修改 | `_fix_no_action()` |
-
-#### 主循环逻辑
-
-```python
-attempts = 0
-issues = vision_check(png_path, intent=spec["layout"])
-while issues and attempts < 3:
-    slide = fix_slide(slide, issues)
-    render_one_slide(prs, idx, png_path)
-    issues = vision_check(png_path, intent=spec["layout"])
-    attempts += 1
-if issues:
-    review_needed.append({"idx": idx, "reason": "vision_unresolved", "issues": issues})
-```
-
-修复最多 3 次。若 3 次后仍有 issue，标记为 `review_needed`，继续处理下一页。
-
----
-
-### 步骤五：deck_review — 跨页一致性检查
-
-全部 slide 生成后，执行以下检查（workflow.md 描述，骨架版未完全实现）：
+build.py 完成后，Claude 执行跨页检查（见 workflow.md）：
 
 - **字体一致性**：抽取 5 页 run，检查 `<a:ea>` typeface 是否全为 Microsoft YaHei
 - **页脚/页码完整性**：非 cover/section_divider/closing 页面应有页脚和页码
 - **章节扉页配对**：每个 section_divider 后至少有 1 个内容页
 - **颜色一致性**：主色（PRIMARY #1E6FE0）和强调色（ACCENT #00D1C1）不被随机色替代
 
----
-
-### 步骤六：保存与交付
-
-```python
-out = Path(brief["output"]).expanduser()
-out.parent.mkdir(parents=True, exist_ok=True)
-prs.save(str(out))
-print(f"\nDone: {out}")
-```
-
-打印输出路径和 `review_needed` 清单。用户根据清单人工核审问题页面。
+修复方式：Claude 修改 deck_plan.json 对应页字段，重新调用 build.py。修 ≤ 3 次仍有问题则标记 `review_needed`，给用户人工核审。
 
 ---
 
@@ -1098,47 +1011,23 @@ print(f"\nDone: {out}")
 | 11 | emoji 误用/方块显示 | 除 ⚠ ⛔ 🔒 外均不应出现 |
 | 12 | 装饰大字号换行 | 180pt 数字或 single_focus 的 big_number 变两行 |
 
-### vision_check 当前是骨架
+### v2 视觉 QA：Claude 主导
 
-`workflow.py` 中的 `vision_check` 是占位实现：
+build.py 生成每页 PNG 后，Claude 用 Read 工具读取渲染 PNG，参照上述 12 项 checklist 输出 issue JSON：
 
-```python
-def vision_check(image_path: str | Path, intent: str) -> list[dict[str, Any]]:
-    """占位：默认接受。真实运行时 Claude 用 Read tool 看图后输出 issue JSON。"""
-    print(f"  [vision_check] {image_path} (intent: {intent})")
-    return []
+```json
+[
+  {
+    "severity": "high",
+    "description": "标题文字溢出右边界",
+    "suggested_fix": "缩短标题至 ≤ 25 字"
+  }
+]
 ```
 
-真实自检依赖 Claude 的多模态能力：Claude 用 Read 工具读取渲染 PNG，参照上述 12 项 checklist 输出 issue JSON，再由 `fix_slide()` 处理。
+Claude 收到 issue 后，修改 `deck_plan.json` 中对应页的字段（缩短文案 / 调小字号 / 换 layout），重新调用 `build.py` rebuild。修 ≤ 3 次仍有问题 → 标记 `review_needed`，不再重试。
 
-**机制说明**：`vision_check` 骨架版是为了让 `workflow.py` 可以独立测试，不依赖 Claude 运行环境。真实使用时，Claude Code 在执行 `workflow.py` 后，会逐张读取 `/tmp/iloveppt_render/page_NN.png` 并手动调用修复流程。
-
-### fix_slide 的 2 个机械策略
-
-**策略一：字号缩小 20%**（`_fix_fontsize_too_large`）
-
-触发条件：`suggested_fix` 中含 `"字号"` 或 `"font"` + 大/large/过大/small/过小
-
-```python
-new_size = int(run.font.size.pt * 0.8)
-if new_size < 8:
-    new_size = 8
-```
-
-影响范围：当前 slide 所有 textbox 的所有 run，最小保留 8pt。
-
-**策略二：textbox margin 归零**（`_fix_margin_not_zeroed`）
-
-触发条件：`suggested_fix` 中含 `"margin"` 或 `"归零"`
-
-```python
-tf.margin_left = tf.margin_right = Emu(0)
-tf.margin_top = tf.margin_bottom = Emu(0)
-```
-
-影响范围：当前 slide 所有含文本框的 shape。
-
-**何时降级**：修复尝试 `attempts >= 3` 且 issues 仍存在，标记 `review_needed`，不再重试。
+**何时降级**：`review_needed` 页面给用户人工核审。Claude 不再强行重试 3 次以上。
 
 ### review_needed 清单怎么读
 
@@ -1260,7 +1149,7 @@ PRIMARY_TINT = RGBColor(0xFF, 0xED, 0xDB)   # #FFEDDB
 ACCENT       = RGBColor(0x2F, 0x3C, 0x7E)   # #2F3C7E
 ```
 
-**第三步**：在 `workflow.py` 的 `THEMES` 字典中注册：
+**第三步**：在 `build.py` 的 `THEMES` 字典中注册：
 
 ```python
 from themes import tech_blue as T
@@ -1280,7 +1169,7 @@ theme: warm_orange
 
 ---
 
-## 10. 用模板学风格（template-ingest）
+## 10. 从模板提取主色与字体（template-extract）
 
 ### 何时用
 
@@ -1292,16 +1181,16 @@ theme: warm_orange
 # 方式一：通过 theme 字段直接指向 .pptx
 theme: "/path/to/your/corporate_template.pptx"
 
-# 方式二：通过 reference_pptx 字段（当前 workflow.py 中未自动处理，需 LLM 读取后手动）
+# 方式二：通过 reference_pptx 字段（Claude 读取后写入 deck_plan.json 的 theme 字段）
 reference_pptx: "/path/to/your/corporate_template.pptx"
 ```
 
-当 `theme` 字段以 `.pptx` 结尾时，`load_theme()` 自动触发 `_ingest_template()`。
+当 `deck_plan.json` 的 `theme` 字段以 `.pptx` 结尾时，`build.py` 自动触发 `_extract_theme_from_pptx()`。完整 6 步提取流程见 [template-extract.md](template-extract.md)。
 
-### `_ingest_template()` 怎么工作
+### `_extract_theme_from_pptx()` 怎么工作
 
 ```python
-def _ingest_template(pptx_path: str) -> ModuleType:
+def _extract_theme_from_pptx(pptx_path: str) -> ModuleType:
 ```
 
 工作步骤：
@@ -1320,7 +1209,7 @@ def _ingest_template(pptx_path: str) -> ModuleType:
 提取成功后，打印提示：
 
 ```
-  ingested theme written to /tmp/iloveppt_ingest/ingested_corporate.py
+  extracted theme written to /tmp/iloveppt_ingest/ingested_corporate.py
      fonts: 微软雅黑
      primary: (30, 111, 224)
 ```
@@ -1337,7 +1226,7 @@ except Exception:
     return tokens   # 返回空 dict
 ```
 
-若提取失败（tokens 为空 dict 或缺失字段），`_ingest_template` 使用 tech_blue.py 默认值：
+若提取失败（tokens 为空 dict 或缺失字段），`_extract_theme_from_pptx` 使用 tech_blue.py 默认值：
 - 字体：`Microsoft YaHei`（未替换源码中的默认值）
 - 主色：`PRIMARY = RGBColor(0x1E, 0x6F, 0xE0)` 保持不变
 
@@ -1670,7 +1559,7 @@ your-project/
         │   └── ...
         ├── pptx-deck/
         │   ├── SKILL.md
-        │   ├── workflow.py
+        │   ├── build.py
         │   └── ...
         └── diagram/
             ├── SKILL.md
@@ -1696,7 +1585,7 @@ your-project/
 |---|---|---|
 | "帮我做一份汇报 PPT" | `pptx-deck` | 追问 title/outline/theme/output |
 | "给我做个路演 deck" | `pptx-deck` | 追问必填字段，生成完整 .pptx |
-| "用这个 brief.yaml 生成 PPT" | `pptx-deck` | 直接调用 workflow.py |
+| "用这个 brief.yaml 生成 PPT" | `pptx-deck` | 读取 brief，产出 deck_plan.json，调用 build.py |
 | "读一下这份 PPT 里有什么内容" | `pptx` | 用 markitdown 或遍历提取文字 |
 | "在模板基础上改第 3 页的标题" | `pptx` | 用 clear_template_slides + 局部修改 |
 | "画一个系统架构图" | `diagram` | 用 draw.io 生成多层架构图 PNG |
@@ -1770,12 +1659,12 @@ ls /Applications/draw.io.app   # 验证
 
 ### 卡片重叠（元素遮挡）
 
-**症状**：two_col_compare 或 three_col_cards 中卡片互相覆盖。
+**症状**：`compare` 或 `cards` 版式中卡片互相覆盖。
 
-**原因**：page_spec 的坐标参数冲突，或 layout 函数中 x 坐标计算有误。
+**原因**：deck_plan.json 中字段过长，或 layout 函数中 x 坐标计算有误。
 
 **解决**：
-1. 检查 `make_three_col_cards` 的列间距：`x = Inches(0.55 + i * 4.15)`，共 3 列，最右列 `x = Inches(8.85)`，总宽度 `0.55 + 3.85 = 12.4"`，未超出 13.333"
+1. 检查 `make_cards` 的列间距：`x = Inches(0.55 + i * 4.15)`，共 3 列，最右列 `x = Inches(8.85)`，总宽度 `0.55 + 3.85 = 12.4"`，未超出 13.333"
 2. 若是自定义 layout，检查 `x + w` 不超过 `13.333" - 0.55" = 12.78"`
 
 ---
@@ -1788,8 +1677,8 @@ ls /Applications/draw.io.app   # 验证
 
 **解决**：
 1. 减少 brief 的字数（按照 content-writing.md 字数约束严格执行）
-2. `vision_check` 返回 `suggested_fix: "字号过大"` → `fix_slide` 自动缩减 20%
-3. 手动修改 page_spec 中的文字，控制在约束范围内
+2. Claude 视觉 QA 返回 `suggested_fix: "字号过大"` → Claude 修 deck_plan.json 缩减文案，rebuild
+3. 手动修改 deck_plan.json 中的文字，控制在约束范围内
 
 ---
 
@@ -1819,16 +1708,16 @@ if tblPr is not None:
 
 ---
 
-### 模板 ingest 失败
+### 模板提取失败
 
-**症状**：`RuntimeError: 无法从 /tmp/... 加载 ingested theme`
+**症状**：`RuntimeError: 无法从 /tmp/... 加载 extracted theme`
 
 **原因**：动态生成的 theme Python 文件语法错误，或 importlib 加载失败。
 
 **解决**：
 1. 检查 `/tmp/iloveppt_ingest/ingested_<stem>.py` 文件内容，确认替换的颜色 hex 为合法值
 2. 确认模板 .pptx 可被 python-pptx 正常打开：`python3 -c "from pptx import Presentation; Presentation('template.pptx')"`
-3. 若仍失败，在 brief 中改用 `theme: tech_blue` 跳过 ingest
+3. 若仍失败，在 deck_plan.json 中改用 `"theme": "tech_blue"` 跳过提取
 
 ---
 
@@ -1887,7 +1776,7 @@ def make_image_full(prs: _Pres, title: str, image_path: str) -> Slide:
 | image_full | 标题 ≤ 20 字；图片宽度 ≥ 2400px | 用截图作为图片 |
 ```
 
-**第三步**：在 `content-writing.md` 的拓写指令模板中补充 page_spec 格式：
+**第三步**：在 `content-writing.md` 的拓写指令模板中补充 deck_plan.json 格式：
 
 ```
 image_full:   { layout, title, image_path }
@@ -1905,46 +1794,16 @@ def test_make_image_full():
 
 ### 15.2 加一个新主题
 
-参见第 9.4 节"新建一套主题的完整步骤"，核心是：复制 tech_blue.py → 修改常量 → 在 workflow.py THEMES 注册。
+参见第 9.4 节"新建一套主题的完整步骤"，核心是：复制 tech_blue.py → 修改常量 → 在 build.py THEMES 注册。
 
-### 15.3 扩展 fix_slide 策略
+### 15.3 视觉 QA 扩展
 
-当前 `fix_slide` 只支持两种机械策略。新增策略步骤：
+v2 的 QA 由 Claude 驱动：build.py 渲染 PNG 后，Claude 读图 → 输出 issue JSON → 修改 deck_plan.json → rebuild。
 
-```python
-# 在 workflow.py 中新增修复函数
-def _fix_overlap(slide: Slide, issue: dict[str, Any]) -> str:
-    """调整 z-order 修复元素重叠。"""
-    # 实现逻辑...
-    return "调整 z-order"
-
-# 在 fix_slide 中新增分支
-def fix_slide(slide: Slide, issues: list[dict[str, Any]]) -> Slide:
-    for issue in issues:
-        sf = issue.get("suggested_fix", "").lower()
-        if "字号" in sf or ("font" in sf and re.search(r"大|large|过大|small|过小", sf)):
-            action = _fix_fontsize_too_large(slide, issue)
-        elif "margin" in sf or "归零" in sf:
-            action = _fix_margin_not_zeroed(slide, issue)
-        elif "重叠" in sf or "overlap" in sf:   # 新增
-            action = _fix_overlap(slide, issue)  # 新增
-        else:
-            action = _fix_no_action(slide, issue)
-```
-
-### 15.4 实现真正的 vision_check
-
-替换骨架占位，接入真实视觉检查（需在 Claude Code 环境内运行）：
+若需自动化 QA（不依赖交互式 Claude），可通过外部脚本调用 Claude API：
 
 ```python
-# 方案一：半自动（Claude 在调用 workflow.py 后手动读图）
-# 不需改 workflow.py，Claude 在运行后逐张读 /tmp/iloveppt_render/page_NN.png
-
-# 方案二：全自动（修改 vision_check 让 workflow.py 内部触发检查）
-# 注意：不能在 workflow.py 内嵌 LLM API 调用（违反架构约定）
-# 可以通过 subprocess 调用外部检查脚本
-
-def vision_check(image_path: str | Path, intent: str) -> list[dict]:
+def vision_check_external(image_path: str, intent: str) -> list[dict]:
     """调用外部视觉检查脚本（返回 issue JSON）。"""
     import json, subprocess
     result = subprocess.run(
@@ -1956,7 +1815,7 @@ def vision_check(image_path: str | Path, intent: str) -> list[dict]:
     return []
 ```
 
-外部脚本 `scripts/vision_check_claude.py` 负责调用 Claude API 读图并输出 issue JSON。
+注意：build.py 本身不内嵌 LLM 调用（架构约定：build.py 是纯机械构建器）。
 
 ---
 
@@ -1970,13 +1829,15 @@ def vision_check(image_path: str | Path, intent: str) -> list[dict]:
 | **装 draw.io** | `brew install --cask drawio` |
 | **装 Mermaid** | `brew install mermaid-cli` |
 | **依赖检查** | `bash skills/pptx/scripts/check_deps.sh` |
-| **跑 demo** | `cd skills/pptx-deck && python3 workflow.py examples/demo_brief.yaml` |
-| **自定义生成** | `python3 skills/pptx-deck/workflow.py my_brief.yaml` |
+| **跑 demo** | `python3 skills/pptx-deck/build.py skills/pptx-deck/examples/demo_plan.json` |
+| **自定义生成** | `python3 skills/pptx-deck/build.py deck_plan.json` |
+| **仅生成 .pptx** | `python3 skills/pptx-deck/build.py deck_plan.json --no-render` |
 | **跑测试** | `python3 -m pytest tests/ -v` |
+| **回归 eval** | `bash evals/run_eval.sh` |
 | **渲染查看（PPT → PDF）** | `soffice --headless --convert-to pdf deck.pptx --outdir /tmp/` |
 | **渲染查看（PDF → PNG）** | `pdftoppm -jpeg -r 150 /tmp/deck.pdf /tmp/slides` |
 | **查看全 PNG** | `open /tmp/slides-1.jpg` |
-| **单独 smoke test** | `python3 -m pytest tests/pptx_deck/test_workflow.py -v` |
+| **单独 smoke test** | `python3 -m pytest tests/pptx_deck/test_build.py -v` |
 | **验证雅黑字体** | `fc-list \| grep -i yahei` |
 | **验证 soffice** | `soffice --version` |
 | **验证 pdftoppm** | `pdftoppm -v` |
@@ -1991,9 +1852,13 @@ def vision_check(image_path: str | Path, intent: str) -> list[dict]:
 
 ```
 iLovePPT/
-├── README.md                        # 项目概述（英中双语快速开始）
-├── USAGE.zh.md                      # 中文快速上手（213 行速查）
+├── README.md                        # 项目概述（快速开始）
+├── USAGE.zh.md                      # 中文快速上手速查
 ├── pyproject.toml                   # 依赖与配置（Python 3.10+）
+├── evals/                           # 回归 eval 集
+│   ├── run_eval.sh                  # eval runner
+│   ├── baseline/                    # 基准产物
+│   └── rubric.md                    # 评分标准
 ├── docs/
 │   ├── MANUAL.zh.md                 # 本文件：详细使用手册
 │   └── superpowers/
@@ -2004,20 +1869,22 @@ iLovePPT/
 └── skills/
     ├── pptx-deck/                   # 端到端 PPT 生成器（主入口）
     │   ├── SKILL.md                 # skill 入口描述（含触发关键词）
-    │   ├── workflow.py              # 主流程骨架（可运行）
-    │   ├── workflow.md              # 工作流详细文档（6 步）
+    │   ├── build.py                 # 机械构建器：deck_plan.json → .pptx + PNG
+    │   ├── workflow.md              # 7 步 Claude 工作流文档
     │   ├── content-writing.md       # 11 layout 文案规则 + 拓写 prompt
     │   ├── visual-qa.md             # 视觉自检 12 项 checklist
-    │   ├── template-ingest.md       # 模板学风格 6 步流程
-    │   ├── brief.example.yaml       # brief 完整示例（11 个字段）
+    │   ├── template-extract.md      # 从 .pptx 提取主色与字体 6 步流程
+    │   ├── diagram-planning.md      # 图层规划决策规则
+    │   ├── brief.example.yaml       # brief 完整示例（用户→Claude 输入）
     │   ├── themes/
     │   │   └── tech_blue.py         # 内置科技蓝主题（11 个 make_* 函数）
     │   └── examples/
-    │       ├── demo_brief.yaml      # 可直接运行的演示 brief
-    │       └── sample_output.pptx   # 12 页参考成品
+    │       ├── demo_plan.json       # 可直接运行的演示 deck_plan
+    │       └── sample_output.pptx   # 参考成品
     ├── pptx/                        # .pptx 底层读写
     │   ├── SKILL.md                 # skill 入口描述
     │   ├── helpers.py               # 13 个核心 helper 函数
+    │   ├── layout.py                # 几何图元（geometry primitives）
     │   ├── creating.md              # 从零创建 PPT 指南
     │   ├── editing.md               # 模板局部修改指南
     │   ├── reading.md               # 读取提取内容指南
@@ -2056,7 +1923,7 @@ iLovePPT/
 |---|---|---|
 | `tests/pptx/test_helpers.py` | 5 个 | set_font EA 节点、card shape 数、色板常量、clear_template_slides |
 | `tests/pptx_deck/test_tech_blue.py` | 12 个 | 11 个 make_* 函数各自的 slide 生成、shape 数量、字体名 |
-| `tests/pptx_deck/test_workflow.py` | 18 个 | parse_brief 校验、estimate_page_count、generate_outline 结构、load_theme、generate_slide、fix_slide 策略 |
+| `tests/pptx_deck/test_build.py` | 18 个 | deck_plan.json 校验、load_theme、build 各 layout、render 流程 |
 
 运行方式：
 
@@ -2065,13 +1932,16 @@ iLovePPT/
 python3 -m pytest tests/ -v
 
 # 单文件
-python3 -m pytest tests/pptx_deck/test_workflow.py -v
+python3 -m pytest tests/pptx_deck/test_build.py -v
 
 # 单个测试
 python3 -m pytest tests/pptx/test_helpers.py::test_set_font_writes_ea_typeface -v
+
+# 回归 eval 集
+bash evals/run_eval.sh
 ```
 
-测试设计原则：纯 Python 单测不依赖 soffice/pdftoppm，视觉"长得对不对"由手动端到端 smoke test 验证（运行 `workflow.py examples/demo_brief.yaml` 后目视检查产物）。
+测试设计原则：纯 Python 单测不依赖 soffice/pdftoppm，视觉"长得对不对"由端到端 smoke test 验证（运行 `build.py examples/demo_plan.json` 后目视检查产物）。
 
 ### 17.4 项目信息
 
