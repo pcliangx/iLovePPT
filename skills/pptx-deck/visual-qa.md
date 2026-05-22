@@ -138,6 +138,8 @@ Claude 根据 `issue.suggested_fix` 决策如何修改 `deck_plan.json`：
 
 ## 视觉 QA checklist（12 项，deck 级）
 
+> 本 checklist 对应 [evals/rubric.md](../../evals/rubric.md) 的 **Design（设计）维**（D1–D14）；Content / Coherence 维的全面评估见该文档。
+
 完成所有单页 check 后，对整个 deck 做最终核查：
 
 - [ ] **无重叠**：所有元素 z-order 正常，无文字穿形状

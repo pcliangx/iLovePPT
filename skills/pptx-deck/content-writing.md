@@ -22,6 +22,42 @@
 | summary | 3-5 条结论，每条 ≤ 18 字，有数字佐证 | 重复 outline 章节 |
 | closing | 极简："谢谢" + 联系方式或下一步 | 又一页要点总结 |
 
+> 上表所有含"标题"的 layout，其 title 应是「行动式标题」（见下节 deck 级论证结构）。
+
+---
+
+## deck 级论证结构（先于逐页拓写）
+
+拓写每一页之前,先把整份 deck 设计成**一个论证**,而不是一堆话题的拼盘。
+
+### 行动式标题（action title）
+
+每个内容页的标题是**一句完整的结论**,不是话题标签。读者只看标题就知道这页要说什么。
+
+- ✗ 话题标签："市场背景" / "技术方案" / "效果数据"
+- ✓ 行动式："SaaS 市场三年翻倍,渗透率仍不足 15%" / "三层架构把交付周期从 2 周压到 2 天" / "上线 3 月,人均每天省 1.2 小时"
+
+### 金字塔结构（Minto）
+
+整份 deck 是一条论证链,常见骨架：
+
+```
+背景 situation → 问题 / 冲突 complication → 方案 resolution → 证据 → 结论
+```
+
+或"结论先行":核心结论放在 summary 之前就立住,各章是支撑论据。`outline` 不是话题清单,而是这条论证链的展开。
+
+### Ghost deck test（幽灵 deck 测试）
+
+把所有页的 action title 按顺序抽出来单独读一遍 —— 它们应当**独立讲出完整故事**。
+若抽出的标题读起来是断的、跳跃的、或全是名词短语,说明论证结构没立住 —— 回去重排 `outline`,而不是硬拓写。
+
+### 与逐页拓写的衔接
+
+- `section_divider` / `bullet_list` / `cards` / `compare` / `single_focus` / `table` / `pic_text` 的 `title` 字段都应是 action title。
+- `cover.title` 是 deck 的主命题;`summary` 是论证的收口结论。
+- 这一步在 workflow 的图层规划前后做,产出的 `outline` 决定 `deck_plan.json` 的 slides 骨架。
+
 ---
 
 ## 拓写指令模板
