@@ -33,7 +33,7 @@ def columns(box: Box, n: int, gap: Length = Inches(0.3)) -> list[Box]:
     """把 box 横切成 n 等宽列,列间留 gap。"""
     col_w = Emu(int((box.w - gap * (n - 1)) / n))
     return [
-        Box(x=Emu(box.x + i * (col_w + gap)), y=box.y, w=col_w, h=box.h)
+        Box(x=Emu(box.x + i * (col_w + gap)), y=Emu(int(box.y)), w=col_w, h=Emu(int(box.h)))
         for i in range(n)
     ]
 
@@ -42,14 +42,19 @@ def rows(box: Box, n: int, gap: Length = Inches(0.2)) -> list[Box]:
     """把 box 纵切成 n 等高行,行间留 gap。"""
     row_h = Emu(int((box.h - gap * (n - 1)) / n))
     return [
-        Box(x=box.x, y=Emu(box.y + i * (row_h + gap)), w=box.w, h=row_h)
+        Box(x=Emu(int(box.x)), y=Emu(box.y + i * (row_h + gap)), w=Emu(int(box.w)), h=row_h)
         for i in range(n)
     ]
 
 
 def stack(box: Box, heights: list[Length], gap: Length = Inches(0.2),
           align: str = "middle") -> list[Box]:
-    """按给定块高纵向排布,整组在 box 内对齐。align: top|middle|bottom。"""
+    """按给定块高纵向排布,整组在 box 内对齐。align: top|middle|bottom。
+
+    若块总高超过 box.h,内容会溢出 box 边界（向上）——由调用方负责确保能放下。
+    """
+    if not heights:
+        return []
     total = sum(heights) + gap * (len(heights) - 1)
     if align == "top":
         cur = box.y
@@ -59,7 +64,7 @@ def stack(box: Box, heights: list[Length], gap: Length = Inches(0.2),
         cur = box.y + (box.h - total) // 2
     out: list[Box] = []
     for hgt in heights:
-        out.append(Box(x=box.x, y=Emu(int(cur)), w=box.w, h=hgt))
+        out.append(Box(x=Emu(int(box.x)), y=Emu(int(cur)), w=Emu(int(box.w)), h=Emu(int(hgt))))
         cur = cur + hgt + gap
     return out
 
@@ -68,8 +73,8 @@ def split(box: Box, ratio: float, gap: Length = Inches(0.3)) -> tuple[Box, Box]:
     """按 ratio 把 box 横切成左右两块（ratio = 左块占可用宽的比例）。"""
     left_w = Emu(int((box.w - gap) * ratio))
     right_w = Emu(box.w - gap - left_w)
-    left = Box(x=box.x, y=box.y, w=left_w, h=box.h)
-    right = Box(x=Emu(box.x + left_w + gap), y=box.y, w=right_w, h=box.h)
+    left = Box(x=box.x, y=Emu(int(box.y)), w=left_w, h=Emu(int(box.h)))
+    right = Box(x=Emu(box.x + left_w + gap), y=Emu(int(box.y)), w=right_w, h=Emu(int(box.h)))
     return left, right
 
 

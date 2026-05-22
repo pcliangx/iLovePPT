@@ -27,7 +27,7 @@ def test_columns_respects_gap_and_order():
     box = L.Box(Inches(0), Inches(0), Inches(10), Inches(6))
     cols = L.columns(box, 2, gap=Inches(1))
     assert cols[0].x == Inches(0)
-    assert cols[1].x > cols[0].x + cols[0].w
+    assert abs(cols[1].x - (cols[0].x + cols[0].w + Inches(1))) < 100
 
 
 def test_rows_count_and_heights_equal():
@@ -55,7 +55,7 @@ def test_split_ratio():
     left, right = L.split(box, 0.4, gap=Inches(0))
     assert abs(left.w - Inches(4)) < 100
     assert abs(right.w - Inches(6)) < 100
-    assert right.x >= left.x + left.w
+    assert abs(right.x - (left.x + left.w)) < 100   # gap=0, so right starts right after left
 
 
 def test_inset_shrinks_box():
@@ -63,3 +63,28 @@ def test_inset_shrinks_box():
     inner = L.inset(box, Inches(0.5), Inches(0.5))
     assert inner.x == Inches(1.5)
     assert inner.w == Inches(9)
+
+
+def test_columns_single():
+    box = L.Box(Inches(0), Inches(0), Inches(12), Inches(6))
+    cols = L.columns(box, 1)
+    assert len(cols) == 1
+    assert cols[0].w == Inches(12)
+
+
+def test_stack_bottom_align():
+    box = L.Box(Inches(0), Inches(0), Inches(10), Inches(10))
+    boxes = L.stack(box, [Inches(2)], gap=Inches(0), align="bottom")
+    # 2" 块,底对齐 10" 区 → 顶在 8"
+    assert abs(boxes[0].y - Inches(8)) < 100
+
+
+def test_stack_empty_heights_returns_empty():
+    box = L.Box(Inches(0), Inches(0), Inches(10), Inches(10))
+    assert L.stack(box, []) == []
+
+
+def test_rows_x_matches_box():
+    box = L.Box(Inches(2), Inches(0), Inches(8), Inches(6))
+    rs = L.rows(box, 3)
+    assert all(r.x == box.x for r in rs)
