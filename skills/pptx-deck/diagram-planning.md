@@ -45,18 +45,18 @@
 | 内容信号（章节标题 / 要点里出现） | 图类型 `diagram_type` | 推荐工具 `tool` | 落到 [[diagram]] 的子文档 |
 |---|---|---|---|
 | 系统由…组成、分 N 层、模块 / 组件 / 微服务 / 技术栈 / 拓扑 | `arch_diagram` | draw.io | `drawio.md` |
-| 步骤 / 阶段 / 流程 / 先后 / 时序 / 环节 / pipeline | `flow` | Mermaid | `mermaid.md` |
+| 步骤 / 阶段 / 流程 / 先后 / 时序 / 环节 / pipeline | `flow` | draw.io | `drawio.md` |
 | 趋势 / 增长 / 占比 / 对比 / 指标 / 百分比 / 数据 | `chart` | matplotlib | `matplotlib.md` |
-| 角色关系 / 依赖 / 交互 / 连接 / 映射（≤ 5 节点） | `simple_relation` | pptx-native | `pptx-native.md` |
+| 角色关系 / 依赖 / 交互 / 连接 / 映射（≤ 5 节点） | `simple_relation` | draw.io | `drawio.md` |
 
-工具选型的完整决策表（含切换阈值）见 [[diagram]] `SKILL.md`。本表是粗筛。
+**结构性图形（流程图 / 架构图 / 矩阵 / 决策树 / 关系图）一律优先 draw.io** —— 配色精确、布局可控、跨图视觉一致。Mermaid 仅作极快草图备选,数据图用 matplotlib;`simple_relation` 若需在 PowerPoint 内可编辑,可改用 pptx-native。完整决策表见 [[diagram]] `SKILL.md`。
 
 ### 判断时的注意点
 
 - **章节标题是主要线索，`key_points` 是补充**：标题"落地路径"含"路径"偏流程，但若要点全是数字，则应选 `chart`。
 - **一个章节只配最相关的一张图**：既有架构又有流程时，挑承载信息量最大的。
 - **不是每章都要图**：纯观点 / 背景陈述类章节（如"背景与意义"）通常不配图。
-- **节点数决定架构图 vs 关系图**：> 5 节点或有嵌套层次走 `arch_diagram`（draw.io）；≤ 5 节点的简单关系走 `simple_relation`（slide 内直接画，可编辑）。
+- **节点数决定架构图 vs 关系图**：> 5 节点或有嵌套层次走 `arch_diagram`；≤ 5 节点的简单关系走 `simple_relation`。两者都用 draw.io 出图；`simple_relation` 若需 PowerPoint 内可编辑可改 pptx-native。
 
 ## Claude 语义判断
 

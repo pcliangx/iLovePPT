@@ -82,6 +82,8 @@ The `SKILL.md` + child `.md` files are not auxiliary documentation — they are 
 
 Content that expresses structure, flow, relationships, or data comparison should become a **diagram**, not a wall of bullet text. When generating or reviewing a deck, actively use AI drawing capability (the `diagram` skill) for such content; when in doubt, draw it. This principle is enforced operationally by the diagram-planning step (workflow Step 3, a Claude-executed process) documented in `skills/pptx-deck/diagram-planning.md`. Any change to generation behavior should preserve this bias toward visuals.
 
+Structural diagrams (flowcharts, architecture, matrices, decision trees, relationship maps) default to **draw.io** — precise color, controllable layout, cross-diagram visual consistency. Mermaid is only a quick-sketch fallback; matplotlib handles data charts. See `skills/diagram/SKILL.md` for the tool-selection table.
+
 ## Critical invariants
 
 - **Chinese fonts must be written via lxml `<a:ea>` + `<a:cs>`** (`helpers.py:set_font`). python-pptx's default `font.name` only writes `<a:latin>`, so Chinese text falls back to an ugly font cross-platform. This is the #1 source of broken output.
