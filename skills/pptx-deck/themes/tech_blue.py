@@ -113,7 +113,24 @@ def make_toc(prs: _Pres, sections: list[str]) -> Slide:
 
 def make_section_divider(prs: _Pres, num: int | str, title: str) -> Slide:
     s = _blank_slide(prs)
-    H.section_header(s, title, num, PRIMARY_DEEP)
+    region = L.full_region()
+    block_h = Inches(1.6)
+    band = L.stack(region, [block_h], align="middle")[0]
+    # 左侧深色数字块
+    num_w = Inches(1.6)
+    H.rect(s, band.x, band.y, num_w, band.h, PRIMARY_DEEP)
+    num_tb = s.shapes.add_textbox(band.x, band.y, num_w, band.h)
+    H.fix_textbox_margins(num_tb.text_frame)
+    p = num_tb.text_frame.paragraphs[0]
+    p.alignment = PP_ALIGN.CENTER
+    rn = p.add_run()
+    rn.text = str(num)
+    H.set_font(rn, name=FONT_NUM, size=72, bold=True, color=H.WHITE)
+    # 右侧章节标题
+    title_x = Emu(band.x + num_w + Inches(0.5))
+    title_w = Emu(band.w - num_w - Inches(0.5))
+    title_box = L.Box(x=title_x, y=band.y, w=title_w, h=band.h)
+    _text(s, title_box, title, size=40, bold=True, color=PRIMARY_DEEP)
     return s
 
 
@@ -141,7 +158,10 @@ def make_compare(prs: _Pres, title: str, items: list[dict[str, str]]) -> Slide:
     """N 列对比卡片，accent 色交替。与 make_cards 结构相同，仅 accent 逻辑不同。"""
     s = _blank_slide(prs)
     _add_title(s, title, size=28)
-    cols = L.columns(L.content_region(), len(items))
+    region = L.content_region()
+    card_h = Inches(3.4)
+    row = L.stack(region, [card_h], align="middle")[0]
+    cols = L.columns(row, len(items))
     for i, (col, item) in enumerate(zip(cols, items)):
         accent = PRIMARY if i % 2 == 0 else ACCENT
         H.card(s, col.x, col.y, col.w, col.h, fill=H.WHITE,
@@ -157,13 +177,17 @@ def make_compare(prs: _Pres, title: str, items: list[dict[str, str]]) -> Slide:
 def make_cards(prs: _Pres, title: str, cards: list[dict[str, str]]) -> Slide:
     s = _blank_slide(prs)
     _add_title(s, title, size=28)
-    cols = L.columns(L.content_region(), len(cards))
+    region = L.content_region()
+    card_h = Inches(3.4)
+    # 卡片行在内容区纵向居中,而非占满整个内容区高度
+    row = L.stack(region, [card_h], align="middle")[0]
+    cols = L.columns(row, len(cards))
     for col, card in zip(cols, cards):
         H.card(s, col.x, col.y, col.w, col.h, fill=H.WHITE,
                border=H.GRAY_300, accent=PRIMARY)
         inner = L.inset(col, Inches(0.3), Inches(0.25))
-        parts = L.stack(inner, [Inches(0.5), Inches(2.0)], gap=Inches(0.15),  # 卡内: 标题行 / 正文行
-                        align="top")
+        parts = L.stack(inner, [Inches(0.5), Inches(2.0)], gap=Inches(0.15),
+                        align="top")  # 卡内: 标题行 / 正文行
         _text(s, parts[0], card["title"], size=18, bold=True, color=PRIMARY_DEEP)
         _text(s, parts[1], card["body"], size=13, color=H.GRAY_900)
     return s
