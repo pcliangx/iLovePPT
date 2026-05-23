@@ -38,6 +38,14 @@ No build step and no linter are configured.
 
 ## Architecture
 
+### Agent 层
+
+`.claude/agents/iloveppt.md` 是项目的主入口。它是一个 Claude Code subagent —— 独立上下文 orchestrator,把以下三件事串起来:(1) 读 brief / 设计大纲 / 规划图层(Phase 1,终于大纲 checkpoint 等用户批准);(2) 批准后,生成图 / 拓写 / 跑 build.py / 视觉 QA 循环 / 交付(Phase 2)。
+
+skill 层(`pptx-deck` / `pptx` / `diagram`)继续作为 agent 的工具与知识库存在,也可被主线程 Claude 直接用作 skill-mode 后备入口。
+
+agent 设计见 `docs/superpowers/specs/2026-05-23-iloveppt-agent-design.md`。
+
 ### Three-skill layering
 
 ```

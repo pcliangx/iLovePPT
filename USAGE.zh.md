@@ -4,6 +4,25 @@
 
 ---
 
+## 通过 agent 使用(主推)
+
+iLovePPT 作为 Claude Code agent 部署:
+
+```
+@agent-iloveppt 做一份 <主题> 的 PPT,受众 <executive|technical|general|sales|investor>,时长 <N> 分钟
+```
+
+agent 两阶段:
+
+- **Phase 1**:解析 brief → 设计大纲(action title + Minto + ghost deck test)→ 规划图层 → 返回 outline 结构供你批准
+- **Phase 2**(批准后):生成配图 → 写 deck_plan.json → 跑 build.py → 视觉自检(≤ 3 轮)→ 返回 `.pptx` 路径 + review-needed 清单
+
+把 agent 共享给别的项目:把本仓库的 `.claude/agents/iloveppt.md` 拷或软链到目标项目的 `.claude/agents/iloveppt.md`(同时需要 `skills/` 也可访问 —— 与现在的 skill 链接方式一致)。
+
+详细设计:[docs/superpowers/specs/2026-05-23-iloveppt-agent-design.md](docs/superpowers/specs/2026-05-23-iloveppt-agent-design.md)。
+
+---
+
 ## 一、这是什么
 
 iLovePPT 是一个 Claude Code skill 库，目标是**复制人类快速生成 PPT 的能力**。你输入主题与要点，工具自动：

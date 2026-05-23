@@ -10,6 +10,25 @@
 | [`skills/pptx/`](skills/pptx/) | 底层 .pptx 读写：从零创建 / 模板编辑 / 提取内容 |
 | [`skills/diagram/`](skills/diagram/) | 架构图 / 流程图 / 可视化（draw.io / mermaid / matplotlib / pptx-native） |
 
+## 用法 —— 通过 agent(主推)
+
+iLovePPT 是一个 Claude Code agent。装好后(把 `.claude/agents/iloveppt.md` 放到目标项目的 `.claude/agents/`,或在本仓库内直接用),在 Claude Code 里:
+
+```
+@agent-iloveppt 帮我做一份关于 X 的 PPT,受众 Y,时长 Z 分钟
+```
+
+agent 会两阶段跑:
+
+1. **Phase 1 — 大纲**:返回 sections + 图层计划 + 页数预估,等你批准
+2. **Phase 2 — 构建**:你批准后,自动跑配图 → 拓写 → build → 视觉 QA(≤ 3 轮)→ 交付 `.pptx`
+
+详见 [USAGE.zh.md](USAGE.zh.md) 与 [agent 设计](docs/superpowers/specs/2026-05-23-iloveppt-agent-design.md)。
+
+## 用法 —— skill-mode(备用)
+
+若不通过 agent,主线程 Claude 也能直接读 `skills/pptx-deck/SKILL.md` 跑 7 步流程。skill-mode 没有强制 checkpoint。
+
 ## 快速开始
 
 主入口是 `skills/pptx-deck/build.py`；`tech_blue` 主题开箱即用；`demo_plan.json` 提供可运行示例；`sample_output.pptx` 是参考成品。
