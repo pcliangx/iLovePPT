@@ -3,7 +3,8 @@
 > 给 PM、设计师、讲者、运营、咨询——任何想把一句话需求变成完整 PPT 的人。
 > 你不需要写代码,也不需要看懂 `build.py`——读完这份手册你就能用。
 >
-> **v3 重大变化(2026-05-23)**:从"派 agent 出稿"改成"先在主线程多轮聊清楚 → agent 只做最后构建"。你不再面对 yaml,你只面对 markdown。
+> **v3 重大变化(2026-05-23)**:**3 个 agent 接力**(brainstorm → author → builder),主线程做调度。你只面对 markdown,不面对 yaml。
+> 用法上你不用记 3 个 agent 名字——你只跟主线程说"做个 PPT",主线程自动派发 brainstorm,后面接力下去。
 
 ---
 
@@ -27,28 +28,27 @@
 
 ## 1. 30 秒理解 iLovePPT v3
 
-**iLovePPT 是一个 Claude Code 系统**(主线程 + agent 协作)。你扔一句话需求进来,流程是:
+**iLovePPT 是 3 个 Claude Code agent 接力**:
 
-1. **主线程 Claude 跟你多轮对话**,问清:给谁看、多长、核心想说啥、有没有素材;
-2. 对话中识别到数据 / 图 / 模板 → **主动让你提供文件路径或粘贴**;
-3. 主线程按金字塔原理出 `deck_v1_outline.md`(大纲),**给你审**;
-4. 批了 → 主线程拓写出 `deck_v1_content.md`(全文 + 数据图嵌入),**再给你审**;
-5. 批了 → 主线程派 agent 构建 `.pptx`,agent 自己跑视觉自检循环;
-6. 交付 `.pptx` + agent 自动改了哪几句的清单 + 仍需人审的问题清单。
+1. **iloveppt-brainstorm** —— 多轮跟你问 audience / duration / 核心命题 / 有什么素材
+2. **iloveppt-author** —— 出 `deck_v1_outline.md`(给你审)→ 出 `deck_v1_content.md`(再给你审)
+3. **iloveppt** —— 接收审过的 content.md → 构建 `.pptx` + 视觉自检
 
-**所以你只做四件事**:
+主线程 Claude 是调度员,自动派发 + 转发消息。**你不用记 agent 名字,直接说"帮我做个 X 的 PPT"即可**。
 
-| 你做的 | iLovePPT 做的 |
+**你只做四件事**:
+
+| 你做的 | 系统做的 |
 |---|---|
-| 对话:答 audience/duration/核心命题/有什么素材 | 多轮 prompt 问到收齐 |
-| 给素材(数据表 / 图 / 模板路径) | Read 文件 / 解析数据 / 落 `_assets/` |
-| 审 outline.md(可改) | 等批准 |
-| 审 content.md(可改 / 直接编辑文件) | 等批准 |
-| 收 .pptx + 看 auto_md_edits 清单 | agent build + 视觉自检 |
+| 对话:答 audience/duration/核心命题/有什么素材 | brainstorm agent 多轮 prompt 问到收齐 |
+| 给素材(数据表 / 图 / 模板路径) | brainstorm Read 文件 / 落 `_assets/` |
+| 审 outline.md(可直接编辑文件) | author 等批准 |
+| 审 content.md(可直接编辑文件) | author 等批准;批准后派 builder |
+| 收 .pptx + 看 auto_md_edits 清单 | builder 自动改格式 + 视觉自检后交付 |
 
-> **核心原则——一图胜千文。** 凡涉及结构、流程、关系、数据对比,主线程会主动用 draw.io / matplotlib 画图嵌进 markdown,而不是堆文字 bullet。
+> **核心原则——一图胜千文。** 凡涉及结构、流程、关系、数据对比,author 会主动用 draw.io / matplotlib 画图嵌进 markdown,而不是堆文字 bullet。
 
-> **v3 vs v2**:v2 让你直接 `@agent-iloveppt`,agent 全包,你只审一次 yaml 大纲。v3 把对话密集的步骤交给主线程(更适合 brainstorming),agent 专门负责构建,你审 markdown(更可读)。详情见 [agent-internals.zh.md](agent-internals.zh.md) §10。
+> **为什么这么设计?** v2 让 1 个 agent 端到端(用户只审一次 yaml,体验差)。v3 拆 3 个 agent + 主线程 dispatcher,**每个 agent 角色窄、可复用、主线程不被 PPT 任务污染**。详见 [agent-internals.zh.md](agent-internals.zh.md) §10。
 
 ---
 
@@ -151,20 +151,17 @@ v3 只有**一个**标准入口:**直接对话主线程 Claude**。
 
 主线程接着进入 Stage C(出 outline)+ Stage D(出 content),全程跟你确认。
 
-### 不再推荐:`@agent-iloveppt`(v2 用法)
+### 也可以显式派发某个 agent(进阶)
 
-v3 下直接 `@agent-iloveppt` **会被 reject**(agent 检查没有 content.md 入参就返回错误)。原因:agent 不再做 brief 解析。
+| 想做 | 派发 |
+|---|---|
+| 从一句话起步 | 直接说"做 PPT" 或 `@agent-iloveppt-brainstorm 做 X 的 PPT` |
+| 已有完整 brief / 素材就位,想跳过对话 | `@agent-iloveppt-author working_dir=... stage=C brief={...}` |
+| 已有审过的 content.md,想直接 build | `@agent-iloveppt content_md_path=... output_pptx=... theme=...` |
 
-如果你**确实有现成 content.md**(自己手写 / 上版本回收),可以直接派:
+**v3 下直接 `@agent-iloveppt`(不带 content_md_path)会被 reject** —— builder 不做 brief 解析。
 
-```
-@agent-iloveppt
-content_md_path: /abs/path/to/deck_v1_content.md
-output_pptx: /abs/path/to/deck_v1.pptx
-theme: tech_blue
-```
-
-但这条路径只给"已经懂 markdown schema 的进阶用户"。普通用户走主线程对话即可。
+普通用户走主线程对话(主线程会自动从 brainstorm 起步)即可。
 
 ### brief.yaml(v2 旧路径,仍兼容)
 
@@ -937,8 +934,11 @@ bash evals/run_eval.sh
 
 | 术语 | 意思 |
 |---|---|
-| **主线程 Claude(v3)** | 与你直接对话的 Claude;在 v3 流程中负责 Stage A-D(对话 / 素材摄入 / 出 outline.md / 出 content.md) |
-| **agent / iLovePPT agent(v3)** | Claude Code 里的 subagent,通过 `@agent-iloveppt` 派发,独立上下文。**v3 只做 Stage E build**,不再做 brief / outline / 文案 |
+| **主线程 Claude(v3)** | 与你直接对话的 Claude;v3 中**退化为 thin dispatcher** —— 只 router 消息,不持有 PPT 业务逻辑 |
+| **iloveppt-brainstorm**(v3 第 1 agent) | Stage A+B —— 多轮问你需求 + 引导你提素材。多次派发模式,状态在 `.iloveppt_dialog_state.json` |
+| **iloveppt-author**(v3 第 2 agent) | Stage C+D —— 出 outline.md → 等你批 → 出 content.md → 等你批。状态在 `.iloveppt_author_state.json` |
+| **iloveppt**(v3 第 3 agent,builder) | Stage E —— 接 content.md → Pyramid 自检 → md→JSON → build → 视觉 QA。单次派发完成 |
+| **state file** | agent 的"跨派发记忆"——`.iloveppt_*_state.json`。多次派发同一 agent 时,它读 state 恢复进度 |
 | **brief** | 你输入的需求,v3 主要是对话(一句话起步);v2 兼容的 brief.yaml 仍可作输入 |
 | **outline.md** | Stage C 产出物(`deck_v{N}_outline.md`),章节 + Pyramid 自检 checkbox,等你批准 |
 | **content.md** | Stage D 产出物(`deck_v{N}_content.md`),全文 + 数据图嵌入,等你批准 |

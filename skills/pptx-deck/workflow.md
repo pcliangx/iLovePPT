@@ -1,113 +1,133 @@
-# pptx-deck 主流程(v3:主线程对话 + agent build)
+# pptx-deck 主流程(v3:三 agent 流水线 + markdown-first)
 
-端到端:用户一句话 → 主线程多轮对话 → 用户审 markdown → agent build .pptx。
-v3 把 "智能" 分到 **主线程 Claude(Stage A-D)** + **agent(Stage E)** 两侧,接缝是 markdown 文档。
+端到端:用户一句话 → 主线程 dispatcher 调度 3 agent → 用户审 markdown → 交付 .pptx。
+**v3 把"智能"全部放进 3 个 agent**,主线程退化为 router。
 
 详细设计见 [v3 spec](../../docs/superpowers/specs/2026-05-23-iloveppt-v3-markdown-first.md)。
 
-## 5 阶段全景
+## 5 阶段 / 3 agent 全景
 
 ```
-[主线程 Claude]                                         [agent]
-─────────────────                                       ─────────
-Stage A · 需求挖掘对话(brainstorming)
-  ↓ 收齐 audience/duration/核心命题
-Stage B · 素材摄入(对话推进时)
-  ↓ 数据表 / 图 / 模板 落到 _assets/
-Stage C · 内容规划
-  ↓ 出 deck_v1_outline.md
-  ↓ 用户审 outline · 改 / 批
-Stage D · 全文拓写
-  ↓ 出 deck_v1_content.md
-  ↓ 用户审 content · 改 / 批
-                                                        Stage E · 终稿构建
-                                                          0. Read content.md + Pyramid 自检 7 项
-                                                          1. md → deck_plan.json(严约束)
-                                                          2. build.py → .pptx + PNG
-                                                          3. 视觉 QA 循环 ≤ 3 轮(自动改 md 重 build)
-                                                          4. 返回 pptx + auto_md_edits + review_needed
+[主线程 = pure dispatcher]              [3 agents · 独立上下文]
+────────────────────────                 ─────────────────────
+
+用户一句话需求
+  │
+  ▼
+派发 iloveppt-brainstorm   ◄────────►   Stage A 需求挖掘
+  ↻ 多次派发 + state file               Stage B 素材摄入
+  ◄────────────────────────  返回 next_action: dispatch_author + brief
+  │
+  ▼
+派发 iloveppt-author(C)   ◄────────►   Stage C 内容规划
+  ↻ 多次派发(出 outline / 改)         出 deck_v1_outline.md
+  ◄────────────────────────  ask_user 审 outline
+  │ 用户批准
+  ▼
+派发 iloveppt-author(D)   ◄────────►   Stage D 全文拓写
+  ↻ 多次派发(出 content / 改 / 出图)  出 deck_v1_content.md + _assets/charts/*.png
+  ◄────────────────────────  ask_user 审 content
+  │ 用户批准
+  ▼
+派发 iloveppt(builder)    ◄────────►   Stage E 终稿构建
+  单次派发(内含 ≤ 3 轮 QA)            Read content.md → Pyramid 自检 →
+                                          md→JSON → build.py → 视觉 QA
+  ◄────────────────────────  next_action: done + pptx_path + auto_md_edits
+  │
+  ▼
+展示成品 + auto_md_edits 报告给用户
 ```
 
-## Stage A:需求挖掘(主线程,brainstorming)
+## 主线程 dispatcher 协议(关键)
 
-用户扔一句话 → 主线程 Claude 调 brainstorming skill,多轮问:
+主线程**不做 PPT 业务逻辑**。它只是个状态机:
 
-| 必收齐字段 | prompt 模板 |
-|---|---|
-| `audience` | "给谁看?老板 / 客户 / 团队 / 投资人 / 大众?" |
-| `duration_min` | "多长?10/15/20/30 分钟?" |
-| `top_recommendation` | "一句话总结你想让听众接受的核心判断" |
-| `theme` | "用默认 tech_blue,还是你公司有模板 .pptx?" |
-| `output` | "成品 .pptx 放哪?(默认 ./deck_v1.pptx)" |
+```
+loop:
+  agent_return = dispatch(current_agent, current_args)
+  switch agent_return.next_action:
+    case "ask_user":
+      show(agent_return.message_to_user + questions)
+      user_reply = wait_for_user()
+      current_args["user_response"] = user_reply
+      # 同一个 agent,带新答案再派发
+    case "dispatch_brainstorm" | "dispatch_author" | "dispatch_builder":
+      current_agent = agent_return.dispatch.agent
+      current_args = agent_return.dispatch.args
+    case "done":
+      show(agent_return.pptx_path + auto_md_edits + review_needed)
+      break
+    case "error":
+      show(agent_return.error + message)
+      break
+```
 
-未收齐前**不进 Stage B**。
+主线程**不存任何中间状态**——agent 自己用 `<working_dir>/.iloveppt_dialog_state.json` / `.iloveppt_author_state.json` 跨派发记忆。
 
-## Stage B:素材摄入
+主线程**第一次入口**(用户扔一句话时):
 
-对话中如识别用户提到数据 / 图 / 模板 / 参考文档,**主动 prompt** 让其提供。规则与 prompt 模板见 [content-writing.md 素材摄入小节](content-writing.md#素材摄入主线程-stage-b)。
+```
+派发 iloveppt-brainstorm,initial_request="<用户的一句话>",
+                          working_dir=<deck 工作目录,主线程帮选 or 用户指定>
+```
 
-素材落到 `<工作目录>/_assets/{raw,charts,refs}/`,后续 Stage D 拓写时引用。
+之后跟着 agent 返回的 `next_action` 走。
 
-## Stage C:内容规划 + outline.md
+## Stage A · 需求挖掘(iloveppt-brainstorm)
+
+详见 [iloveppt-brainstorm agent](../../.claude/agents/iloveppt-brainstorm.md)。
+
+收齐字段:audience / duration_min / top_recommendation / theme / output。
+对话中识别素材需求 → prompt 用户提供。
+
+## Stage B · 素材摄入(iloveppt-brainstorm 继续)
+
+agent 在对话中识别用户素材 → 引导提供 → `Read` 校验 → 落 `_assets/{raw,refs}/` → 加入 inventory。
+
+## Stage C · 内容规划(iloveppt-author Stage C)
+
+详见 [iloveppt-author agent](../../.claude/agents/iloveppt-author.md)。
 
 按金字塔原理 5 件套设计 outline:
 
 - ① 单一顶端论点(`top_recommendation`)
 - ② SCQA 开场
-- ③ 答案在前(BLUF,顶端论点出现在 cover.subtitle 或第 1 内容页)
+- ③ 答案在前(BLUF)
 - ④ 横向 MECE(3-5 章节)
-- ⑤ 纵向疑问/回答链(章节标题串起来讲完整故事)
+- ⑤ 纵向疑问/回答链
 
-加 ⑥ 字段完整性 + ⑦ action title ≤ 24 字,共 **Pyramid 自检 7 项**。
+加 ⑥ 字段完整性 + ⑦ action title ≤ 24 字 = **Pyramid 自检 7 项**。
 
-产出 `deck_v1_outline.md`(schema 见 [content-writing.md](content-writing.md#deck_vnoutlinemd-schema))。给用户:
+产出 `deck_v1_outline.md`(schema 见 [content-writing.md](content-writing.md#deck_vnoutlinemd-schema))→ ask_user 审。
 
-```
-Outline 在 deck_v1_outline.md。审一下,改完告诉我"批准"或"改 X 处"。
-```
+## Stage D · 全文拓写(iloveppt-author Stage D)
 
-## Stage D:全文拓写 + content.md
-
-基于已批准 outline,逐节展开:
+基于已批准 outline,author 拓写每节文案:
 
 - 每节按 layout 选型规则(content-writing.md)
-- 数据图先调 matplotlib_rc 生成 PNG 落到 `_assets/charts/`,再在 md 用 `![](_assets/charts/X.png)` 嵌入
-- 文案严守 11 layout 字数规则
+- 数据图先调 matplotlib_rc 出 PNG → `_assets/charts/`
+- 严守 11 layout 字数规则
 - 关键 stat 加 `> 数据:Source: ...` 引文
 
-产出 `deck_v1_content.md`(schema 见 [content-writing.md](content-writing.md#deck_vncontentmd-schema-agent-的输入))。给用户:
+产出 `deck_v1_content.md` → ask_user 审。
+
+## Stage E · 终稿构建(iloveppt builder)
+
+详见 [iloveppt agent](../../.claude/agents/iloveppt.md)。
+
+content 批准后,author 返回 `next_action: dispatch_builder`,主线程派发:
 
 ```
-全文在 deck_v1_content.md。逐页审,有问题改 md 文件再告诉我"批准"。
-```
-
-## Stage E:agent 派发 + build
-
-content 批准后,主线程派发 agent:
-
-```
-@agent-iloveppt
-content_md_path: /abs/path/to/deck_v1_content.md
-output_pptx: /abs/path/to/deck_v1.pptx
+iloveppt
+content_md_path: <working_dir>/deck_v1_content.md
+output_pptx: <working_dir>/deck_v1.pptx
 theme: tech_blue
-footer_meta: {classification: INTERNAL, project: ..., version: v1.0}
+footer_meta: { classification, project, version }
 ```
 
-agent 5 步详见 [iloveppt agent 文件](../../.claude/agents/iloveppt.md):
+builder 5 步:Pyramid 自检 → md→JSON → build.py → 视觉 QA(≤ 3 轮,自动改 md 重 build)→ 返回。
 
-0. Read content.md + Pyramid 自检 7 项 → 失败 hard stop
-1. md → deck_plan.json(严约束:不引入新论点,反向 diff 校验)
-2. python3 build.py → .pptx + 渲染 PNG
-3. 视觉 QA 循环 ≤ 3 轮:
-   - 找到视觉问题(溢出/字号/字体 fallback 等)
-   - 自动改 content.md(仅限格式类,见 agent 文件的允许/禁止表)
-   - rerun build.py
-4. 返回 yaml:`pptx_path + auto_md_edits + review_needed + pyramid_check`
-
-主线程收到返回后:
-
-- 展示 `auto_md_edits` 给用户(可批量批准或回退某条)
-- 展示 `review_needed` 让用户人工处理
+主线程展示成品 + `auto_md_edits` + `review_needed`。
 
 ## 接缝:为什么是 markdown 而不是 yaml(v2 旧设计)
 
@@ -134,18 +154,27 @@ cover / toc / section_divider / single_focus / compare / cards / bullet_list / t
 
 | 维度 | v2 | v3 |
 |---|---|---|
-| 用户入口 | `@agent-iloveppt 帮我做 X` | "帮我做 X"(直接对话主线程) |
-| 谁做 brief 解析 | agent Phase 1 | 主线程 Stage A |
-| 谁做大纲设计 | agent Phase 1 | 主线程 Stage C |
-| 谁做文案拓写 | agent Phase 2 | 主线程 Stage D |
-| 用户审什么 | Phase 1 输出的 YAML outline | outline.md + content.md(2 个 checkpoint) |
-| 接缝 | brief → agent → pptx | content.md → agent → pptx |
-| 视觉修复 | agent 改 deck_plan.json | agent 改 content.md(用户最终源是 md) |
+| 用户入口 | `@agent-iloveppt 帮我做 X` | "帮我做 X"(主线程会自动派发 iloveppt-brainstorm) |
+| Agent 数量 | 1(端到端) | **3**(brainstorm / author / iloveppt builder) |
+| 谁做 brief 解析 | agent Phase 1 | iloveppt-brainstorm |
+| 谁做大纲设计 | agent Phase 1 | iloveppt-author Stage C |
+| 谁做文案拓写 | agent Phase 2 | iloveppt-author Stage D |
+| 谁做构建 | agent Phase 2 | iloveppt(builder) |
+| 用户审什么 | YAML outline | outline.md + content.md(2 个 checkpoint) |
+| 主线程角色 | trigger 派发 | thin dispatcher(状态机 router) |
+| 多轮对话怎么实现 | ❌ subagent 单次派发硬做 | **多次派发 + state file**(每次 agent Read state) |
+| 主线程上下文 | 干净 | 干净(v3 把对话推给 agent,主线程不持有) |
+| 接缝 | brief → agent → pptx | content.md → builder → pptx |
+| 视觉修复 | agent 改 deck_plan.json | builder 改 content.md(用户最终源是 md) |
 
 ## Anti-prompt
 
-- 主线程不要跳过 Stage A 对话,直接派 agent —— agent 会 reject
-- 主线程不要在 Stage C/D 中生成 yaml schema —— markdown 才是接缝
-- agent 不要做 brief 解析 / 大纲设计 —— 那是 Stage A-D 的事
-- agent 不要超出 auto_md_edits 边界(只允许格式修正,不允许动观点 / 数据 / 引文)
-- 配图必须在 Stage D 写 content.md 之前生成好(主线程负责)
+- 主线程不要把 PPT 业务逻辑写进自己的回复 —— 全部交给 3 agent
+- 主线程不要跳过 brainstorm 直接派 iloveppt builder —— builder 会 reject(缺 content.md)
+- 主线程不要在 dispatcher 角色之外做事(主线程**只**做 router + 转发 message)
+- 主线程不要混淆 3 个 agent 的角色;按 `next_action` 严格派发
+- iloveppt-brainstorm 不要做大纲设计 —— 那是 author 的事
+- iloveppt-author 不要做 brief 收集 / 视觉构建 —— 各有边界
+- iloveppt 不要做 brief 解析 / 大纲设计 / 文案拓写 —— 只做 build
+- 任何 agent 不要忽略 state file —— 每次派发必须先 Read,最后必须 Write
+- 配图必须在 Stage D 写 content.md 之前由 author 生成好

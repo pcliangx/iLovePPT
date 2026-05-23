@@ -1,12 +1,17 @@
 # iLovePPT Agent 工作原理(v3)
 
-> 这份文档讲清楚 iLovePPT 系统**怎么工作的**——主线程 + agent 双层架构、5 阶段流程、关键设计决策。
+> 这份文档讲清楚 iLovePPT 系统**怎么工作的**——主线程 dispatcher + 3 agent 架构、5 阶段流程、关键设计决策。
 > 适合想理解(或后续改造)系统的人;不是用户操作手册(那个看 [`MANUAL.zh.md`](MANUAL.zh.md))。
 >
-> **v3(2026-05-23)重大改动**:从"agent 端到端"变为"主线程对话 + agent build"。
-> agent 不再做 brief 解析 / 大纲 / 文案拓写,只做 markdown → .pptx 的构建。
+> **v3(2026-05-23)重大改动**:
+> - 从"agent 端到端"变成 **3 agent 流水线**(brainstorm + author + builder)
+> - 主线程**退化为 thin dispatcher**(只 router 消息,不持有业务逻辑)
+> - 多轮对话通过"**多次派发 + state file**"实现(每 agent Read 自己的 state.json 跨派发记忆)
+>
 > 旧 v2 设计仍在 [v2 agent design](superpowers/specs/2026-05-23-iloveppt-agent-design.md)。
 > v3 spec:[v3 markdown-first](superpowers/specs/2026-05-23-iloveppt-v3-markdown-first.md)。
+>
+> **决策 1 订正记录(同日)**:v3 spec 初稿曾选"主线程做 Stage A-D"(决策 1a),后发现错误归因(subagent 其实可以通过多次派发+state 实现多轮),订正为**1c:三 agent 拆分**。详见 v3 spec 顶部订正记录。
 
 ---
 
@@ -25,136 +30,176 @@
 
 ---
 
-## 1. 四层架构:主线程 / agent / skill / build.py
+## 1. 四层架构:主线程 / 3 agent / skill / build.py
 
-v3 把 v2 的 3 层扩展为 **4 层**——在 agent 之上新加 "主线程 Claude" 作为对话与协同设计层:
+v3 的核心架构:**主线程 = router**,**3 个 agent = 智能**,**skill = 知识库 + 工具**,**build.py = 纯机械构建器**:
 
 ```mermaid
 flowchart TB
-    M["<b>主线程 Claude 层</b>(v3 新增)<br/>与用户多轮对话(brainstorming skill)<br/>素材摄入 · 大纲设计 · 文案拓写<br/>产出 deck_v{N}_outline.md / content.md"]
-    A["<b>Agent 层</b><br/>.claude/agents/iloveppt.md<br/><br/>独立上下文 subagent · v3 简化为构建器<br/>读 content.md → Pyramid 自检 → md→JSON → build → 视觉 QA"]
-    B["<b>Skill 层</b><br/>skills/pptx-deck · pptx · diagram<br/><br/>知识库 + 工具<br/>SKILL.md + 子文档 · helpers.py · themes · build.py · matplotlib_rc.py"]
-    C["<b>build.py</b>(纯机械构建器)<br/><br/>deck_plan.json → .pptx + 每页 PNG<br/>不拓写 · 不画图 · 不自检 · 不调 LLM"]
-    M -->|派发 + content.md 路径| A
-    M -.->|读| B
-    A -->|读| B
-    B -->|调| C
-    classDef main fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#14532D
-    classDef agent fill:#E6F0FC,stroke:#1E6FE0,stroke-width:2px,color:#0B2A4A
+    M["<b>主线程 Claude</b>(thin dispatcher)<br/>只 router 消息 · 不持有 PPT 业务逻辑<br/>看 agent 返回的 next_action,转发用户答 / 派下一个 agent"]
+    BS["<b>iloveppt-brainstorm</b>(Stage A+B)<br/>多次派发 · state: .iloveppt_dialog_state.json<br/>多轮对话挖需求 / 引导素材 / 落 _assets/"]
+    AU["<b>iloveppt-author</b>(Stage C+D)<br/>多次派发 · state: .iloveppt_author_state.json<br/>按 Pyramid 出 outline.md → 拓写 content.md → 出图"]
+    BD["<b>iloveppt</b>(Stage E builder)<br/>单次派发(内含 ≤ 3 轮视觉 QA)<br/>读 content.md → Pyramid 自检 → md→JSON → build.py → 视觉 QA"]
+    SK["<b>Skill 层</b>(共享知识库)<br/>skills/pptx-deck · pptx · diagram<br/>content-writing.md · visual-qa.md · helpers.py · matplotlib_rc.py"]
+    BP["<b>build.py</b>(纯机械)<br/>deck_plan.json → .pptx + PNG<br/>不调 LLM"]
+    M -->|派发| BS
+    BS -->|next_action: dispatch_author| M
+    M -->|派发| AU
+    AU -->|next_action: dispatch_builder| M
+    M -->|派发| BD
+    BS -.->|读| SK
+    AU -.->|读| SK
+    BD -.->|读| SK
+    BD -->|调| BP
+    classDef main fill:#FFF,stroke:#888,stroke-width:1.5px,color:#444
+    classDef stage1 fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#14532D
+    classDef stage2 fill:#FCE7F3,stroke:#BE185D,stroke-width:2px,color:#831843
+    classDef stage3 fill:#E6F0FC,stroke:#1E6FE0,stroke-width:2px,color:#0B2A4A
     classDef skill fill:#F5F5F5,stroke:#555,stroke-width:1.5px,color:#222
     classDef tool fill:#FFF4E6,stroke:#D97706,stroke-width:1.5px,color:#7C2D12
     class M main
-    class A agent
-    class B skill
-    class C tool
+    class BS stage1
+    class AU stage2
+    class BD stage3
+    class SK skill
+    class BP tool
 ```
 
 **关键认知**:
-- **主线程** 是"和用户聊天的人"(对话 + 设计)
-- **agent** 是"按图纸施工的工头"(读 md,调 build,视觉 QA)
-- **build.py** 是"会按规格切料的木工"(JSON → .pptx)
-- **skill** 是"工地上的施工手册 + 工具箱"
+- **主线程** 是 router —— 不知道 PPT 怎么做,只按 agent 返回的 `next_action` 派下一步
+- **3 个 agent** 分别管 Stage A+B / C+D / E,**各自维护 state file**,在多次派发间记忆
+- **skill** 是所有 agent 实时 Read 的"运行手册 + 工具箱"
+- **build.py** 是 builder agent 调用的纯机械工具
 
-v2 → v3 的关键转变:**智能在主线程,agent 只做构建**。原因见 §6。
+为什么 3 agent 而非 1 个端到端?因为 brainstorm 和 author 都需要**多轮交互**,通过多次派发 + state file 实现;builder 是单次派发完成。三者角色 / 频率 / 复杂度差异大,拆开维护更清晰。详见 §6.6。
 
 ---
 
 ## 2. 入口:用户怎么发起一次任务
 
-v3 的入口**不是** `@agent-iloveppt`,而是**直接对话主线程 Claude**:
+用户输入一句话需求 → 主线程识别意图 → **派发 iloveppt-brainstorm**(第 1 个 agent)。之后主线程跟着 agent 返回的 `next_action` 走:
 
 ```mermaid
 flowchart TB
-    U[用户:"帮我做个 X 的 PPT"] --> M["主线程 Claude<br/>触发 brainstorming skill<br/>开始 Stage A 对话"]
-    M --> ABCD[Stage A-D · 多轮对话 · 出 markdown]
-    ABCD --> Y{用户批准 content.md?}
-    Y -->|是| DP[主线程派发 agent<br/>入参 = content_md_path + output_pptx + theme]
-    Y -->|否,改| ABCD
-    DP --> AG[Agent 实例启动<br/>独立上下文<br/>跑 Stage E build]
+    U[用户:"帮我做个 X 的 PPT"] --> M["主线程 Claude<br/>识别 PPT 意图 +<br/>选 working_dir"]
+    M --> D1[派发 iloveppt-brainstorm<br/>初次:initial_request=用户的一句话]
+    D1 --> R1{agent 返回什么?}
+    R1 -->|next_action: ask_user| Q1[展示问题给用户<br/>收答]
+    Q1 --> D1
+    R1 -->|next_action: dispatch_author| D2[派发 iloveppt-author<br/>带 brief + assets]
+    D2 --> R2{agent 返回什么?}
+    R2 -->|ask_user| Q2[展示 outline/content<br/>收用户改/批]
+    Q2 --> D2
+    R2 -->|dispatch_builder| D3[派发 iloveppt<br/>带 content_md_path]
+    D3 --> R3[builder 单次派发<br/>内部 ≤ 3 轮视觉 QA]
+    R3 --> Done([next_action: done<br/>pptx + auto_md_edits])
     classDef start fill:#FFF,stroke:#333,stroke-width:1.5px
-    classDef main fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#14532D
-    classDef agent fill:#0B2A4A,stroke:#1E6FE0,stroke-width:2px,color:#FFF
-    class U,Y start
-    class M,ABCD main
-    class DP,AG agent
+    classDef main fill:#F5F5F5,stroke:#888,stroke-width:1.5px
+    classDef stage1 fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#14532D
+    classDef stage2 fill:#FCE7F3,stroke:#BE185D,stroke-width:2px,color:#831843
+    classDef stage3 fill:#E6F0FC,stroke:#1E6FE0,stroke-width:2px,color:#0B2A4A
+    classDef gate fill:#FFF4E6,stroke:#D97706,stroke-width:1.5px,color:#7C2D12
+    class U,Done start
+    class M main
+    class D1,Q1 stage1
+    class D2,Q2 stage2
+    class D3,R3 stage3
+    class R1,R2 gate
 ```
 
-agent 的 frontmatter 限定它的窄角色:
+**3 个 agent 的 description 各管一段**:
 
-```yaml
----
-name: iloveppt
-description: PPT 终稿构建 agent。接收主线程已和用户协同确认的
-             deck_content.md(markdown 终稿)→ 跑 Pyramid 自检 →
-             md→deck_plan.json 转换 → build.py 出 .pptx →
-             视觉 QA 自动修复循环 → 交付。**不再做 brief 解析 /
-             大纲设计 / 文案拓写**——那是主线程 Claude 的 Stage A-D 工作。
-tools: Bash, Read, Write, Edit, Glob, Grep, Skill
-model: opus
----
-```
+| Agent | description 关键词 | 触发条件 |
+|---|---|---|
+| `iloveppt-brainstorm` | "需求挖掘 / 素材摄入 / FIRST agent" | 用户说"做 PPT" → 主线程派发 |
+| `iloveppt-author` | "内容规划 / 全文拓写 / SECOND agent" | brainstorm 返回 `dispatch_author` → 主线程派发 |
+| `iloveppt` | "终稿构建 / builder / THIRD agent" | author 返回 `dispatch_builder` → 主线程派发 |
 
-**关键变化**:
-- 用户**不再直接 `@agent-iloveppt`**(那样会跳过 Stage A-D 协同设计)。主线程会先把用户带过 brainstorming
-- agent 是 main 的"工具",不是用户的"对接者"
-- 派发时,主线程已经手握用户审过的 content.md;agent 收到的是**接近终稿的输入**,不是原始 brief
+**关键变化(vs v2)**:
+- 用户**不直接 `@agent-iloveppt`**(那是 builder,会因缺 content.md 而 reject)
+- 主线程**不持有任何 PPT 业务逻辑**——它只是状态机的转发者
+- agent 的"多轮"通过**多次派发 + state file** 实现(详见 §3)
 
 ---
 
-## 3. 5 阶段流程(Stage A-E)—— 主线程做前 4 个,agent 做最后 1 个
+## 3. 5 阶段流程(Stage A-E,3 agent 分工)
 
-v3 把 v2 的"agent 2 阶段"升级为"主线程 4 阶段 + agent 1 阶段",共 5 阶段。两个用户 checkpoint(outline.md 审 + content.md 审):
+5 个阶段分到 3 个 agent,**两个用户 checkpoint**(outline.md 审 + content.md 审)。多轮交互通过"多次派发同一 agent + state file"实现:
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor U as 用户
-    participant M as 主线程<br/>Claude
-    participant A as Agent<br/>(只做 Stage E)
+    participant M as 主线程<br/>(dispatcher)
+    participant BS as iloveppt-<br/>brainstorm
+    participant AU as iloveppt-<br/>author
+    participant BD as iloveppt<br/>(builder)
 
     U->>M: "帮我做 X 的 PPT"
-    Note over M: <b>Stage A · 需求挖掘</b><br/>brainstorming skill<br/>多轮问 audience/duration/<br/>核心命题/theme/output
-    M->>U: 一问一答补齐字段
-    U->>M: 字段答全
-    Note over M: <b>Stage B · 素材摄入</b><br/>识别用户素材 → prompt<br/>落 _assets/raw/charts/refs/
-    U->>M: 提供 CSV/图/模板
-    Note over M: <b>Stage C · 内容规划</b><br/>按 Pyramid 5 件套设计 outline<br/>产出 deck_v1_outline.md
-    M->>U: outline.md(可读 markdown)
-    U->>M: 批准 / 改
-    Note over M: <b>Stage D · 全文拓写</b><br/>基于 outline 展开每节<br/>调 matplotlib 出图嵌入 md<br/>产出 deck_v1_content.md
-    M->>U: content.md(2000-5000 字)
-    U->>M: 批准
-    M->>+A: 派发(content_md_path)
-    Note over A: <b>Stage E · 终稿构建</b><br/>0. Pyramid 自检 7 项(质量门)<br/>1. md → deck_plan.json<br/>2. build.py<br/>3. 视觉 QA × ≤ 3 轮(自动改 md)<br/>4. 返回
-    A-->>-M: pptx + auto_md_edits + review_needed
+    rect rgb(220, 252, 231)
+        Note over BS: <b>Stage A+B</b><br/>需求挖掘 + 素材摄入
+        loop ≥ 1 次派发 + state.json
+            M->>+BS: dispatch(initial 或 user_response)
+            Note over BS: Read state.json → 问下一批<br/>或收齐 → 准备移交
+            BS-->>-M: ask_user 或 dispatch_author
+            M->>U: 转发问题
+            U->>M: 答 / 提供素材
+        end
+    end
+    rect rgb(252, 231, 243)
+        Note over AU: <b>Stage C+D</b><br/>outline.md + content.md
+        loop ≥ 2 次派发(Stage C → 审 → D → 审)
+            M->>+AU: dispatch(stage + brief 或 user_response)
+            Note over AU: Read state.json → 出 outline/content<br/>或改;Pyramid 自检;调 matplotlib 出图
+            AU-->>-M: ask_user(审) 或 dispatch_builder
+            M->>U: 转发 md 路径
+            U->>M: 批准 / 改
+        end
+    end
+    rect rgb(230, 240, 252)
+        Note over BD: <b>Stage E</b><br/>终稿构建
+        M->>+BD: dispatch(content_md_path)
+        Note over BD: Pyramid 自检 → md→JSON →<br/>build.py → 视觉 QA × ≤3 轮<br/>(自动改 content.md)
+        BD-->>-M: done(pptx + auto_md_edits)
+    end
     M->>U: 交付成品 + agent 自动改动报告
 ```
 
-### 为什么把 4 阶段放主线程?
+### 多轮通过"多次派发 + state file"实现的细节
 
-v2 把全部智能塞 agent,但 subagent **是单次派发,无法多轮对话**。结果 Stage A 的"挖需求"做不到——agent 一次性收到一句话 brief 就要硬出 outline。
+每个对话密集 agent(brainstorm / author)被多次派发,**每次都是全新的隔离 context**。靠 state file 跨派发记忆:
 
-v3 把对话密集的 Stage A-D 上挪到主线程:
-
-| 任务 | v2 | v3 | 理由 |
-|---|---|---|---|
-| 多轮对话挖需求 | ❌ agent 做不了 | ✅ 主线程做 | 主线程天然支持多轮 |
-| 收素材文件 | ❌ 没有这环 | ✅ 主线程对话中收 | 主线程能 Read 用户提供路径 |
-| 大纲协同设计 | ⚠️ 单向输出 | ✅ 双向迭代 | 主线程能根据用户反馈反复改 outline.md |
-| 文案审 | ❌ 无此 checkpoint | ✅ content.md 审 | 用户在 .pptx 出来前就知道每页写啥 |
-
-### Agent 怎么判断该跑哪一段?
-
-不用判断了——**agent 只做 Stage E**。收到入参检查 `content_md_path` 是否存在;不存在或主线程派老 v2 风格的入参 → 直接返回:
-
-```yaml
-error: missing_content_md
-message: "v3 流程要求主线程先完成 Stage A-D 产出 content.md;agent 不接受裸 brief。"
 ```
+Round 1:
+  主线程 → 派发 iloveppt-brainstorm(initial_request)
+  agent:
+    - Read .iloveppt_dialog_state.json → 不存在,初始化
+    - 解析 initial_request 提取部分字段
+    - Write state(round=1, collected={...})
+    - 返回 ask_user(还缺哪几个字段的问题)
+
+Round 2:
+  主线程 → 派发 iloveppt-brainstorm(user_response="技术团队 / 15 分钟")
+  agent:
+    - Read .iloveppt_dialog_state.json → 有,载入 round=1 状态
+    - 解析 user_response → audience/duration 补上
+    - Write state(round=2, collected={... audience, duration})
+    - 返回 ask_user(还缺顶端论点等)
+
+... 直到 status=complete → 返回 dispatch_author
+```
+
+这套机制让 **agent 既能多轮对话,主线程又不持有 PPT 业务逻辑**。
+
+### Builder 不需要 state file
+
+iloveppt(builder)是**单次派发完成**:Read content.md → Pyramid 自检 → md→JSON → build.py → 视觉 QA × ≤ 3 轮(全在一次 dispatch 内)→ 返回 done。
+
+视觉 QA 循环中改 content.md 的所有变更记录到返回的 `auto_md_edits[]`,无需 state file。
 
 ---
 
-## 4. Stage A-D 详解:主线程怎么协同用户出 markdown
+## 4. Stage A-D 详解:brainstorm + author 两 agent 怎么出 markdown
 
 主线程 Claude 在用户对话中跑 Stage A-D,产出两份用户可读的 markdown:
 
@@ -413,7 +458,7 @@ FOOTER_TOP    = Inches(7.0)
 
 为什么拆?matplotlib 用 `font.sans-serif` 列表 / hex 字符串,跟 python-pptx 的 `RGBColor` / `<a:ea typeface>` 类型不兼容,无法直接共享对象。所以 matplotlib_rc 是"helpers.py 的派生镜像"——改 helpers 后需手动同步(改色值时 grep `_hex(H.` 找到所有 mirror 点)。
 
-### 6.6.1 v3:为什么把"智能"从 agent 拆到主线程
+### 6.6.1 v3:为什么 3 agent 拆分 + dispatcher,而非 1 个端到端 / 或塞主线程
 
 最初(v1/v2)直觉:agent 跑端到端,用户只看 outline 一次。后来发现:
 
@@ -424,19 +469,34 @@ FOOTER_TOP    = Inches(7.0)
 | 文案没 sign-off | 用户没在 .pptx 前看到文案 |
 | 改 1 个字 = rebuild 全 deck | 用户介入的颗粒度太粗 |
 
-根本原因:**subagent 是单次派发**,无法多轮对话。所以挖需求、收素材、协同设计这些**对话密集**的工作,塞 agent 里硬做必然失败。
+**v3 spec 初稿曾错误归因**:把"无法多轮对话"归因到"subagent 是单次派发",从而提出"全部搬主线程"(决策 1a)。
 
-v3 把对话密集任务上挪到主线程,agent 简化为"接收 markdown → 构建 .pptx"。这样:
+但实际上 **subagent 完全可以多轮** —— 通过"多次派发 + state file"(v2 的 Phase 1 → 审 → Phase 2 就是 2 次派发)。把这套扩到 N 次完全可行。
 
-| 任务 | v2 谁做 | v3 谁做 | 收益 |
+**1a 的真实代价**(我们后来才意识到):
+
+- 主线程上下文膨胀(每个 PPT 加 ~30K tokens 永久 context)
+- 不可移植(每个新 session 用户得重新对话,没有清晰入口)
+- 不可发现(没有 `@agent` trigger,用户不知道有这功能)
+- 主线程做重活(拓写 / 跑 matplotlib),与"主线程是普通 chat"定位冲突
+
+**订正后的 v3(决策 1c)** = 3 agent 拆分 + 主线程 thin dispatcher:
+
+| 任务 | v2 | v3 初稿(1a 错) | v3 订正(1c 对) |
 |---|---|---|---|
-| 多轮挖需求 | agent 硬做(失败) | 主线程 + brainstorming(顺) | 用户感受到被"问"而非被"猜" |
-| 素材收集 | 无环节 | 主线程对话中收 | 数据 / 图能真正进 deck |
-| 大纲设计 | agent 单方面输出 | 主线程协同迭代 | 用户参与 |
-| 文案审 | 无环节 | content.md checkpoint | 错字 / tone / 数据准确性都在 .pptx 前定 |
-| 视觉构建 | agent | agent(职责简化) | agent 不再分心,专注做好这一件 |
+| 多轮挖需求 | agent 硬塞 1 次(失败) | 主线程做 | iloveppt-brainstorm 多次派发 |
+| 大纲设计 | agent Phase 1 单向 | 主线程做 | iloveppt-author Stage C 多次派发 |
+| 文案拓写 | agent Phase 2 内部 | 主线程做 | iloveppt-author Stage D 多次派发 |
+| 视觉构建 | agent Phase 2 末尾 | agent(简化) | iloveppt builder 单次派发 |
+| 主线程承重 | 几乎零 | 全部对话 + 拓写 | 零(纯 router) |
 
-**代价**:主线程上下文会膨胀(对话历史 + outline + content)。但主线程有自带 compaction,且 markdown 本身比 v2 yaml schema 更紧凑。
+**v3 订正后的核心收益**:
+- agent 各自独立上下文 → 主线程清洁,可同时跟用户聊别的
+- 3 个 agent 角色窄,test/debug/optimize 更聚焦
+- 多轮通过 state file 实现 → 跨 session / 跨用户重启都能恢复
+- 用户可以 `@agent-iloveppt-brainstorm` 显式启动(可发现可移植)
+
+**代价**:多次派发有 overhead(每次 agent 启动要 Read 文档)。但 agent 内部可以缓存(读完写到 state),减轻问题。
 
 ### 6.7 字号 / 色 / 字段都对标 BCG/McKinsey
 
@@ -547,19 +607,21 @@ T+20min  "成品 /tmp/deck_v1.pptx;agent 自动改了 content.md page 5
 
 | 坑 | 这套设计的防御 |
 |---|---|
-| 用户不会写 brief | Stage A 主线程 brainstorming 多轮问,直到收齐字段 |
+| 用户不会写 brief | iloveppt-brainstorm 多轮派发问到收齐 |
 | 用户审 YAML 看不懂(盲批) | 改成 markdown 双 checkpoint(outline.md + content.md) |
-| 数据图 / 用户已有图没入口 | Stage B 显式素材摄入对话,落 `_assets/{raw,charts,refs}/` |
-| 文案错字要等 .pptx 出来才发现 | content.md 阶段已审过文案 |
-| 手改 .pptx 后 agent 重跑覆盖 | 用户改的是 content.md,不是 pptx;agent 永远从 md 派生 |
+| 数据图 / 用户已有图没入口 | brainstorm Stage B 显式引导,落 `_assets/{raw,charts,refs}/` |
+| 文案错字要等 .pptx 出来才发现 | author Stage D 出 content.md,审过才进 builder |
+| 手改 .pptx 后 agent 重跑覆盖 | 用户改的是 content.md,builder 永远从 md 派生 |
 | 多版本管理乱(deck.pptx 覆盖) | `deck_v1.md` / `deck_v2.md` 显式版本号 |
-| agent 改了 md 用户不知道 | `auto_md_edits[]` 返回 + 主线程展示 |
-| agent 拓写引入用户没说的话 | md → JSON 严约束 + 反向 diff 校验(差异 > 5% 报错) |
-| 用户绕过 Stage A 直接 @agent | agent 检查入参缺 content_md_path 直接 reject |
+| builder 改了 md 用户不知道 | `auto_md_edits[]` 返回 + 主线程展示 |
+| author 拓写引入用户没说的话 | md → JSON 严约束 + 反向 diff 校验(差异 > 5% 报错) |
+| 用户绕过流程直接 `@iloveppt`(builder) | builder 检查入参缺 content_md_path 直接 reject |
+| 主线程被 PPT 任务污染 | 3 agent 拆分 + 主线程纯 dispatcher,主线程不持有 PPT 逻辑 |
+| 多次派发 overhead | agent state file 可缓存已 Read 的文档摘要,减重派开销 |
 
 ---
 
-**一句话总结(v3)**:iLovePPT 把"写 PPT"拆成**"主线程多轮协同(Stage A-D,用户 + Claude 双方共写 markdown)→ agent 机械构建(Stage E,markdown 终稿 → .pptx)"**,用 `content.md`(用户接口)+ `deck_plan.json`(构建接口)两个接缝,把对话密集的"想清楚"和构建密集的"做出来"彻底分离。SSOT(helpers.py + matplotlib_rc.py)+ 17 项视觉规范 + Pyramid 自检 + md→JSON 严约束防各种漂移。
+**一句话总结(v3 订正后)**:iLovePPT 把"写 PPT"拆成 **3 个 agent**(brainstorm 挖需求 + author 出 markdown + builder 出 pptx),**主线程退化为 thin dispatcher**(只 router 不持有业务逻辑)。多轮交互通过"**多次派发 + state file**"实现。两个用户 checkpoint(outline.md / content.md)+ 两个接缝(content.md / deck_plan.json)+ SSOT(helpers.py + matplotlib_rc.py)+ 17 项视觉规范 + Pyramid 自检 + md→JSON 严约束防各种漂移。
 
 ---
 
@@ -596,12 +658,14 @@ T+20min  "成品 /tmp/deck_v1.pptx;agent 自动改了 content.md page 5
 
 | | v2 | v3 |
 |---|---|---|
-| 智能放哪 | 全在 agent(Phase 1 + Phase 2) | 拆:主线程做 Stage A-D / agent 做 Stage E |
-| 用户入口 | 直接 `@agent-iloveppt` | 直接对话主线程(主线程稍后派 agent) |
+| Agent 数量 | 1(端到端) | **3**(brainstorm / author / iloveppt builder) |
+| 智能放哪 | 全在 agent(Phase 1 + Phase 2) | 拆 3 个 agent;主线程退化 thin dispatcher |
+| 主线程角色 | 用户对接 + trigger 派发 | 纯 router(不持有 PPT 业务逻辑) |
+| 用户入口 | 直接 `@agent-iloveppt` | "做 PPT"(主线程自动派发 iloveppt-brainstorm) |
+| 多轮对话怎么实现 | ❌ subagent 单次硬塞 | **多次派发 + state file**(每 agent 有 .iloveppt_*_state.json) |
 | Checkpoint 数 | 1(outline yaml 审) | 2(outline.md 审 + content.md 审) |
 | 接缝介质 | `deck_plan.json` | `content.md` + `deck_plan.json` 两层 |
-| agent 角色 | 端到端 brief → pptx | builder only:md → pptx |
-| 素材摄入 | 无 | Stage B 显式对话收集 |
+| 素材摄入 | 无 | brainstorm Stage B 显式对话收集 |
 | 多版本管理 | 无 | `deck_v{N}_*.md` 显式 |
 
 ### 复用 v2 资产
@@ -631,4 +695,4 @@ v2 `brief.yaml` 仍可作为主线程 Stage A 的输入(主线程会读 yaml 然
 
 ---
 
-*文档版本:**3.0** · 2026-05-23 重大架构升级:主线程对话 + agent build · 替代 v2 端到端流程*
+*文档版本:**3.1** · 2026-05-23 决策 1 订正:3 agent 拆分 + thin dispatcher · 替代 v2 端到端流程*
