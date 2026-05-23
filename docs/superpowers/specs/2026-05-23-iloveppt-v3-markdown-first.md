@@ -1,8 +1,17 @@
 # iLovePPT v3 设计:对话引导 + Markdown-first
 
-> 状态:**采纳 (2026-05-23)** · 取代 v2 端到端 agent 流程
+> 状态:**采纳 (2026-05-23) · 决策 1 已订正(1a → 1c)**
 > 上一版:[v2 agent 设计](2026-05-23-iloveppt-agent-design.md)
 > 实施跟踪:本文档下方"实施计划"小节
+>
+> **2026-05-23 订正记录(同日):**
+> 决策 1 原选 1a("Stage A 对话在主线程"),后发现错误归因——
+> 我误以为 subagent 单次派发无法多轮对话。**实际上 v2 已经证明 subagent 可以通过"多次派发 + 状态文件"实现多轮**(Phase 1 → 审 → Phase 2 派发就是 2 次派发)。
+> 把这套扩到 N 次完全可行。
+>
+> 1a 的真实代价:主线程上下文膨胀、不可移植、不可发现、用户跟主线程聊别的时被 PPT 上下文污染。
+>
+> **采纳 1c:三 agent 拆分**。Stage A-E 分到 3 个 agent,主线程退化成 dispatcher。详情见下方决策记录。
 
 ## 背景:v2 流程的真实痛点
 
@@ -24,7 +33,7 @@ v2 是 agent 端到端的两阶段流程(Phase 1 出大纲 → 用户审 → Pha
 
 | # | 决策 | 选定 | 原因 |
 |---|---|---|---|
-| 1 | Stage A 对话在哪做? | **a · 主线程 + brainstorming skill** | subagent 是单次派发,无法多轮对话;主线程天然支持 |
+| 1 | Stage A-D 谁来做? | **c · 三 agent 拆分**(订正后) | 主线程做会膨胀;v2 已证明 subagent 多次派发 + state file 可实现多轮 |
 | 2 | markdown 一次出还是分步? | **b · outline.md → content.md 两步** | 早发现大方向错,避免 5000 字白写 |
 | 3 | markdown → JSON 谁做? | **a · agent LLM 推** | 严格 parser 要求用户学元语法,反人类;LLM 推时强约束"不允许引入新论点" |
 | 4 | 图表在 md 里如何呈现? | **c · 预渲染 PNG 嵌入** | 用户在 markdown viewer 里就能审视觉 |
@@ -33,90 +42,206 @@ v2 是 agent 端到端的两阶段流程(Phase 1 出大纲 → 用户审 → Pha
 | 7 | 多版本管理? | **a · `deck_v1.md` / `v2.md` 显式** | 简单 + git-friendly |
 | 8 | 视觉问题反馈循环? | **a · agent 自动改 md 重 build** | 用户不必为换行/字数超限手动改 md |
 
-## v3 流程:5 阶段
+### 决策 1 详解:三 agent 拆分
+
+三个 agent 各管一段,**主线程退化为 thin dispatcher**:
+
+| Agent | 阶段 | 角色 |
+|---|---|---|
+| `iloveppt-brainstorm` | Stage A + B | 多轮对话挖需求 / 引导用户提素材 / 落 `_assets/` |
+| `iloveppt-author` | Stage C + D | 按 Pyramid 5 件套出 outline.md / 拓写 content.md / 调 matplotlib 出图 |
+| `iloveppt` | Stage E | 接收 content.md → Pyramid 自检 → md→JSON → build → 视觉 QA |
+
+**多轮通过"多次派发 + 状态文件"实现**:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  Stage A · 需求挖掘(主线程 + brainstorming)                     │
-│    用户一句话 → 多轮对话:audience / duration / 核心命题 / 受众  │
-│    agent 不参与,主线程 Claude 直接对话                          │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│  Stage B · 素材摄入(主线程,对话推进时)                         │
-│    对话中识别素材需求 → prompt 用户提供:                          │
-│      • 数据表(CSV / 粘贴) → 落到 _assets/raw/                  │
-│      • 图(PNG / 文件路径) → 落到 _assets/refs/                 │
-│      • 参考模板(.pptx) → 走 template-extract                   │
-│      • 参考文档(.pdf / .md) → 提取要点                          │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│  Stage C · 内容规划(主线程)                                     │
-│    对话收齐 + 素材就位 → 主线程按金字塔原理设计 outline          │
-│    产出:deck_v1_outline.md(章节 + action title + 数据点 + 配图) │
-│                                                                  │
-│    ↓ 用户审 outline,改 / 批准                                   │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ outline 批准
-┌──────────────────────────────▼──────────────────────────────────┐
-│  Stage D · 全文拓写(主线程)                                     │
-│    基于 outline → 主线程拓写每节正文                             │
-│    产出:deck_v1_content.md(每页 h2 + 正文 + 图表)              │
-│      • 数据图先调 matplotlib_rc 出 PNG 嵌入                      │
-│      • 关键 stat / source 显式标注                               │
-│                                                                  │
-│    ↓ 用户审 content,改 / 批准                                   │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ content 批准
-┌──────────────────────────────▼──────────────────────────────────┐
-│  Stage E · 终稿构建(agent #1 派发)                              │
-│    agent 接收 deck_v1_content.md 路径:                          │
-│      0. Read content.md + Pyramid 自检 7 项(质量门)            │
-│      1. md → deck_plan.json(LLM 推,严约束不引入新论点)         │
-│      2. python3 build.py → .pptx + 渲染 PNG                     │
-│      3. 视觉 QA 循环(≤ 3 轮)                                  │
-│         · 发现视觉问题(溢出 / 字号 / fallback)                 │
-│         · agent 自动改 content.md(仅限格式类修正,不动观点)     │
-│         · rerun build.py                                         │
-│      4. 返回 .pptx 路径 + auto_md_edits 清单 + review_needed     │
-└─────────────────────────────────────────────────────────────────┘
+Round 1:
+  主线程 → 派发 iloveppt-brainstorm(初始 brief)
+  agent → 写 .iloveppt_dialog_state.json,问"audience? duration? ..."
+  agent → 返回 {next_action: ask_user, questions: [...]}
+  
+Round 2:
+  主线程展示 questions → 用户答
+  主线程 → 派发 iloveppt-brainstorm(带用户答)
+  agent → Read state.json,补字段,问下一批
+  agent → 返回 {next_action: ask_user, questions: [...]}
+
+...
+
+Round N:
+  agent 收齐字段 → 返回 {next_action: dispatch_author, brief: {...}, assets: [...]}
+  
+主线程 → 派发 iloveppt-author(brief + assets)
+  ...
 ```
+
+每个 agent 在被派发时,**第一件事是 Read 自己的 state file**(若存在),知道上次到哪。第二件是 Read 必要文档。整个流程主线程不持有 PPT 相关 context,只做 router。
+
+**状态文件位置**(都在 deck 工作目录):
+- `.iloveppt_dialog_state.json` —— brainstorm agent 状态
+- `.iloveppt_author_state.json` —— author agent 状态(stage C/D 进度、是否批准等)
+- `deck_v{N}_outline.md` / `deck_v{N}_content.md` —— 用户审过的产物
+- `_assets/{raw,charts,refs}/*` —— 素材
+
+完成的状态文件可以删(或者保留作为"我们当时怎么定的"记录,git-friendly)。
+
+## v3 流程:5 阶段 / 3 agent
+
+```
+[主线程 = pure dispatcher]                  [Agents(独立上下文)]
+═══════════════════════════                  ═════════════════════
+
+用户一句话需求
+    │
+    ▼
+派发 iloveppt-brainstorm     ◄──────────►  agent: 读 state.json
+                                            (若初次,无 state)
+                                            问第 1 批问题
+    ◄──────────────────────────────────── 返回 {ask_user, questions}
+                                            
+展示问题给用户 → 收答 → 再派发                                  
+    ↻ 循环到 state=complete                ↻ 每次 Read state.json
+                                            补字段,问下一批
+                                                              │
+                                            Stage A · 需求挖掘
+                                            Stage B · 素材摄入
+                                                              │
+    ◄──────────────────────────────────── 返回 {dispatch_author, brief, assets}
+    │
+    ▼
+派发 iloveppt-author          ◄──────────►  agent: 读 state.json
+(Stage C: 出 outline)                       按 Pyramid 设计 outline
+                                            写 deck_v1_outline.md
+    ◄──────────────────────────────────── 返回 {ask_user_review, outline_path}
+                                            
+展示 outline.md 给用户 → 收批准 / 改                          
+    ↻ 派发 author 改;批准后 → 派发 author Stage D
+                                            Stage C / D 切换由 state 标记
+                                                              │
+    ▼                                       Stage D · 全文拓写
+派发 iloveppt-author (Stage D: 出 content)  调 matplotlib 出图
+                                            写 deck_v1_content.md
+    ◄──────────────────────────────────── 返回 {ask_user_review, content_path}
+                                            
+展示 content.md 给用户 → 收批准 / 改                          
+    ↻ 改循环                                                  
+                                                              │
+    │                                       Stage E · build
+    ▼
+派发 iloveppt(builder)        ◄──────────►  Read content.md
+                                            Pyramid 自检 → md→JSON
+                                            build.py → 视觉 QA × 3
+                                            (自动改 content.md 重 build)
+    ◄──────────────────────────────────── 返回 {pptx_path, auto_md_edits, review_needed}
+    │
+    ▼
+展示成品 + auto_md_edits 报告给用户
+```
+
+主线程**只做 router**:接受 agent 返回的 `next_action`,把 message 转给用户,把用户答 / 批准转给下一次 agent 派发。**不持有任何 PPT 业务逻辑**。
 
 ## 接口契约
 
-### 主线程 ↔ agent
+### 主线程 ↔ agents(统一协议)
 
-**派发入参**(主线程 → agent):
+所有 agent 派发都遵守以下协议。**派发入参**:
+
 ```yaml
+# 通用必填
+working_dir: /abs/path/to/deck-工作目录       # 所有 state file / 产物的根目录
+
+# 多轮场景:用户对上一轮 next_action 的响应
+user_response: "用户答内容 或 '批准' / '改 X' 等"     # 可选,初次派发缺省
+
+# Stage E 特有(派发 iloveppt 时必填)
 content_md_path: /abs/path/to/deck_v1_content.md
 output_pptx: /abs/path/to/deck_v1.pptx
-theme: tech_blue  # 或 .pptx 模板路径
-footer_meta:      # 可选,deck 级
+theme: tech_blue                               # 或 .pptx 模板路径
+footer_meta:                                    # 可选,deck 级
   classification: INTERNAL
   project: ...
   version: v1.0
 ```
 
-**返回**(agent → 主线程):
+**返回**(所有 agent 统一 schema):
+
 ```yaml
+# 必填:告诉主线程下一步该干嘛
+next_action: ask_user | dispatch_brainstorm | dispatch_author | dispatch_builder | done
+
+# next_action 为 ask_user 时:
+message_to_user: "<给用户的话>"
+questions: [...] | "<开放问题>"                # 让用户答的具体内容
+
+# next_action 为 dispatch_* 时:
+dispatch:
+  agent: iloveppt-brainstorm | iloveppt-author | iloveppt
+  args: { ... }                                # 派发参数
+
+# next_action 为 done 时(只有 iloveppt builder 会出):
 pptx_path: /abs/path/to/deck_v1.pptx
-qa_rounds: 1 | 2 | 3
-auto_md_edits:                 # agent 自动改了 content.md 的清单
-  - page: 5
-    issue: "action title 27 字超 24 限制"
-    fix: "改为 '本季度落地 X,5 阶段 ≤3 天' (18 字)"
-  - page: 8
-    issue: "bullet 8 个超 5 个限制"
-    fix: "合并末 4 个为 '其他改进项'"
-review_needed:                 # 3 轮仍未解决的视觉问题
-  - page: 12
-    issue: "matplotlib 字体 fallback"
-    suggestion: "macOS 装雅黑 或 用 H.embed_picture 嵌入预生成 PNG"
-pyramid_check:                 # Pyramid 自检结果
-  passed: true
-  scores: {top_recommendation: ok, scqa: ok, mece: ok, ...}
+auto_md_edits: [...]
+review_needed: [...]
+pyramid_check: {...}
+
+# 错误返回
+error: <error_code>
+message: <人类可读>
 ```
+
+主线程拿到返回后:
+- `ask_user` → 把 `message_to_user` + `questions` 转给用户;收答后,把答放进 `user_response`,**重新派发同一个 agent**
+- `dispatch_*` → 派发 `dispatch.agent`,带 `dispatch.args`
+- `done` → 把 pptx_path / auto_md_edits / review_needed 转给用户,任务结束
+- `error` → 把错误转给用户
+
+### Agent 内部 state file 格式
+
+每个 agent 在 `working_dir` 下维护自己的 state file:
+
+**`.iloveppt_dialog_state.json`** (brainstorm 用):
+```json
+{
+  "agent": "iloveppt-brainstorm",
+  "round": 3,
+  "collected": {
+    "audience": "technical",
+    "duration_min": 15,
+    "top_recommendation": "...",
+    "theme": "tech_blue",
+    "output": "./deck_v1.pptx"
+  },
+  "pending": [],
+  "asset_inventory": [
+    {"type": "csv", "path": "_assets/raw/q4.csv", "desc": "Q4 revenue", "summary": "..."},
+    {"type": "image", "path": "_assets/refs/arch.png", "desc": "现有架构图"}
+  ],
+  "history": [
+    {"q": "给谁看?", "a": "技术团队"},
+    {"q": "多长?", "a": "15 分钟"},
+    {"q": "有数据吗?", "a": "Q4 营收数据在 ./q4.csv"}
+  ],
+  "status": "complete"
+}
+```
+
+**`.iloveppt_author_state.json`** (author 用):
+```json
+{
+  "agent": "iloveppt-author",
+  "stage": "C" | "D",
+  "outline_md_path": "deck_v1_outline.md",
+  "content_md_path": null,
+  "approvals": {"outline": true, "content": false},
+  "iteration": 2,
+  "user_revisions_received": [
+    "第 3 节标题改成 ...",
+    "加一节关于 ... 在第 5 后"
+  ]
+}
+```
+
+builder agent 不需要 state file —— 它是无状态的单次派发(虽然内部有视觉 QA 循环,但 ≤ 3 轮在一次 dispatch 内完成)。
 
 ### markdown schema:`deck_v{N}_outline.md`
 
