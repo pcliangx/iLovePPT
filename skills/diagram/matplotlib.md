@@ -16,26 +16,39 @@ python3 -c 'import matplotlib; print(matplotlib.__version__)'
 
 ---
 
-## 2. 中文字体配置（最关键步骤）
+## 2. 风格 SSOT —— 一行装上所有规范
 
-matplotlib 默认不支持中文，必须在脚本顶部配置：
+**所有 iLovePPT 的 matplotlib 图必须在脚本顶部调一次 `apply_iloveppt_style()`**,自动套用:
+
+- 字体优先级 Microsoft YaHei → Source Han Sans CN → PingFang SC → Helvetica → Arial
+- 色板 = `helpers.py` 的 `BRAND_PRIMARY / ACCENT / BRAND_DARK / GRAY_*`(全 deck 视觉一致)
+- 字号 14pt body / 18pt title / 12pt tick(嵌入 PPT 后等效与 body 18pt 协调)
+- 网格 GRAY_300 极细;去顶 + 右边框(BCG 极简风)
+- 图例无边框;`dpi=200` + `bbox_inches="tight"`(嵌入清晰)
 
 ```python
-import matplotlib
-import matplotlib.pyplot as plt
+import sys
+from pathlib import Path
 
-# 字体优先级：Microsoft YaHei（默认）→ Source Han Sans CN（fallback）→ DejaVu Sans
-matplotlib.rcParams['font.sans-serif'] = [
-    'Microsoft YaHei',
-    'Source Han Sans CN',
-    'DejaVu Sans',
-]
-matplotlib.rcParams['axes.unicode_minus'] = False  # 修复负号显示为方块
+# 加载 matplotlib_rc(skills/diagram/matplotlib_rc.py)
+_dpath = str(Path(__file__).parent.parent / "diagram")
+if _dpath not in sys.path:
+    sys.path.insert(0, _dpath)
+from matplotlib_rc import apply_iloveppt_style, PALETTE
+
+apply_iloveppt_style()   # 必须在 plt.figure 之前调
+
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots(figsize=(8, 4.5))
+ax.bar(["Q1", "Q2", "Q3", "Q4"], [120, 156, 178, 203])
+ax.set_title("营收增长")
+plt.savefig("revenue.png")   # 自动 dpi=200 / tight bbox / white facecolor
 ```
 
-**为什么用 Microsoft YaHei 作默认**：与 [[pptx]] helpers.py 字体配置一致，保证图表文字和 slide 正文视觉统一。macOS 无雅黑时回退到 Source Han Sans CN（思源黑体）。
+> 不再允许"自己 rcParams 设字体配色"风格,**所有图必须用 SSOT**。如要破例(罕见场景),
+> 在 PR 里说明理由 + 视觉一致性自检。
 
-### macOS 安装微软雅黑
+### 中文字体安装(macOS 渲染前)
 
 ```bash
 # 从 Windows 系统复制字体文件

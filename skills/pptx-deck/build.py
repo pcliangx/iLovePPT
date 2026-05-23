@@ -25,6 +25,13 @@ from themes import tech_blue as _tech_blue
 
 THEMES: dict[str, ModuleType] = {"tech_blue": _tech_blue}
 
+# 需要页脚 + 页码的 layout(规范:visual-qa.md §页脚 / 页码完整性)。
+# cover / section_divider / closing 不计入页码。
+FOOTERED_LAYOUTS: frozenset[str] = frozenset({
+    "toc", "single_focus", "compare", "cards",
+    "bullet_list", "table", "pic_text", "summary",
+})
+
 
 # ----- load_plan -----
 
@@ -136,21 +143,53 @@ def load_theme(theme_id: str) -> ModuleType:
 # ----- build_deck -----
 
 def build_deck(plan: dict[str, Any]) -> Path:
-    """按 deck_plan 逐 slide 调 make_*,存 .pptx,返回输出路径。"""
+    """按 deck_plan 逐 slide 调 make_*,存 .pptx,返回输出路径。
+
+    自动处理 3 个 cross-cutting 字段(build.py 集中负责,theme 不感知):
+    - **footer**: 内容页(FOOTERED_LAYOUTS)统一加分隔线 + "N / TOTAL" + 可选元数据
+    - **footer_meta**(plan 顶层): classification / project / version,显示在 footer 左侧
+    - **source**(slide 级): 数据 slide 的引文,渲染在 footer 上方
+    """
     theme = load_theme(plan["theme"])
     prs = Presentation()
     prs.slide_width = H.SLIDE_W
     prs.slide_height = H.SLIDE_H
+
+    footer_meta = plan.get("footer_meta", {}) or {}
+
+    # 预扫:算 footer 页总数(用于 "N / TOTAL" 的 TOTAL)
+    total_footered = sum(
+        1 for s in plan["slides"] if s["layout"] in FOOTERED_LAYOUTS
+    )
+    footer_idx = 0
+
     for i, slide in enumerate(plan["slides"], 1):
         layout = slide["layout"]
         fn = getattr(theme, f"make_{layout}", None)
         if fn is None:
             raise ValueError(f"第 {i} 页未知 layout: {layout}（theme 无 make_{layout}）")
+        # 弹出 cross-cutting 字段,不传给 make_* fn(避免 TypeError)
         fields = {k: v for k, v in slide.items() if k != "layout"}
+        source = fields.pop("source", None)
         try:
             fn(prs, **fields)
         except TypeError as e:
             raise ValueError(f"第 {i} 页 layout={layout}: {e}") from e
+
+        # 数据引文(source)→ footer 上方
+        if source:
+            H.source_citation(prs.slides[-1], source)
+
+        # 页脚 + 页码 + footer_meta
+        if layout in FOOTERED_LAYOUTS and total_footered > 0:
+            footer_idx += 1
+            H.footer(
+                prs.slides[-1], footer_idx, total_footered,
+                classification=footer_meta.get("classification"),
+                project=footer_meta.get("project"),
+                version=footer_meta.get("version"),
+            )
+
     out = Path(plan["output"]).expanduser()
     if not out.is_absolute():
         out = (Path(plan["_plan_dir"]) / out).resolve()

@@ -95,3 +95,65 @@ def test_make_closing():
 def test_font_default_is_microsoft_yahei():
     assert T.FONT_HEADER == "Microsoft YaHei"
     assert T.FONT_BODY == "Microsoft YaHei"
+
+
+# ----- 2026-05-23 新增字段测试 -----
+
+def test_make_cover_with_metadata():
+    """cover 接受 prepared_by / date / version / project_code / classification。"""
+    prs = _new()
+    T.make_cover(prs, "T", "S",
+                 prepared_by="技术部",
+                 date="2026-05-23",
+                 version="v1.0",
+                 project_code="ATLAS-01",
+                 classification="INTERNAL")
+    slide = prs.slides[0]
+    texts = [sh.text_frame.text for sh in slide.shapes
+             if sh.has_text_frame and sh.text_frame.text]
+    joined = " | ".join(texts)
+    assert "INTERNAL" in joined
+    assert "技术部" in joined
+    assert "2026-05-23" in joined
+    assert "v1.0" in joined
+    assert "ATLAS-01" in joined
+
+
+def test_make_cover_no_metadata_still_works():
+    """cover 不传任何 meta 字段时,保持原有 title + subtitle 渲染。"""
+    prs = _new()
+    T.make_cover(prs, "T", "S")
+    slide = prs.slides[0]
+    texts = [sh.text_frame.text for sh in slide.shapes
+             if sh.has_text_frame and sh.text_frame.text]
+    joined = " | ".join(texts)
+    assert "T" in joined and "S" in joined
+
+
+def test_make_closing_with_next_steps():
+    """next_steps 模式:渲染 'Next Steps' 标题 + 编号 action 列表。"""
+    prs = _new()
+    T.make_closing(prs, subtitle="问答 / 联系",
+                   next_steps=[
+                       {"action": "完成 Phase 1 试点", "owner": "Alice",
+                        "due": "2026-06-15"},
+                       {"action": "评估扩展到 Phase 2", "owner": "Bob",
+                        "due": "2026-07-01"}])
+    slide = prs.slides[0]
+    texts = " | ".join(sh.text_frame.text for sh in slide.shapes
+                       if sh.has_text_frame and sh.text_frame.text)
+    assert "Next Steps" in texts
+    assert "完成 Phase 1 试点" in texts
+    assert "Alice" in texts and "2026-06-15" in texts
+    assert "评估扩展到 Phase 2" in texts
+
+
+def test_make_closing_without_next_steps_uses_simple_mode():
+    """无 next_steps 时退回原版'谢谢'封底。"""
+    prs = _new()
+    T.make_closing(prs, subtitle="github.com/xxx")
+    slide = prs.slides[0]
+    texts = " | ".join(sh.text_frame.text for sh in slide.shapes
+                       if sh.has_text_frame and sh.text_frame.text)
+    assert "谢谢" in texts
+    assert "Next Steps" not in texts

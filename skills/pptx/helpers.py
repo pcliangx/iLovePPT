@@ -30,30 +30,38 @@ from pptx.util import Emu, Inches, Length, Pt
 # 1. 设计 token
 # ============================================================================
 
-# 字体默认 Microsoft YaHei（Windows 原生,办公标配）
-# macOS 渲染验证前请装雅黑；未装则 LibreOffice 会 fallback 到 PingFang SC
-FONT_CN = "Microsoft YaHei"
-FONT_EN = "Helvetica Neue"
+# 字体:default 仍是 Microsoft YaHei（Windows / Office 装机即用,跨平台兜底）。
+# 设计感更强的中文字体首选 Source Han Sans CN(思源黑体,Adobe+Google,开源免费),
+# 但需要用户自行安装,不能假设到处都有。FONT_CN_DESIGN 提供给愿意分发字体的场景。
+# macOS 渲染前装雅黑;否则 LibreOffice fallback 到 PingFang SC,渲染图字形对不上。
+FONT_CN        = "Microsoft YaHei"        # 系统兼容默认(broad compatibility)
+FONT_CN_DESIGN = "Source Han Sans CN"     # 设计感更强,需用户安装思源黑体
+FONT_EN  = "Helvetica Neue"
 FONT_NUM = "Helvetica Neue"
 
+# fallback 链:渲染端如缺当前字体,按此顺序查找替代
 FONT_FALLBACK_CHAIN = (
+    "Source Han Sans CN",   # 思源黑体优先(若有)
     "Microsoft YaHei",
     "PingFang SC",
-    "Source Han Sans CN",
     "Heiti SC",
 )
 
-# 抽象品牌色（默认科技蓝；其他色板见 design-system.md）
-BRAND_PRIMARY = RGBColor(0x1E, 0x6F, 0xE0)  # 科技蓝
-BRAND_DARK    = RGBColor(0x0B, 0x2A, 0x4A)  # 深海蓝
-BRAND_TINT    = RGBColor(0xE6, 0xF0, 0xFC)  # 浅蓝底
-ACCENT        = RGBColor(0x00, 0xD1, 0xC1)  # 青绿点睛
+# 品牌色板(default 科技蓝;其他色板见 design-system.md)。
+# AAA 优先:正文 + 正色对比 ≥ 7:1(WebAIM 投影场景建议)。
+# BRAND_PRIMARY 选 #0A52BF —— 在白底对比度 7.00:1(刚过 AAA)。
+# 历史值 #1E6FE0 在白底仅 4.62:1(刚过 AA),已废弃 —— 投影场景会糊。
+BRAND_PRIMARY = RGBColor(0x0A, 0x52, 0xBF)  # 科技蓝(AAA 7:1)
+BRAND_DARK    = RGBColor(0x0B, 0x2A, 0x4A)  # 深海蓝(白底 14:1)
+BRAND_TINT    = RGBColor(0xE6, 0xF0, 0xFC)  # 浅蓝底(填充用,不承载文字)
+ACCENT        = RGBColor(0x00, 0x7A, 0x6D)  # 深青(白底 5.2:1,AA pass) — 旧 #00D1C1 在白底仅 1.7:1 不能承载文字
 
-GRAY_900 = RGBColor(0x1A, 0x1A, 0x1A)
-GRAY_700 = RGBColor(0x4A, 0x4A, 0x4A)
-GRAY_500 = RGBColor(0x8C, 0x8C, 0x8C)
-GRAY_300 = RGBColor(0xD9, 0xD9, 0xD9)
-GRAY_50  = RGBColor(0xFA, 0xFA, 0xFA)
+# 灰阶(常用 3 个,其余兼容历史代码 — 见 design-system.md 用法指引):
+GRAY_700 = RGBColor(0x4A, 0x4A, 0x4A)  # ★ 主要正文色(白底 9.7:1,AAA)
+GRAY_300 = RGBColor(0xD9, 0xD9, 0xD9)  # ★ 分隔线 / border
+GRAY_500 = RGBColor(0x6F, 0x6F, 0x6F)  # ★ 页脚 / meta 文字(原 #8C8C8C 在白底 3.5:1 不过 AA — 改 #6F6F6F = 5.7:1)
+GRAY_900 = RGBColor(0x1A, 0x1A, 0x1A)  # 极少用,标题已有 BRAND_DARK
+GRAY_50  = RGBColor(0xFA, 0xFA, 0xFA)  # 极少用,大色块底
 WHITE    = RGBColor(0xFF, 0xFF, 0xFF)
 BLACK    = RGBColor(0x00, 0x00, 0x00)
 
@@ -327,3 +335,99 @@ def embed_picture(
     if width is not None:
         return slide.shapes.add_picture(str(path), x, y, width=width)
     return slide.shapes.add_picture(str(path), x, y)
+
+
+def footer(
+    slide: Slide,
+    page_num: int | str,
+    total: int | str,
+    *,
+    left_text: str | None = None,
+    divider: bool = True,
+    classification: str | None = None,
+    project: str | None = None,
+    version: str | None = None,
+) -> None:
+    """页脚 helper：分隔线 + 右对齐 "N / TOTAL" + 左侧元数据。
+
+    spec: pptx-deck/visual-qa.md 页脚 / 页码完整性 + design-system.md
+    页脚字号 9pt / GRAY_500 / FOOTER_TOP=Inches(7.0)。
+
+    用于内容页:`toc / single_focus / compare / cards / bullet_list /
+    table / pic_text / summary`。不用于 cover / section_divider / closing。
+
+    左侧文字优先级:
+    - `left_text` 非空 → 直接用(用户完全控制)
+    - 否则按 "classification · project · version" 拼接(MBB 标准 footer 元数据)
+    - 全空 → 不渲染左侧文字
+    """
+    if divider:
+        rect(
+            slide,
+            LEFT_MARGIN,
+            FOOTER_TOP,
+            Emu(SLIDE_W - LEFT_MARGIN - RIGHT_MARGIN),
+            Pt(0.5),
+            GRAY_300,
+        )
+
+    text_y = Emu(FOOTER_TOP + Inches(0.1))
+    text_h = Inches(0.3)
+    num_w = Inches(2.0)
+
+    # 右侧 "N / TOTAL"
+    num_box = slide.shapes.add_textbox(
+        Emu(SLIDE_W - RIGHT_MARGIN - num_w), text_y, num_w, text_h
+    )
+    num_tf = num_box.text_frame
+    fix_textbox_margins(num_tf)
+    num_tf.word_wrap = False
+    p = num_tf.paragraphs[0]
+    p.alignment = PP_ALIGN.RIGHT
+    p.line_spacing = 1.0
+    r = p.add_run()
+    r.text = f"{page_num} / {total}"
+    set_font(r, name=FONT_NUM, size=9, color=GRAY_500)
+
+    # 左侧:用户 left_text 优先;否则用 classification · project · version 组合
+    if left_text is None and any([classification, project, version]):
+        parts = [p for p in (classification, project, version) if p]
+        left_text = " · ".join(parts)
+
+    if left_text:
+        left_w = Emu(SLIDE_W - LEFT_MARGIN - RIGHT_MARGIN - num_w - Inches(0.3))
+        left_box = slide.shapes.add_textbox(LEFT_MARGIN, text_y, left_w, text_h)
+        left_tf = left_box.text_frame
+        fix_textbox_margins(left_tf)
+        left_tf.word_wrap = False
+        p2 = left_tf.paragraphs[0]
+        p2.alignment = PP_ALIGN.LEFT
+        p2.line_spacing = 1.0
+        r2 = p2.add_run()
+        r2.text = left_text
+        set_font(r2, name=FONT_CN, size=9, color=GRAY_500)
+
+
+def source_citation(slide: Slide, text: str) -> None:
+    """数据 slide 标注 "Source: ..." 引文,位于 footer 分隔线上方。
+
+    BCG / McKinsey 硬要求:任何 chart / table / pic_text(数据 slide)
+    必须标注数据来源。
+
+    位置:y=Inches(6.7)(footer 上 0.3"),GRAY_500 9pt,左对齐。
+    """
+    if not text:
+        return
+    src_y = Emu(FOOTER_TOP - Inches(0.3))
+    src_w = Emu(SLIDE_W - LEFT_MARGIN - RIGHT_MARGIN)
+    box = slide.shapes.add_textbox(LEFT_MARGIN, src_y, src_w, Inches(0.25))
+    tf = box.text_frame
+    fix_textbox_margins(tf)
+    tf.word_wrap = False
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.LEFT
+    p.line_spacing = 1.0
+    r = p.add_run()
+    prefix = "" if text.startswith(("Source:", "来源:", "来源：")) else "Source: "
+    r.text = f"{prefix}{text}"
+    set_font(r, name=FONT_CN, size=9, color=GRAY_500, italic=True)

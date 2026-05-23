@@ -136,24 +136,40 @@ Claude 根据 `issue.suggested_fix` 决策如何修改 `deck_plan.json`：
 
 ---
 
-## 视觉 QA checklist（12 项，deck 级）
+## 视觉 QA checklist（17 项，deck 级）
 
 > 本 checklist 对应 [evals/rubric.md](../../evals/rubric.md) 的 **Design（设计）维**（D1–D14）；Content / Coherence 维的全面评估见该文档。
 
 完成所有单页 check 后，对整个 deck 做最终核查：
 
+### 基础(原 12 项)
+
 - [ ] **无重叠**：所有元素 z-order 正常，无文字穿形状
 - [ ] **无截断**：所有文本框内容完整显示，无省略号或被裁剪
-- [ ] **字体统一**：全 deck 使用 Microsoft YaHei（正文）+ Microsoft YaHei Bold / Heavy（标题）
+- [ ] **字体统一**：全 deck 使用 Microsoft YaHei / Source Han Sans CN（正文）+ Bold（标题）
 - [ ] **配色一致**：色值仅来自 `BRAND_*` / `GRAY_*` 套色板，无随机色
-- [ ] **字号层级清晰**：封面 44pt+、页面标题 20pt+、正文 11-14pt
-- [ ] **留白达标**：左右边距 ≥ 0.55"，底部 ≥ 0.5"，离页边无元素
-- [ ] **对齐网格**：同类元素左对齐 / 居中对齐一致，无随机偏移
+- [ ] **字号层级清晰**：封面 48pt+ / 页标题 32pt+ / 正文 18-20pt / 表格 14pt / 页脚 9pt(2026-05-23 调整,原 body 11-14pt 已废)
+- [ ] **留白达标**：左右边距 ≥ 0.55"、底部 ≥ 0.5"，离页边无元素
+- [ ] **对齐网格**：同类元素左对齐 / 居中对齐一致；优先使用 12-col grid (`grid_columns`),无随机偏移
 - [ ] **表格无意外 banding**：无意外横纹，行高均匀
 - [ ] **卡片圆角小**：`adjustments[0] ≤ 0.05`（约 5% 圆角），不过圆
 - [ ] **装饰大字号 word_wrap=False**：`single_focus.big_number` 不换行
 - [ ] **textbox margin 归零**：所有文本框已调用 `H.fix_textbox_margins()`
-- [ ] **引用图分辨率清晰**：`pic_text.image_path` 图片宽度 ≥ 1600px
+- [ ] **引用图分辨率清晰**：`pic_text.image_path` / matplotlib chart 宽度 ≥ 1600px
+
+### 进阶(2026-05-23 新增 5 项)
+
+- [ ] **单页留白比例 ≥ 15%**:Read 渲染 PNG 估算"内容覆盖面积",白底面积应 ≥ 15%(空荡比塞满好。塞满 = "无信息层次")
+- [ ] **重要信息在左上热区**:F 型阅读路径下,最关键卡片 / 数据应在 slide 左 1/3 或顶部 1/3,不要放在右下(70% 读者忽视)
+- [ ] **主色面积比例 ≤ 30%**:60-30-10 规则。单页 BRAND_PRIMARY 实际覆盖面积 ≤ 30%;ACCENT ≤ 10%。剩余 ≥ 60% 应是中性(白 / GRAY_50 / GRAY_300)
+- [ ] **数据 slide 有 source 标注**:`table` / `pic_text`(数据图)/ `single_focus`(大数字)必须有 `source` 字段或可见的 "Source:" 引文。咨询稿合规硬要求
+- [ ] **action title ≤ 24 字 不换行**:页面标题不能折行(折行会破坏装饰元素定位)。> 24 字必须重写
+
+### Deck-level 一致性(跨页核查)
+
+- [ ] **同 layout 跨页对齐**:连续 N 张 cards 页第一张卡的左缘 x 坐标完全一致(同样适用 compare 第一列、pic_text 图片左缘)。优先用 `grid_columns` 锚定
+- [ ] **配色比例各页相近**:不允许"前半 deck 蓝主导,后半灰主导"——每页主色 / 次色 / 中性占比方差应小
+- [ ] **字号层级各页一致**:`make_*` 同一函数在不同页应渲染同字号(不允许 page 1 标题 32pt、page 5 标题 28pt)
 
 ---
 

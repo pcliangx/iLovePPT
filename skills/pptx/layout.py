@@ -98,3 +98,46 @@ def inset(box: Box, dx: Length, dy: Length) -> Box:
         x=Emu(box.x + dx), y=Emu(box.y + dy),
         w=Emu(box.w - 2 * dx), h=Emu(box.h - 2 * dy),
     )
+
+
+# ============================================================================
+# 12-column 网格(Material/Bootstrap 风格)—— 跨页 anchor 一致
+# ============================================================================
+#
+# 适用场景:多张 slide 的元素需要"对齐到同一根 anchor 线"——例如所有 cards
+# 页第一张卡的左缘、所有 pic_text 的图右缘。无 grid 时各页 columns(N) 会因
+# N 不同而对不齐。
+#
+# 用法:
+#   from layout import GRID_SPANS, grid_columns
+#   region = content_region()
+#   # 取第 1-3 列(span=3,从 col 0 开始)+ 第 4-12 列(span=9)
+#   left, right = grid_columns(region, [3, 9])
+#
+# 不强制替换现有 columns()——新代码优先走 grid_columns 保跨页一致;
+# 旧代码用 columns(N) 等分也可保留。
+
+GRID_COLS = 12                                 # 列数
+GRID_GUTTER = Inches(0.2)                       # 列间默认 gap
+
+
+def grid_columns(box: Box, spans: list[int], gap: Length = GRID_GUTTER) -> list[Box]:
+    """按 12-col grid 切 box。spans 为各块占用列数,sum(spans) 必须 == 12。
+
+    示例:
+        grid_columns(region, [4, 8])    → 1/3 + 2/3 两块
+        grid_columns(region, [3, 6, 3]) → 25% + 50% + 25% 三块
+        grid_columns(region, [4, 4, 4]) → 三等分,跟 columns(3) 等价但锚点固定
+    """
+    if sum(spans) != GRID_COLS:
+        raise ValueError(f"spans 总和必须 = {GRID_COLS},得到 {sum(spans)}")
+    total_gap = gap * (GRID_COLS - 1)
+    col_unit = Emu(int((box.w - total_gap) / GRID_COLS))
+    out: list[Box] = []
+    cur_col = 0
+    for span in spans:
+        block_x = Emu(box.x + cur_col * (col_unit + gap))
+        block_w = Emu(span * col_unit + (span - 1) * gap)
+        out.append(Box(x=block_x, y=Emu(int(box.y)), w=block_w, h=Emu(int(box.h))))
+        cur_col += span
+    return out

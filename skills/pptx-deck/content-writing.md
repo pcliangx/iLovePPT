@@ -10,53 +10,160 @@
 
 | layout | 字数 / 句式约束 | 反例 |
 |---|---|---|
-| cover | 主标题 ≤ 20 字、副标 ≤ 30 字、不堆头衔 | "关于 XX 公司 2026 年战略发展规划暨数字化转型实施路径研讨" |
+| cover | 主标题 ≤ 20 字、副标 ≤ 24 字、不堆头衔 | "关于 XX 公司 2026 年战略发展规划暨数字化转型实施路径研讨" |
 | toc | 章节 ≤ 6、每章 ≤ 12 字、动宾对齐 | "公司发展的历史背景与现状分析" |
 | section_divider | 章节号 + 标题（≤ 10 字），layout 独立于内容页 | 与内容页同 header |
-| single_focus | 1 句话 ≤ 12 字 + 1 数字（72pt+）+ 1 行解释 | 5 个要点平铺 |
-| compare | 左右标题各 ≤ 6 字、句式对称（N 列，items 列表） | 标题长度差 2× |
-| cards | 每卡标题 ≤ 6 字、body ≤ 30 字（N 列，cards 列表） | body 一长一短 |
-| bullet_list | 每点 ≤ 14 字、句式一致（动宾或名词性结构） | 一点一句话一点一段 |
+| single_focus | 1 句话 ≤ 12 字 + 1 数字（72pt+）+ 1 行解释 ≤ 20 字 | 5 个要点平铺 |
+| compare | 左右标题各 ≤ 6 字、body ≤ 22 字、句式对称 | 标题长度差 2× |
+| cards | 每卡标题 ≤ 6 字、body ≤ 18 字（N 列，cards 列表） | body 一长一短 |
+| bullet_list | 每点 ≤ 12 字、句式一致（动宾或名词性结构） | 一点一句话一点一段 |
 | table | 列 ≤ 5、行 ≤ 7、单元格 ≤ 8 字 | 把段落塞进单元格 |
-| pic_text | 左图右文，右侧 N 个说明卡片，每卡 ≤ 20 字 | 图占满 + 文字塞角落 |
-| summary | 3-5 条结论，每条 ≤ 18 字，有数字佐证 | 重复 outline 章节 |
-| closing | 极简："谢谢" + 联系方式或下一步 | 又一页要点总结 |
+| pic_text | 左图右文，右侧 N 个说明卡片，每卡 ≤ 15 字 | 图占满 + 文字塞角落 |
+| summary | 3-5 条结论，每条 ≤ 15 字，有数字佐证 | 重复 outline 章节 |
+| closing | 极简："谢谢" + 联系方式或下一步 (≤ 24 字) | 又一页要点总结 |
+
+> **2026-05-23 字号调整**:body 18-20pt(原 11-14pt),字数上限同步收紧约 30%。
+> 原因:行业最低 body 字号 ≥ 18pt(投影可读),原 11-14pt 属打印文档区间。
+> action title 单独约束见下一节,**≤ 24 字**(超限会换行破布局)。
 
 > 上表所有含"标题"的 layout，其 title 应是「行动式标题」（见下节 deck 级论证结构）。
 
 ---
 
-## deck 级论证结构（先于逐页拓写）
+## deck 级论证结构（核心要求:麦肯锡金字塔原理）
 
-拓写每一页之前,先把整份 deck 设计成**一个论证**,而不是一堆话题的拼盘。
+> **iLovePPT 的内容设计核心要求**:整份 deck 必须按麦肯锡金字塔原理(Minto Pyramid Principle)组织。
+> 这不是"建议遵守",而是 Phase 1 大纲必须通过的硬约束 —— [iloveppt agent](../../.claude/agents/iloveppt.md) Phase 1 输出 schema 强制包含 `top_recommendation` / `scqa` / `mece_check_passed` / `pyramid_check_passed` 字段,任一缺失即不能交付。
+>
+> 唯一例外见本节末「bypass_pyramid 适用场景」。
 
-### 行动式标题（action title）
+金字塔原理由五件套组成,缺一不可:
 
-每个内容页的标题是**一句完整的结论**,不是话题标签。读者只看标题就知道这页要说什么。
+### ① 单一顶端论点（Top Recommendation / BLUF）
 
-- ✗ 话题标签："市场背景" / "技术方案" / "效果数据"
-- ✓ 行动式："SaaS 市场三年翻倍,渗透率仍不足 15%" / "三层架构把交付周期从 2 周压到 2 天" / "上线 3 月,人均每天省 1.2 小时"
+整份 deck **只服务于一个**核心推荐或判断 —— 它就是金字塔的顶点。所有章节、所有页面都是为它做支撑。
 
-### 金字塔结构（Minto）
+- ✗ "我们来讨论 AI 4A 评审办法"(议题陈述,不是论点)
+- ✗ "AI 4A 评审办法值得关注"(模糊,无行动指向)
+- ✓ "应当本季度落地 AI 4A 评审办法,5 阶段每阶段 ≤ 3 天"(推荐 + 边界 + 节奏)
 
-整份 deck 是一条论证链,常见骨架：
+顶端论点写在 `cover.subtitle` 或第 1 张 `single_focus`(BLUF 提前),也是 `summary.conclusions` 的核心收口。Phase 1 输出 schema 字段:`top_recommendation`。
+
+### ② SCQA 开场（Situation / Complication / Question / Answer）
+
+整份 deck 的前 1/4 必须按 SCQA 展开,把听众"拉进同一个问题语境":
+
+| 元素 | 作用 | 典型篇幅 |
+|---|---|---|
+| **S - Situation**(背景) | 听众认同的客观事实 | 1-2 页 |
+| **C - Complication**(冲突/变化) | 打破现状的事件、矛盾、风险 | 1-2 页 |
+| **Q - Question**(由 C 产生的关键问题) | 听众心里冒出的"那怎么办" | 隐含在 C 之后,或 1 页明示 |
+| **A - Answer**(顶端论点) | 直接给出推荐 = ① | 1 页 single_focus / cover.subtitle 提前 |
+
+Phase 1 输出 schema 字段:`scqa: {situation, complication, question, answer}`。
+
+### ③ 答案在前（BLUF, Bottom Line Up Front）
+
+金字塔原理的核心节奏:**结论先行,论据在后**。在三个层级都贯彻:
+
+| 层级 | 答案在前的体现 |
+|---|---|
+| **deck 级** | cover.subtitle 已陈述顶端论点;或第 1 张 single_focus 把 Answer 摆出来,后面所有章节都是支撑 |
+| **章节级** | 每个 `section_divider` 标题是该节的**结论句**,不是话题名("3 个核心改进" → "三层架构把交付周期从 2 周压到 2 天") |
+| **页级** | 每页 `action_title` 是结论,bullet / cards / table 是证据 |
+
+读者从任何一层切入,先看到的都是"答案",再看到"为什么"。
+
+### ④ 横向 MECE 支撑（Mutually Exclusive, Collectively Exhaustive）
+
+顶端论点之下,放 **3-5 个**支撑论点(= deck 的 3-5 个内容章节)。它们必须:
+
+- **相互独立(ME)**:章节之间不重叠,不能"评审范围"和"评审流程"塞同一组要点
+- **完全穷尽(CE)**:加起来能完整支撑顶端论点,听众听完不会问"那 X 呢?"
+
+排列方式有讲究,选其一并保持一致:
+
+| 排列方式 | 何时用 |
+|---|---|
+| **时间序** | 阶段、路线图、迭代节奏 |
+| **结构序** | 模块、层、维度(空间 / 组织 / 系统组成) |
+| **重要性序** | 影响力从大到小 |
+| **演绎序** | 大前提 → 小前提 → 结论 |
+
+Phase 1 输出 schema 字段:`mece_check_passed: true`(必须经过 MECE 自检并标记通过)。
+
+### Action title 字数硬约束
+
+每页 `title` (= action title) **必须 ≤ 24 字**(中文计 1 字,英文计 0.5)。
+
+| 原因 | 后果 |
+|---|---|
+| `_add_title` textbox 高度 = `Inches(0.9)`,32pt 单行装满约 26 字符 | > 24 字会换行,装饰元素按"标题占一行"算定位 → 视觉破坏 |
+| 行业实践:BCG action title 平均 16-22 字 | 中文 deck 略宽,留 24 字上限是工程兜底 |
+
+**违规处理**(agent Phase 1/2 都要检查):
+
+- 超 24 字:**必须重写**(不允许"差几个字算了")
+- 重写策略:删修饰词("非常"/"持续"/"全面"),拆成主谓宾干句,数字代替形容词
+
+**反例 → 对例**:
+
+| ✗ 超 24 字 | ✓ ≤ 24 字 |
+|---|---|
+| "应当在本季度落地 AI 4A 评审办法,5 阶段每阶段不超过 3 天" (29 字) | "本季度落地 AI 4A,5 阶段 ≤ 3 天" (18 字) |
+| "我们建议采用三层架构把交付周期从 2 周压缩到 2 天" (27 字) | "三层架构把交付从 2 周压到 2 天" (16 字) |
+
+---
+
+### ⑤ 纵向疑问/回答链
+
+金字塔自上而下的**每一层**,都在回答上一层引出的"为什么 / 怎么做 / 是什么":
 
 ```
-背景 situation → 问题 / 冲突 complication → 方案 resolution → 证据 → 结论
+顶端: 应当本季度落地 AI 4A 评审办法
+   ↓ (为什么?)
+章节 1 action_title: AI 工具铺开,但架构评审仍靠人,质量飘移        ← 背景问题
+章节 2 action_title: 覆盖 4A:Application/Architecture/Auth-N/Auth-Z 全闭环  ← 范围
+章节 3 action_title: 5 阶段串行,每阶段 ≤ 3 天,卡点不超 1 周        ← 怎么做
+章节 4 action_title: 评审委员会 + AI 助手预审,降 60% 人力        ← 组织保障
+章节 5 action_title: Q3 试点 2 业务线,Q4 全公司                      ← 落地节奏
+   ↓ (每一节的页面继续回答该节标题引出的疑问)
 ```
 
-或"结论先行":核心结论放在 summary 之前就立住,各章是支撑论据。`outline` 不是话题清单,而是这条论证链的展开。
+章节标题串起来 = 顶端论点的完整论据链。把所有章节 + 页面 action_title 抽出来读一遍 —— 应当读出一个**自洽的故事**(这就是 ghost deck test,现为 Pyramid 自检的一项)。
 
-### Ghost deck test（幽灵 deck 测试）
+---
 
-把所有页的 action title 按顺序抽出来单独读一遍 —— 它们应当**独立讲出完整故事**。
-若抽出的标题读起来是断的、跳跃的、或全是名词短语,说明论证结构没立住 —— 回去重排 `outline`,而不是硬拓写。
+### Pyramid 自检表（Phase 1 必过,Phase 2 之前)
+
+| # | 自检项 | 通过标准 |
+|---|---|---|
+| 1 | **单一顶端论点存在** | `top_recommendation` 字段非空,是完整推荐句(动宾结构 + 具体边界),不是议题陈述 |
+| 2 | **SCQA 完整** | `scqa` 四字段全部非空;C 真的是冲突/变化,不是 S 的复述;A == 顶端论点 |
+| 3 | **答案在前** | cover.subtitle 或第 1 内容页明示顶端论点;每个 section_divider 标题是结论句 |
+| 4 | **MECE 通过** | 章节数 3-5;两两之间无内容重叠;加起来能完整支撑顶端论点(自问"听众会问'那 X 呢'吗") |
+| 5 | **章节排列方式一致** | 时间/结构/重要性/演绎,选一种贯穿 |
+| 6 | **纵向疑问链通过(ghost deck test)** | 所有 action_title 按顺序读,能讲出顶端论点的完整论据链;若有任一标题与上层论点无关或断裂,重排 |
+| 7 | **action title 全是结论句** | 没有任何一页用名词短语标题("市场背景" / "技术方案" 一律禁用) |
+
+任何一项不通过 → 不交付 Phase 1,在 `missing_fields` 列出该项,要求用户补 brief 或自动回去重排。**不要硬出大纲后让 Phase 2 蒙混过关**。
+
+### bypass_pyramid 适用场景
+
+下列场景可在 Phase 1 输出里设 `bypass_pyramid: true`,跳过 Pyramid 自检 1-6 项(action title 第 7 项仍要求):
+
+- **纯数据汇报 / 月报 / 周报**:章节是数据维度而非论证(销售 / 流量 / 成本各 1 节),没有"推荐"也没有"冲突"
+- **培训 / 教学 deck**:目标是讲解知识结构,不是说服决策
+- **目录式索引 deck**:产品手册、能力清单、人员介绍等
+
+`bypass_pyramid: true` 必须由用户在 brief 中显式声明(`structure_mode: data_report | tutorial | catalog`),agent 不可自行判断 —— 因为 99% 的提案 / 路演 / 汇报场合都应该走金字塔。
 
 ### 与逐页拓写的衔接
 
-- `section_divider` / `bullet_list` / `cards` / `compare` / `single_focus` / `table` / `pic_text` 的 `title` 字段都应是 action title。
-- `cover.title` 是 deck 的主命题;`summary` 是论证的收口结论。
-- 这一步在 workflow 的图层规划前后做,产出的 `outline` 决定 `deck_plan.json` 的 slides 骨架。
+- `section_divider` / `bullet_list` / `cards` / `compare` / `single_focus` / `table` / `pic_text` 的 `title` 字段都应是 action title(结论句)
+- `cover.title` 是 deck 主题;`cover.subtitle` 是顶端论点(BLUF)
+- `summary.conclusions` 是论证收口,与 `top_recommendation` 呼应,不能新增未出现过的论点
+- Pyramid 自检通过后,`outline` 决定 `deck_plan.json` 的 slides 骨架
 
 ---
 
@@ -132,12 +239,22 @@ cover
 - cover / toc / closing 全 deck 各出现 1 次
 - section_divider 数量与 toc.sections 数量严格对应
 
-### 变化感（相邻页 layout 不重复）
+### 变化感（≥ 3 连续相同 layout 才警告 — 软约束）
 
-- 连续 2 页都用 `bullet_list` → 第 2 页换 `cards` 或 `table`
-- 连续 2 页都用 `single_focus` → 其中一页改为 `compare`
-- 连续 2 页都用 `cards` → 其中一页改为 `pic_text`
-- `section_divider` 不计入"连续"判断（它本身不是内容页）
+> **2026-05-23 软化**:原"相邻 2 页不能重 layout"是过严硬约束(查行业实践,无权威支持)。
+> 改成"≥ 3 连续才警告",给合理场景留口子。
+
+合理的连续相同 layout 场景:
+
+- 3-4 张 `cards`(每张呈现一个客户案例 / 产品模块)
+- 2 张 `compare`(同主题不同维度对比)
+- 2 张 `table`(同一组数据切片)
+
+警告(不强制阻断,但提醒考虑):
+
+- ≥ 3 张相同 layout 连续 → 提示"是否真的需要这么多同质页?能否合并 / 用其他 layout 强调差异"
+- `section_divider` 不计入"连续"判断(它本身不是内容页)
+- `cover` / `toc` / `closing` 全 deck 各 1 次,无连续问题
 
 ### 强调感（关键论点单独成页）
 
@@ -213,6 +330,22 @@ cover
 | 60 min | 40-50 页 | 通常需要 `pic_text` 补充图例 |
 
 公式参考：`total_slides ≈ duration_min × 1.5`（含 cover / toc / divider / closing 各 1 页）。
+
+---
+
+## 打印 / PDF 导出指南
+
+PPT 主用于屏幕投影,但很多场景需要打印 / 导出 PDF 分享。以下规范避免常见翻车:
+
+| 场景 | 问题 | 应对 |
+|---|---|---|
+| 屏幕色 → CMYK 打印 | `#0A52BF`(屏幕饱和蓝)打印偏紫 | 重要文件用 grayscale 打印,或印前转 CMYK 校色 |
+| 黑白复印 | 9pt GRAY_500 页脚 → 复印后消失;BRAND_TINT 浅蓝底 → 灰得几乎看不到 | 关键文字别用 ≤ 9pt 灰色;别把信息只放在 TINT 底色上 |
+| PDF 导出 | LibreOffice / PowerPoint 导出 PDF 时 PNG 可能压缩,失去清晰度 | 用 `soffice --convert-to pdf` 而非"打印到 PDF";嵌入 PNG ≥ 1600px |
+| 分级文件分发 | classification 是徽标,容易被遮 | `footer_meta.classification` 会在每页页脚出现;cover 右上角也单独显示一次 |
+| 中文字体丢失 | 接收方未装雅黑,PDF 显示宋体 fallback | 导出 PDF 时勾选"嵌入字体"选项(`soffice --convert-to "pdf:writer_pdf_Export:EmbedStandardFonts=true"`) |
+
+**重要原则**:任何要"打印 + 分发"的 deck,导出 PDF 前用 grayscale 预览校验一遍,确认页脚 / 页码 / 数据 source 全部可读。
 
 ---
 

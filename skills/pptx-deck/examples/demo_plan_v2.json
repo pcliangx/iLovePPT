@@ -1,0 +1,55 @@
+{
+  "theme": "tech_blue",
+  "output": "./sample_output_v2.pptx",
+  "footer_meta": {
+    "classification": "INTERNAL",
+    "project": "iLovePPT v2 演示",
+    "version": "v2.0"
+  },
+  "slides": [
+    {"layout": "cover",
+     "title": "iLovePPT 视觉规范升级",
+     "subtitle": "对标 BCG/McKinsey 后的 17 项改进",
+     "prepared_by": "技术部",
+     "date": "2026-05-23",
+     "version": "v2.0",
+     "project_code": "ILVPPT-17",
+     "classification": "INTERNAL"},
+    {"layout": "toc",
+     "sections": ["改了什么", "为什么改", "怎么用"]},
+    {"layout": "section_divider", "num": 1, "title": "改了什么"},
+    {"layout": "single_focus",
+     "big_text": "17 项改进上线",
+     "big_number": "17",
+     "explanation": "字号 / 配色 / 字段 / 视觉 QA 全面对标 MBB"},
+    {"layout": "cards",
+     "title": "三大轴线",
+     "cards": [
+       {"title": "字号", "body": "body 14→18pt"},
+       {"title": "配色", "body": "primary AAA 7:1"},
+       {"title": "字段", "body": "source/meta 补全"}
+     ]},
+    {"layout": "table",
+     "title": "字号对比",
+     "headers": ["元素", "旧", "新", "依据"],
+     "rows": [
+       ["body", "14pt", "18pt", "BCG min"],
+       ["page标题", "28pt", "32pt", "MBB std"],
+       ["页脚", "9pt", "9pt", "保持"]
+     ],
+     "source": "BCG/McKinsey 公开规范 2024-2025"},
+    {"layout": "section_divider", "num": 2, "title": "为什么改"},
+    {"layout": "bullet_list",
+     "title": "三个动机",
+     "items": ["对标 MBB", "提升可读", "加合规字段"]},
+    {"layout": "summary",
+     "conclusions": ["body 涨 30%", "primary AAA 7:1", "加 5 字段"]},
+    {"layout": "closing",
+     "subtitle": "Q&A · contact@example.com",
+     "next_steps": [
+       {"action": "完成视觉 QA 抽检", "owner": "Alice", "due": "2026-05-30"},
+       {"action": "撰写 changelog 推送团队", "owner": "Bob", "due": "2026-06-01"},
+       {"action": "评估 v3 路线(grid / 色盲 / 打印)", "owner": "Carol", "due": "2026-06-15"}
+     ]}
+  ]
+}
