@@ -39,3 +39,4 @@ _assets/
 # deck 构建产物(.pptx + 渲染 JPG · 仅源文件 .json / .md 入 git)
 decks/*/deck_v*.pptx
 decks/*/deck_v*_render/
+decks/*/.~*
