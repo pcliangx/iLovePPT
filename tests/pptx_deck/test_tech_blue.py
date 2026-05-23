@@ -46,6 +46,49 @@ def test_make_compare_three_items():
         {"title": "C", "body": "z"}])
     assert len(prs.slides) == 1
 
+def test_make_compare_with_recommended_adds_badge():
+    """recommended=True 主推列 = 多 1 个 OVAL 徽章 + 1 个徽章文字 = 2 shapes vs 普通列。"""
+    prs = _new()
+    T.make_compare(prs, "高亮", items=[
+        {"title": "普通", "body": "x"},
+        {"title": "主推", "body": "y", "recommended": True}])
+    assert len(prs.slides) == 1
+    # 每列基础 4 shapes(header rect + header textbox + body rect + body textbox)
+    # 主推列多 1 OVAL + 1 textbox(徽章)→ title 1 + 2*4 + 2 = 11
+    assert len(prs.slides[0].shapes) == 11
+
+def test_make_compare_pk():
+    prs = _new()
+    T.make_compare_pk(prs, "对决",
+                      left={"title": "旧", "body": "旧方案 body"},
+                      right={"title": "新", "body": "新方案 body"})
+    assert len(prs.slides) == 1
+    # title + 2 sides × (bg + bar + title + body) + VS circle + VS text = 1+8+2 = 11
+    assert len(prs.slides[0].shapes) == 11
+
+def test_make_matrix_2x2():
+    prs = _new()
+    T.make_matrix_2x2(prs, "矩阵",
+        x_axis={"low": "x 低", "high": "x 高"},
+        y_axis={"low": "y 低", "high": "y 高"},
+        quadrants=[
+            {"pos": "tl", "title": "tl", "body": "tl body"},
+            {"pos": "tr", "title": "主推", "body": "tr body", "highlight": True},
+            {"pos": "bl", "title": "bl", "body": "bl body"},
+            {"pos": "br", "title": "br", "body": "br body"}])
+    assert len(prs.slides) == 1
+    # title + 4 象限 × (rect + title textbox + body textbox) + 4 axis labels = 1+12+4 = 17
+    assert len(prs.slides[0].shapes) == 17
+
+def test_make_matrix_2x2_invalid_pos_raises():
+    prs = _new()
+    import pytest
+    with pytest.raises(ValueError, match="quadrant.pos"):
+        T.make_matrix_2x2(prs, "x",
+            x_axis={"low": "a", "high": "b"},
+            y_axis={"low": "c", "high": "d"},
+            quadrants=[{"pos": "xx", "title": "t", "body": "b"}])
+
 def test_make_cards_two():
     prs = _new()
     T.make_cards(prs, "两栏", cards=[

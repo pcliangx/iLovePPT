@@ -17,7 +17,7 @@ v3 流程详细见 [v3 spec](../../docs/superpowers/specs/2026-05-23-iloveppt-v3
 
 ---
 
-## 11 layout 文案规则
+## 13 layout 文案规则
 
 | layout | 字数 / 句式约束 | 反例 |
 |---|---|---|
@@ -25,7 +25,9 @@ v3 流程详细见 [v3 spec](../../docs/superpowers/specs/2026-05-23-iloveppt-v3
 | toc | 章节 ≤ 6、每章 ≤ 12 字、动宾对齐 | "公司发展的历史背景与现状分析" |
 | section_divider | 章节号 + 标题（≤ 10 字），layout 独立于内容页 | 与内容页同 header |
 | single_focus | 1 句话 ≤ 12 字 + 1 数字（72pt+）+ 1 行解释 ≤ 20 字 | 5 个要点平铺 |
-| compare | 左右标题各 ≤ 6 字、body ≤ 22 字、句式对称 | 标题长度差 2× |
+| compare | N 列对比表(header bar 风,跟 cards 视觉拉开)。每列 title ≤ 6 字、body ≤ 22 字、句式对称。可加 `recommended: true` 标主推列(蓝 header + 浅蓝 body + 绿 ✓ 徽章) | 标题长度差 2×;3 列里 0 列主推(没主张) |
+| **compare_pk** | **对决式两选一**。`left/right={title ≤ 8 字, body ≤ 40 字}`。中间巨型 VS 圆,适合 before/after、新旧 PK、二选一 | 三方对比硬塞(应该用 compare);body 写成 1 个词没说服力 |
+| **matrix_2x2** | **BCG 2×2 矩阵**。`x_axis/y_axis = {low, high}`(≤ 8 字),4 quadrants(pos = tl/tr/bl/br),`title ≤ 8 字`、`body ≤ 25 字`,1 个 quadrant 加 `highlight: true` | 4 格写 4 个不相关的点(矩阵的意义是同一维度二分类);轴标签写成完整句 |
 | cards | 每卡标题 ≤ 6 字、body ≤ 18 字（N 列，cards 列表） | body 一长一短 |
 | bullet_list | 每点 ≤ 12 字、句式一致（动宾或名词性结构） | 一点一句话一点一段 |
 | table | 列 ≤ 5、行 ≤ 7、单元格 ≤ 8 字 | 把段落塞进单元格 |
@@ -195,7 +197,10 @@ cover:            { layout, title, subtitle }
 toc:              { layout, sections: [str, ...] }
 section_divider:  { layout, num: int, title }
 single_focus:     { layout, big_text, big_number, explanation }
-compare:          { layout, title?, items: [{title, body}, ...] }
+compare:          { layout, title?, items: [{title, body, recommended?: bool}, ...] }
+compare_pk:       { layout, title, left: {title, body}, right: {title, body} }
+matrix_2x2:       { layout, title, x_axis: {low, high}, y_axis: {low, high},
+                    quadrants: [{pos: "tl"|"tr"|"bl"|"br", title, body, highlight?: bool}, ...] }
 cards:            { layout, title?, cards: [{title, body}, ...] }
 bullet_list:      { layout, title, items: [str, ...] }
 table:            { layout, title, headers: [str, ...], rows: [[str, ...], ...] }
@@ -206,6 +211,8 @@ closing:          { layout, subtitle? }
 > `title?` / `subtitle?` 带 `?` 为可选字段。`compare.title` 默认"对比"——
 > 建议显式传更具体的页标题（如"现状 vs 目标"）。`closing.subtitle` 默认空(只显大字"谢谢")。
 > `compare` / `cards` 的列数由 `items` / `cards` 列表长度决定（N 列）。
+> `compare.items[i].recommended=true` 标主推列(蓝 header + 浅蓝 body + 绿 ✓);
+> `matrix_2x2.quadrants[i].highlight=true` 标主推象限。同页最多 1 个高亮。
 
 遵循约束（详见上表）：
 - 字数限制严格执行，超出则裁剪，不得将约束视为建议
@@ -250,27 +257,36 @@ cover
 - cover / toc / closing 全 deck 各出现 1 次
 - section_divider 数量与 toc.sections 数量严格对应
 
-### 变化感（≥ 3 连续相同 layout 才警告 — 软约束）
+### 变化感(cards 类视觉去同质化 — v0.4.0 新规则)
 
-> **2026-05-23 软化**:原"相邻 2 页不能重 layout"是过严硬约束(查行业实践,无权威支持)。
-> 改成"≥ 3 连续才警告",给合理场景留口子。
+cards / compare 实现上都是"横向卡片列",视觉上**同属一类**。即使三页 layout 字段不同(cards/cards/compare),滚动看到的还是连排白卡 → 给读者"排版单一"的体感。
 
-合理的连续相同 layout 场景:
+**两条硬规则**:
 
-- 3-4 张 `cards`(每张呈现一个客户案例 / 产品模块)
-- 2 张 `compare`(同主题不同维度对比)
-- 2 张 `table`(同一组数据切片)
+1. **≥ 2 张 cards-like(`cards` 或 `compare`)layout 连续 → 警告**
+   - cards-like 含:`cards` / `compare`
+   - 不含:`compare_pk`(对决式)/ `matrix_2x2`(矩阵)/ `bullet_list` / `table` / `pic_text` / `summary` / `single_focus`(都是差异化布局)
+   - 触发时:必须改至少 1 页用上方差异化 layout,或用 `recommended` 字段在 compare 上引入"高亮对比"视觉冲击
+
+2. **≥ 3 张任意相同 layout 连续 → 警告**(原规则保留)
+   - 仅同 layout 字段名比较;`section_divider` 不计入
+
+合理的连续相同 layout 场景(白名单):
+
+- 3-4 张 `cards` 是产品模块 / 案例**且每张视觉强差异**(如带不同 icon、不同主推标)
+- 2 张 `table` 是同一组数据的不同切片(明显数据延续)
 
 警告(不强制阻断,但提醒考虑):
 
-- ≥ 3 张相同 layout 连续 → 提示"是否真的需要这么多同质页?能否合并 / 用其他 layout 强调差异"
-- `section_divider` 不计入"连续"判断(它本身不是内容页)
+- 连续 cards-like → 提示"是否能改 1 页用 `compare_pk`(对决)/ `matrix_2x2`(矩阵)/ `bullet_list` 打破节奏?"
 - `cover` / `toc` / `closing` 全 deck 各 1 次,无连续问题
 
 ### 强调感（关键论点单独成页）
 
 - 整 deck 最关键的 1-2 个论点用 `single_focus`（大字号 + 大数字）
-- 数据密集页用 `table`；对比类用 `compare`
+- **二选一 / 新旧对决**用 `compare_pk`(中间巨型 VS,视觉冲击最强)
+- **二维分类**(如"高/低价值 × 高/低难度")用 `matrix_2x2`(BCG 风,可高亮主推象限)
+- 数据密集页用 `table`；多列对比用 `compare`(可带 `recommended` 高亮主推)
 - 流程类用 `bullet_list`（步骤有序）；分类类用 `cards`
 
 ---

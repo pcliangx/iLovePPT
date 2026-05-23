@@ -55,20 +55,36 @@
       "title": "跟 Claude.ai 和 API 是三回事",
       "items": [
         {"title": "Claude.ai", "body": "浏览器聊天 · 没有本地文件权限,不能跑命令,适合问答和文本协作,不是编码工具。"},
-        {"title": "Claude Code", "body": "五端 agentic 跑任务 · 读 / 改 / 跑 / 验 全套,带 6 件套扩展机制,这次培训讲的就是它。"},
+        {"title": "Claude Code", "body": "五端 agentic 跑任务 · 读 / 改 / 跑 / 验 全套,带 6 件套扩展机制,这次培训讲的就是它。", "recommended": true},
         {"title": "Claude API", "body": "程序员调模型自建 app · 你写代码调 Claude,跟 Code 不是一个产品,Code 是产品,API 是底层。"}
       ],
       "source": "官方对比表"
     },
     {"layout": "section_divider", "num": 2, "title": "≠ Copilot · 3 个根本差别"},
     {
-      "layout": "cards",
-      "title": "Copilot 给建议 · Claude Code 干活",
-      "cards": [
-        {"title": "单步 vs 多步", "body": "Copilot 是按行 / 函数级别补全,建议完就停。Claude Code 跑多步任务,自动连续 plan / act / verify 直到目标达成。"},
-        {"title": "写 vs 全干", "body": "Copilot 只写代码不动文件不跑命令。Claude Code 读 codebase / 改文件 / 跑测试 / 验证结果 全套都干,无需你按 enter。"},
-        {"title": "IDE 内 vs 五端", "body": "Copilot 绑死在 IDE 里。Claude Code 五端(Terminal / VS Code / JetBrains / Desktop / Web)跨场景,任务上下文跟着你走。"}
+      "layout": "matrix_2x2",
+      "title": "AI 编码工具全景 · Claude Code 占哪格",
+      "x_axis": {"low": "通用 AI", "high": "专精编码"},
+      "y_axis": {"low": "被动给建议", "high": "主动干任务"},
+      "quadrants": [
+        {"pos": "tl", "title": "ChatGPT / Claude.ai", "body": "通用聊天 · 给文字答案,无文件 / 命令权限"},
+        {"pos": "tr", "title": "Claude Code", "body": "专精编码 + 主动 agentic · 五端跑读改跑验全套", "highlight": true},
+        {"pos": "bl", "title": "Bard / Gemini Chat", "body": "通用聊天 · 偶有插件,但非编码主战场"},
+        {"pos": "br", "title": "GitHub Copilot", "body": "专精编码 · 但仅按 Tab 单步补全,被动建议"}
       ],
+      "source": "市场观察 + 官方定位"
+    },
+    {
+      "layout": "compare_pk",
+      "title": "Copilot vs Claude Code · 同 AI 但本质不同",
+      "left": {
+        "title": "GitHub Copilot",
+        "body": "单步补全 · 给你建议按 Tab 接受。\n只生成代码,不动文件 / 不跑命令。\n绑死在 IDE 里,场景受限。"
+      },
+      "right": {
+        "title": "Claude Code",
+        "body": "多步 agentic · 自动 plan / act / verify。\n读 / 改 / 跑 / 验 全套干完才停。\n五端跑(CLI / IDE / Desktop / Web)。"
+      },
       "source": "官方 vs Copilot 定位"
     },
     {"layout": "section_divider", "num": 3, "title": "心智 1 · Agentic loop"},
@@ -173,12 +189,16 @@
       ]
     },
     {
-      "layout": "compare",
-      "title": "v2 vs v3.1 · 架构演进对比",
-      "items": [
-        {"title": "v2 单 agent", "body": "一个 iloveppt agent 从 brief 收集到 visual QA 全包。context 一直增长,后段决策质量下滑,且无法多轮对话(每次重派全失忆)。"},
-        {"title": "v3.1 三 agent", "body": "主线程做薄分发器 · 派 brainstorm 收 brief,派 author 出 outline/content,派 builder 跑 build.py。每个 agent 独立 context + state file,可多轮迭代。"}
-      ],
+      "layout": "compare_pk",
+      "title": "v2 vs v3.1 · 架构演进对决",
+      "left": {
+        "title": "v2 · 单 agent",
+        "body": "一个 iloveppt agent 从 brief 收集到 visual QA 全包。\ncontext 一直增长,后段决策质量下滑。\n无法多轮对话(每次重派全失忆)。"
+      },
+      "right": {
+        "title": "v3.1 · 三 agent",
+        "body": "主线程做薄分发 · brainstorm + author + builder。\n每个 agent 独立 context + state file。\n可多轮迭代,各 agent 边界清晰。"
+      },
       "source": "docs/agent-internals.zh.md"
     },
     {

@@ -201,25 +201,204 @@ def make_single_focus(
     return s
 
 
-def make_compare(prs: _Pres, title: str, items: list[dict[str, str]]) -> Slide:
-    """N 列对比卡片,accent 色交替。handout mode body 字号降 + box 加高。"""
+def make_compare(prs: _Pres, title: str, items: list[dict[str, Any]]) -> Slide:
+    """N 列对比表 — header bar 风,跟 cards 视觉拉开。
+
+    每列 = 顶部彩色 header(主推 PRIMARY 实色+白字,其他 GRAY_300+深字)
+    + 下方 body 区(主推 PRIMARY_TINT 浅填充,其他 WHITE)。
+    item.recommended=True 标主推列;无 recommended 字段 = 全列等地位无高亮。
+    """
     s = _blank_slide(prs)
     _add_title(s, title)
     region = L.content_region()
-    card_h = Inches(4.6) if H.is_handout() else Inches(3.4)
-    row = L.stack(region, [card_h], align="middle")[0]
-    cols = L.columns(row, len(items))
+    block_h = Inches(4.6) if H.is_handout() else Inches(3.5)
+    row = L.stack(region, [block_h], align="middle")[0]
+    cols = L.columns(row, len(items), gap=Inches(0.15))
+    header_h = Inches(0.7)
     body_size = 14 if H.is_handout() else 16
-    body_box_h = Inches(3.6) if H.is_handout() else Inches(2.2)
-    for i, (col, item) in enumerate(zip(cols, items)):
-        accent = PRIMARY if i % 2 == 0 else ACCENT
-        H.card(s, col.x, col.y, col.w, col.h, fill=H.WHITE,
-               border=H.GRAY_300, accent=accent)
-        inner = L.inset(col, Inches(0.3), Inches(0.25))
-        parts = L.stack(inner, [Inches(0.6), body_box_h], gap=Inches(0.15),
-                        align="top")
-        _text(s, parts[0], item["title"], size=20, bold=True, color=PRIMARY_DEEP)
-        _text(s, parts[1], item["body"], size=body_size, color=H.GRAY_700)
+    for col, item in zip(cols, items):
+        is_recommended = bool(item.get("recommended", False))
+        header_fill = PRIMARY if is_recommended else H.GRAY_300
+        header_color = H.WHITE if is_recommended else PRIMARY_DEEP
+        body_fill = PRIMARY_TINT if is_recommended else H.WHITE
+        body_color = PRIMARY_DEEP if is_recommended else H.GRAY_700
+
+        # header 方角矩形(非 H.card,跟 cards layout 拉开)
+        H.rect(s, col.x, col.y, col.w, header_h, header_fill)
+        h_tb = s.shapes.add_textbox(col.x, col.y, col.w, header_h)
+        H.fix_textbox_margins(h_tb.text_frame)
+        h_tb.text_frame.word_wrap = True
+        hp = h_tb.text_frame.paragraphs[0]
+        hp.alignment = PP_ALIGN.CENTER
+        hr = hp.add_run(); hr.text = item["title"]
+        H.set_font(hr, name=FONT_HEADER, size=18, bold=True, color=header_color)
+
+        # body 方角矩形 + 边框
+        body_y = col.y + header_h
+        body_h = block_h - header_h
+        body_shape = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, col.x, body_y,
+                                         col.w, body_h)
+        body_shape.fill.solid(); body_shape.fill.fore_color.rgb = body_fill
+        body_shape.line.color.rgb = H.GRAY_300
+        body_shape.line.width = Pt(0.75)
+
+        # 主推 ✓ 标(右上角小角标)
+        if is_recommended:
+            badge_w = Inches(0.55)
+            badge_x = col.x + col.w - badge_w - Inches(0.1)
+            badge_y = col.y + header_h + Inches(0.1)
+            badge = s.shapes.add_shape(MSO_SHAPE.OVAL, badge_x, badge_y,
+                                        badge_w, badge_w)
+            badge.fill.solid(); badge.fill.fore_color.rgb = ACCENT
+            H.no_line(badge)
+            b_tb = s.shapes.add_textbox(badge_x, badge_y, badge_w, badge_w)
+            H.fix_textbox_margins(b_tb.text_frame)
+            bp = b_tb.text_frame.paragraphs[0]
+            bp.alignment = PP_ALIGN.CENTER
+            br = bp.add_run(); br.text = "✓"
+            H.set_font(br, name=FONT_HEADER, size=18, bold=True, color=H.WHITE)
+
+        # body 文字
+        body_box = L.Box(col.x + Inches(0.25), body_y + Inches(0.25),
+                          col.w - Inches(0.5), body_h - Inches(0.5))
+        _text(s, body_box, item["body"], size=body_size, color=body_color)
+    return s
+
+
+def make_compare_pk(
+    prs: _Pres,
+    title: str,
+    left: dict[str, str],
+    right: dict[str, str],
+) -> Slide:
+    """对决式两选一 — 左右两大区 + 中间巨型 VS。
+
+    用于"二选一""新旧对决""before/after"等强对比场景。跟 make_compare(N 列对比表)
+    在视觉与语义上完全不同 — pk 强调"PK 感",compare 强调"列对比"。
+    """
+    s = _blank_slide(prs)
+    _add_title(s, title)
+    region = L.content_region()
+    vs_diameter = Inches(1.4)
+    gap = Inches(0.4)
+    side_w = (region.w - vs_diameter - gap * 2) // 2
+
+    block_h = Inches(4.8) if H.is_handout() else Inches(3.8)
+    block_y = region.y + (region.h - block_h) // 2
+
+    body_size = 16 if H.is_handout() else 18
+
+    def _side(x: int, side: dict[str, str], is_left: bool) -> None:
+        # 大区底色 + 顶部 4pt accent bar
+        accent_color = PRIMARY if is_left else ACCENT
+        bg = s.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, block_y,
+                                  side_w, block_h)
+        bg.fill.solid(); bg.fill.fore_color.rgb = H.GRAY_50
+        bg.line.color.rgb = H.GRAY_300; bg.line.width = Pt(0.75)
+        bg.adjustments[0] = 0.03
+        # 顶部 accent bar
+        H.rect(s, x, block_y, side_w, Inches(0.08), accent_color)
+        # title + body
+        title_box = L.Box(x + Inches(0.4), block_y + Inches(0.35),
+                            side_w - Inches(0.8), Inches(0.9))
+        _text(s, title_box, side["title"], size=28, bold=True,
+              color=PRIMARY_DEEP, align=PP_ALIGN.CENTER)
+        body_box = L.Box(x + Inches(0.4), block_y + Inches(1.35),
+                           side_w - Inches(0.8), block_h - Inches(1.6))
+        _text(s, body_box, side["body"], size=body_size,
+              color=H.GRAY_700, align=PP_ALIGN.CENTER)
+
+    _side(region.x, left, is_left=True)
+    _side(region.x + side_w + gap + vs_diameter + gap, right, is_left=False)
+
+    # 中间 VS 圆
+    vs_x = region.x + side_w + gap
+    vs_y = block_y + (block_h - vs_diameter) // 2
+    vs_circle = s.shapes.add_shape(MSO_SHAPE.OVAL, vs_x, vs_y,
+                                     vs_diameter, vs_diameter)
+    vs_circle.fill.solid(); vs_circle.fill.fore_color.rgb = PRIMARY_DEEP
+    H.no_line(vs_circle)
+    vs_tb = s.shapes.add_textbox(vs_x, vs_y, vs_diameter, vs_diameter)
+    H.fix_textbox_margins(vs_tb.text_frame)
+    vp = vs_tb.text_frame.paragraphs[0]
+    vp.alignment = PP_ALIGN.CENTER
+    vr = vp.add_run(); vr.text = "VS"
+    H.set_font(vr, name=FONT_HEADER, size=36, bold=True, color=H.WHITE)
+    return s
+
+
+def make_matrix_2x2(
+    prs: _Pres,
+    title: str,
+    x_axis: dict[str, str],
+    y_axis: dict[str, str],
+    quadrants: list[dict[str, Any]],
+) -> Slide:
+    """BCG 2×2 经典矩阵 — 横纵轴 + 4 象限,可高亮主推象限。
+
+    x_axis / y_axis = {low: "...", high: "..."}
+    quadrants = [{pos: "tl"|"tr"|"bl"|"br", title, body, highlight}] × 4
+    """
+    s = _blank_slide(prs)
+    _add_title(s, title)
+
+    # 矩阵主体区域 — 留左侧/底部给轴标签
+    matrix_x = Inches(2.4)
+    matrix_y = Inches(1.7)
+    matrix_w = Inches(10.0)
+    matrix_h = Inches(4.7)
+    cell_w = matrix_w // 2
+    cell_h = matrix_h // 2
+
+    body_size = 14 if H.is_handout() else 12
+
+    positions = {
+        "tl": (matrix_x, matrix_y),
+        "tr": (matrix_x + cell_w, matrix_y),
+        "bl": (matrix_x, matrix_y + cell_h),
+        "br": (matrix_x + cell_w, matrix_y + cell_h),
+    }
+    for q in quadrants:
+        pos = q.get("pos")
+        if pos not in positions:
+            raise ValueError(f"quadrant.pos 必须是 tl/tr/bl/br,得到 {pos!r}")
+        qx, qy = positions[pos]
+        highlight = bool(q.get("highlight", False))
+        fill = PRIMARY_TINT if highlight else H.WHITE
+        # 象限矩形
+        rect = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, qx, qy, cell_w, cell_h)
+        rect.fill.solid(); rect.fill.fore_color.rgb = fill
+        rect.line.color.rgb = PRIMARY if highlight else H.GRAY_300
+        rect.line.width = Pt(1.5) if highlight else Pt(0.75)
+        # title + body
+        title_box = L.Box(qx + Inches(0.25), qy + Inches(0.2),
+                            cell_w - Inches(0.5), Inches(0.5))
+        _text(s, title_box, q["title"], size=18, bold=True,
+              color=PRIMARY_DEEP if highlight else H.GRAY_900)
+        body_box = L.Box(qx + Inches(0.25), qy + Inches(0.85),
+                           cell_w - Inches(0.5), cell_h - Inches(1.0))
+        _text(s, body_box, q.get("body", ""), size=body_size,
+              color=PRIMARY_DEEP if highlight else H.GRAY_700)
+
+    # 横轴标签(矩阵下方)
+    axis_y = matrix_y + matrix_h + Inches(0.1)
+    x_low = L.Box(matrix_x, axis_y, cell_w, Inches(0.35))
+    x_high = L.Box(matrix_x + cell_w, axis_y, cell_w, Inches(0.35))
+    _text(s, x_low, x_axis.get("low", ""), size=12, bold=True,
+          color=H.GRAY_700, align=PP_ALIGN.CENTER)
+    _text(s, x_high, x_axis.get("high", ""), size=12, bold=True,
+          color=H.GRAY_700, align=PP_ALIGN.CENTER)
+
+    # 纵轴标签(矩阵左侧,横排小字 — 旋转文字 PPT 实现复杂,简化处理)
+    y_axis_x = Inches(0.55)
+    y_axis_w = matrix_x - y_axis_x - Inches(0.15)
+    y_high = L.Box(y_axis_x, matrix_y, y_axis_w, Inches(0.4))
+    y_low = L.Box(y_axis_x, matrix_y + matrix_h - Inches(0.4), y_axis_w,
+                    Inches(0.4))
+    _text(s, y_high, "↑ " + y_axis.get("high", ""), size=12, bold=True,
+          color=H.GRAY_700)
+    _text(s, y_low, "↓ " + y_axis.get("low", ""), size=12, bold=True,
+          color=H.GRAY_700)
     return s
 
 

@@ -32,7 +32,7 @@ THEMES: dict[str, ModuleType] = {
 # 需要页脚 + 页码的 layout(规范:visual-qa.md §页脚 / 页码完整性)。
 # cover / section_divider / closing 不计入页码。
 FOOTERED_LAYOUTS: frozenset[str] = frozenset({
-    "toc", "single_focus", "compare", "cards",
+    "toc", "single_focus", "compare", "compare_pk", "matrix_2x2", "cards",
     "bullet_list", "table", "pic_text", "summary",
 })
 
