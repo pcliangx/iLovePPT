@@ -54,15 +54,33 @@ def load_plan(path: str | Path) -> dict[str, Any]:
 # ----- load_theme -----
 
 def _extract_design_tokens(pptx_path: str) -> dict[str, Any]:
-    """从 .pptx 提取主色(accent1)与中文字体(master ea typeface)。best-effort。"""
+    """从 .pptx 提取扩展 design token(2026-05-23 扩 v1: 加 accent2-6/字号阶梯).
+
+    返回字段(全 best-effort,缺则不在 dict 里):
+    - font_header / font_body: master ea typeface
+    - primary: RGBColor(accent1)
+    - accent_2/3/4/5/6: RGBColor(accent2-6)
+    - dk1 / lt1: RGBColor(主文本色 / 主背景色)
+    - title_size_pt / body_size_pt: master 默认字号(int pt)
+    """
     from lxml import etree
+    from pptx.dml.color import RGBColor
+    from pptx.oxml.ns import qn
+
     tokens: dict[str, Any] = {}
+
+    def _hex2rgb(hx: str) -> RGBColor | None:
+        if len(hx) == 6:
+            return RGBColor(int(hx[0:2], 16), int(hx[2:4], 16), int(hx[4:6], 16))
+        return None
+
     try:
         prs = Presentation(pptx_path)
     except Exception:
         return tokens
+
+    # === master ea typeface + 字号 ===
     try:
-        from pptx.oxml.ns import qn
         if prs.slide_masters:
             done = False
             for ph in prs.slide_masters[0].placeholders:
@@ -82,22 +100,66 @@ def _extract_design_tokens(pptx_path: str) -> dict[str, Any]:
                     break
     except Exception:
         pass
+
+    # === 从 master XML 抽字号(直接读 slideMaster1.xml) ===
     try:
-        from pptx.dml.color import RGBColor
+        ns = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main",
+              "p": "http://schemas.openxmlformats.org/presentationml/2006/main"}
+        for part in prs.part.package.iter_parts():
+            pn = part.partname
+            if "slideMaster" in pn and pn.endswith(".xml"):
+                root = etree.fromstring(part.blob)
+                title_def = root.find(".//p:titleStyle//a:lvl1pPr/a:defRPr", ns)
+                if title_def is not None:
+                    sz = title_def.get("sz")
+                    if sz and sz.isdigit():
+                        tokens["title_size_pt"] = int(sz) // 100
+                body_def = root.find(".//p:bodyStyle//a:lvl1pPr/a:defRPr", ns)
+                if body_def is not None:
+                    sz = body_def.get("sz")
+                    if sz and sz.isdigit():
+                        tokens["body_size_pt"] = int(sz) // 100
+                break
+    except Exception:
+        pass
+
+    # === theme1.xml: accent1-6 + dk1/lt1 ===
+    try:
+        ns = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
         for part in prs.part.package.iter_parts():
             pn = part.partname
             if "theme" in pn and pn.endswith(".xml"):
                 root = etree.fromstring(part.blob)
-                ns = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
-                accent1 = root.find(".//a:accent1//a:srgbClr", ns)
-                if accent1 is not None:
-                    hx = accent1.get("val", "")
-                    if len(hx) == 6:
-                        tokens["primary"] = RGBColor(
-                            int(hx[0:2], 16), int(hx[2:4], 16), int(hx[4:6], 16))
-                        break
+                scheme = root.find(".//a:clrScheme", ns)
+                if scheme is None:
+                    continue
+                for tag, key in [("accent1", "primary"),
+                                  ("accent2", "accent_2"),
+                                  ("accent3", "accent_3"),
+                                  ("accent4", "accent_4"),
+                                  ("accent5", "accent_5"),
+                                  ("accent6", "accent_6"),
+                                  ("dk1", "dk1"), ("lt1", "lt1")]:
+                    node = scheme.find(f"a:{tag}", ns)
+                    if node is None:
+                        continue
+                    srgb = node.find(".//a:srgbClr", ns)
+                    if srgb is not None:
+                        rgb = _hex2rgb(srgb.get("val", ""))
+                        if rgb:
+                            tokens[key] = rgb
+                            continue
+                    # dk1/lt1 可能是 sysClr,取 lastClr
+                    if tag in ("dk1", "lt1"):
+                        sys_clr = node.find("a:sysClr", ns)
+                        if sys_clr is not None:
+                            rgb = _hex2rgb(sys_clr.get("lastClr", ""))
+                            if rgb:
+                                tokens[key] = rgb
+                break
     except Exception:
         pass
+
     return tokens
 
 
@@ -117,16 +179,35 @@ def _extract_theme_from_pptx(pptx_path: str) -> ModuleType:
         raise RuntimeError(f"无法从 {base_path} 加载主题")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
+    # 字体
     if "font_header" in tokens:
         mod.FONT_HEADER = tokens["font_header"]
         mod.FONT_BODY = tokens.get("font_body", tokens["font_header"])
+    # 主色 + 次级色(accent2-6 + dk1/lt1)
     if "primary" in tokens:
         mod.PRIMARY = tokens["primary"]
+    for key in ("accent_2", "accent_3", "accent_4", "accent_5", "accent_6",
+                "dk1", "lt1"):
+        if key in tokens:
+            setattr(mod, key.upper(), tokens[key])
+    # 字号阶梯(若 master 显式定义)
+    if "title_size_pt" in tokens:
+        mod.TITLE_SIZE_PT = tokens["title_size_pt"]
+    if "body_size_pt" in tokens:
+        mod.BODY_SIZE_PT = tokens["body_size_pt"]
+
     font_status = tokens.get("font_header", "默认 Microsoft YaHei")
     color_status = tokens.get("primary", "默认 tech_blue 主色")
     print(f"  从模板提取主题: {out_name}")
     print(f"     字体: {font_status}")
     print(f"     主色: {color_status}")
+    extra_accents = [k for k in ("accent_2", "accent_3", "accent_4", "accent_5",
+                                  "accent_6") if k in tokens]
+    if extra_accents:
+        print(f"     次级色: {', '.join(extra_accents)}")
+    if "title_size_pt" in tokens or "body_size_pt" in tokens:
+        print(f"     字号阶梯: title={tokens.get('title_size_pt', '-')}pt /"
+              f" body={tokens.get('body_size_pt', '-')}pt")
     return mod
 
 
