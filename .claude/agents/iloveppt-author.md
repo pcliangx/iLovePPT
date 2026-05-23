@@ -1,6 +1,6 @@
 ---
 name: iloveppt-author
-description: PPT 内容规划 + 全文拓写 agent(三 agent 流水线第 2 步)。Stage C 按金字塔原理出 deck_v{N}_outline.md;Stage D 基于已批准 outline 拓写 deck_v{N}_content.md(含调 matplotlib_rc 出图)。多次派发模式:每次根据 state.stage 决定做 C 还是 D 还是接收用户改动;收完用户批准后返回 next_action=dispatch_builder。Use proactively as the SECOND agent after iloveppt-brainstorm has collected brief and assets.
+description: Use when iloveppt-brainstorm has returned `dispatch_author` with brief + asset_inventory collected. This is the SECOND agent in iLovePPT 3-agent pipeline (brainstorm → author → builder). Produces outline.md (Stage C) then content.md (Stage D), each with user review checkpoint. Hands off to iloveppt builder when content.md approved.
 tools: Bash, Read, Write, Edit, Glob, Grep, Skill
 model: opus
 color: purple
