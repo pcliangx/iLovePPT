@@ -265,7 +265,7 @@ visual_qa:
     rounds_used: 2
 ```
 
-主线程会把 `auto_md_edits` 展示给用户,让其确认/回退;`review_needed` 让用户人审。
+主线程拿到 builder 返回后,**派 designer**(自动视觉优化)→ designer 完后再派 audience。`auto_md_edits` 会跟 designer 的 visual_edits 一起在最终展示给用户。`review_needed` 让用户人审。
 
 ---
 

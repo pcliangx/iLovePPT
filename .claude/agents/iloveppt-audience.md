@@ -210,10 +210,18 @@ review_path: <working_dir>/audience_review.md
 overall_score: 9.2
 verdict: excellent | good | needs_minor_revision | needs_major_revision
 top_3_must_fix: [...]
-needs_author_rewrite: [page numbers]    # 文案问题,反馈给 author
-needs_theme_fix: [page numbers]         # 视觉问题,反馈给主线程改 themes
+needs_author_rewrite: [page numbers]    # 文字 / 论点 / 结构问题 → 派 author
+needs_designer_revision: [page numbers] # 视觉素材 / icon 选错 / 装饰过头 → 派 designer(v0.5.2 新)
+needs_theme_fix: [page numbers]         # theme 层视觉(make_* 缺字段)→ 主线程改 themes
 ready_for_delivery: true | false        # avg ≥ 9 且无 needs_major 即 true(v0.5.1 阈值 7→9)
 ```
+
+**反馈三类分流**(v0.5.2):
+- `needs_author_rewrite` —— 文案 / 论点 / 结构问题(例:"page 5 论点不清")→ 派 author 改 content
+- `needs_designer_revision` —— 视觉素材问题(例:"page 5 icon 用了 database 但内容是用户分析,该用 analytics icon"/"section_divider 装饰过头")→ 派 designer 重跑
+- `needs_theme_fix` —— theme 层视觉(例:"make_cards 不支持 icon 字段")→ 主线程改 themes/tech_blue.py
+
+判断标准:**改 markdown 能解决的 → author;改 deck_plan.json / icon / hero 能解决的 → designer;改 themes/*.py 能解决的 → theme_fix**。
 
 **v0.5.1 阈值变更**:`ready_for_delivery: true` 的硬条件 = `overall_score >= 9` **且** 无 `needs_major_revision` 页。阈值从 7 → 9,代表"真正打磨过的 deck",不再是"合格"的低标。审 deck 时要敢打低分:7-8 是 needs_minor,< 7 是 needs_major,9-10 必须有强亮点支撑。
 

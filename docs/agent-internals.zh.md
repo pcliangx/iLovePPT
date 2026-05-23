@@ -1,19 +1,25 @@
-# iLovePPT Agent 工作原理(v0.5.1)
+# iLovePPT Agent 工作原理(v0.5.2)
 
-> 这份文档讲清楚 iLovePPT **怎么工作的** —— 系统架构、5 agent 流水线 + 1 旁路、多轮派发机制、关键设计决策。
+> 这份文档讲清楚 iLovePPT **怎么工作的** —— 系统架构、6 agent 流水线 + 1 旁路、多轮派发机制、关键设计决策。
 > 适合想理解或改造系统的人;不是用户操作手册(那个看 [`MANUAL.zh.md`](MANUAL.zh.md))。
 >
-> *版本:v0.5.1 · 2026-05-24 · 取代 v3.1(3 agent)*
+> *版本:v0.5.2 · 2026-05-24 · 加 designer 视觉优化 agent*
+> *v0.5.1 → v0.5.2 演进:加 iloveppt-designer(builder 后自动跑 / 搜 iconify / 加 icon-hero-装饰)*
 > *v3.1 spec 历史保留:[v3 markdown-first](superpowers/specs/2026-05-23-iloveppt-v3-markdown-first.md)*
 > *v2 agent design 历史保留:[v2 agent design](superpowers/specs/2026-05-23-iloveppt-agent-design.md)*
-> *v0.5.1 运行时活协议(权威):[`.claude/pipeline-protocol.md`](../.claude/pipeline-protocol.md)*
+> *运行时活协议(权威):[`.claude/pipeline-protocol.md`](../.claude/pipeline-protocol.md)*
 
-**v3.1 → v0.5.1 主要演进**:
+**v0.5.1 → v0.5.2 主要演进**:
+- 5 agent → 6 agent + 1 旁路(新增 `iloveppt-designer` 视觉设计师)
+- builder 完成 .pptx 后**自动跑 designer**(audience 之前),填补"主动加视觉资产"的真空
+- designer 能力:搜 iconify(icons)+ Unsplash(hero,需 key)+ 用户 brand assets;改 deck_plan.json 加 icon / 装饰 / 调布局
+- audience 反馈分三类:`needs_author_rewrite`(文字)/ `needs_designer_revision`(视觉素材,v0.5.2 新)/ `needs_theme_fix`(theme 层)
+
+**v3.1 → v0.5.1 主要演进**(继承):
 - 3 agent → 5 agent + 1 旁路(新增 critic、audience、template-extractor)
-- 新增 critic 在 Stage C/D 各跑一次的"双 gate"(从合规检查员升级为 partner 评审员)
-- 新增 audience 9 分硬阈值 + 5 轮 cap(读者视角他检,跟 builder 视觉 QA 严格分工)
-- 新增 brief.md gate(brainstorm 收齐字段后写文件 + 用户确认)
-- 主线程派发规则强制 `TeamCreate`,每 teammate 独立窗口
+- critic 在 Stage C/D 各跑一次的"双 gate"
+- audience 9 分硬阈值 + 5 轮 cap
+- brief.md gate + 主线程强制 `TeamCreate`
 
 ---
 
@@ -21,13 +27,14 @@
 
 - [1. 30 秒理解](#1-30-秒理解)
 - [2. 核心架构:主线程 + 5 agent + 1 旁路 + skill + build.py](#2-核心架构主线程--5-agent--1-旁路--skill--buildpy)
-- [3. 五个 agent + 旁路各自的角色](#3-五个-agent--旁路各自的角色)
+- [3. 六个 agent + 旁路各自的角色](#3-六个-agent--旁路各自的角色)
   - [3.1 iloveppt-brainstorm(Stage A+B)](#31-iloveppt-brainstormstage-ab)
   - [3.2 iloveppt-author(Stage C+D)](#32-iloveppt-authorstage-cd)
   - [3.3 iloveppt-critic(Stage C/D 双 gate · v0.5.1 新)](#33-iloveppt-criticstage-cd-双-gate--v051-新)
   - [3.4 iloveppt(Stage E builder)](#34-iloveppt-stage-e-builder)
   - [3.5 iloveppt-audience(Stage F · v0.5.1 新)](#35-iloveppt-audiencestage-f--v051-新)
-  - [3.6 iloveppt-template-extractor(旁路)](#36-iloveppt-template-extractor旁路)
+  - [3.6 iloveppt-designer(Stage E.5 · v0.5.2 新,流水线位置在 builder 与 audience 之间)](#36-iloveppt-designerstage-e5--v052-新)
+  - [3.7 iloveppt-template-extractor(旁路)](#37-iloveppt-template-extractor旁路)
 - [4. 关键机制](#4-关键机制)
   - [4.1 多次派发 + state file](#41-多次派发--state-file)
   - [4.2 next_action 路由协议](#42-next_action-路由协议)
@@ -45,15 +52,16 @@
 
 ## 1. 30 秒理解
 
-iLovePPT 把"写 PPT"拆成 **5 个 Claude Code agent 接力 + 1 个旁路**:
+iLovePPT 把"写 PPT"拆成 **6 个 Claude Code agent 接力 + 1 个旁路**:
 
 | Agent | 阶段 | 干什么 |
 |---|---|---|
 | `iloveppt-brainstorm` | Stage A + B | 多轮挖需求 + 收素材 + 写 `brief.md` + 用户确认 gate |
 | `iloveppt-author` | Stage C + D | 按金字塔原理出 `outline.md` → 用户审 → 拓写 `content.md`(含调 matplotlib 出图)→ 用户审 |
-| **`iloveppt-critic`** | Stage C 和 Stage D 各一次 | **partner 评审员**:14 项 checklist(底线)+ 4 维度判断性评审(论据强度 / 节奏 / 措辞 / 平衡)+ 三档 verdict(pass / pass_with_notes / needs_revision) |
-| `iloveppt`(builder) | Stage E | 读 `content.md` → 验 critic Stage D pass → Pyramid 自检 → md→JSON → build.py 出 .pptx → 视觉 QA(机械项)循环 |
-| **`iloveppt-audience`** | Stage F | 模拟目标受众读 deck,4 维度评分(认知接收),9 分硬阈值 + 5 轮 cap |
+| `iloveppt-critic` | Stage C 和 Stage D 各一次 | **partner 评审员**:14 项 checklist 底线 + 4 维度判断性评审(论据强度 / 节奏 / 措辞 / 平衡)+ 三档 verdict |
+| `iloveppt`(builder) | Stage E | 读 `content.md` → 验 critic Stage D pass → Pyramid 自检 → md→JSON → build.py 出 .pptx → **机械**视觉 QA(字号 / 对齐 / 颜色 / 溢出)循环 |
+| **`iloveppt-designer`** | Stage E.5(v0.5.2 新) | **视觉设计师**:builder 完成后自动跑,搜 iconify / Unsplash / brand assets,改 deck_plan.json 加 icon / hero / 装饰 / 布局优化;cairosvg 转 SVG→PNG |
+| `iloveppt-audience` | Stage F | 模拟目标受众读 deck,4 维度评分(认知接收),9 分硬阈值 + 5 轮 cap;反馈三类分流(author / designer / theme) |
 | `iloveppt-template-extractor` | 旁路 | 用户给 .pptx 模板时,提取 4 级 token(媒体 / 主色 / 字体 / 视觉风格) |
 
 **主线程 Claude 是 thin dispatcher**:不持有 PPT 业务逻辑,只 `TeamCreate` 建 team、按 agent 返回的 `next_action` 派发下一个 agent、转发消息给用户。每个 teammate 独立窗口,跨窗口用 `SendMessage` 传交付物路径。
@@ -71,7 +79,7 @@ iLovePPT 把"写 PPT"拆成 **5 个 Claude Code agent 接力 + 1 个旁路**:
 
 ---
 
-## 2. 核心架构:主线程 + 5 agent + 1 旁路 + skill + build.py
+## 2. 核心架构:主线程 + 6 agent + 1 旁路 + skill + build.py
 
 ```mermaid
 flowchart TB
@@ -80,7 +88,8 @@ flowchart TB
     AU["<b>iloveppt-author</b><br/>(Stage C+D · 多次派发)<br/>state: .iloveppt_author_state.json<br/>outline.md → content.md + 出图"]
     CR["<b>iloveppt-critic</b><br/>(Stage C/D · 无状态,每轮新建)<br/>14 checklist + 4 维度判断性<br/>critic_report_{C,D}.md"]
     BD["<b>iloveppt</b>(builder)<br/>(Stage E · 单次派发)<br/>Read critic_report_D → Pyramid → md→JSON → build.py → 机械视觉 QA"]
-    AD["<b>iloveppt-audience</b><br/>(Stage F · 每轮新建)<br/>读 PNG + 4 维度评分<br/>audience_review.md · 9 分硬阈值"]
+    DS["<b>iloveppt-designer</b><br/>(Stage E.5 · v0.5.2 新 · 每轮新建)<br/>iconify / Unsplash / brand assets<br/>改 deck_plan.json 加 icon / hero / 装饰"]
+    AD["<b>iloveppt-audience</b><br/>(Stage F · 每轮新建)<br/>读 PNG + 4 维度评分<br/>9 分硬阈值 + 三类反馈分流"]
     TE["<b>iloveppt-template-extractor</b><br/>(旁路 · 一次性)<br/>extract_template.py + 视觉分析"]
     SK["<b>Skill 层</b>(共享知识库)<br/>skills/pptx-deck · pptx · diagram<br/>content-writing.md · visual-qa.md · helpers.py · matplotlib_rc.py"]
     BP["<b>build.py</b>(纯机械)<br/>deck_plan.json → .pptx + PNG"]
@@ -94,33 +103,42 @@ flowchart TB
     CR -->|verdict pass → 主线程派 builder| M
     M -->|派发| BD
     BD -->|done + pptx| M
+    M -->|派发| DS
+    DS -->|视觉优化完 + 重 build| M
     M -->|派发| AD
-    AD -->|score < 9 → 用户 cherry-pick → 派 author| M
+    AD -->|score < 9 → 用户 cherry-pick → 派 author / designer| M
     BS -.->|检测模板| TE
     TE -.->|回 brainstorm| BS
     BS -.->|读| SK
     AU -.->|读| SK
     CR -.->|读| SK
     BD -.->|读| SK
+    DS -.->|读| SK
     BD -->|调| BP
+    DS -->|调(重 build)| BP
+    DS -->|搜| EX["<b>外部素材</b><br/>iconify.design / Unsplash / brand assets"]
     classDef main fill:#FFF,stroke:#888,stroke-width:1.5px,color:#444
     classDef stage1 fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#14532D
     classDef stage2 fill:#FCE7F3,stroke:#BE185D,stroke-width:2px,color:#831843
     classDef stage3 fill:#CFFAFE,stroke:#0891B2,stroke-width:2px,color:#0E4F62
     classDef stage4 fill:#E6F0FC,stroke:#1E6FE0,stroke-width:2px,color:#0B2A4A
+    classDef stage45 fill:#FBCFE8,stroke:#C026D3,stroke-width:2px,color:#701A75
     classDef stage5 fill:#FED7AA,stroke:#EA580C,stroke-width:2px,color:#7C2D12
     classDef bypass fill:#FEF3C7,stroke:#D97706,stroke-width:1.5px,color:#78350F
     classDef skill fill:#F5F5F5,stroke:#555,stroke-width:1.5px,color:#222
     classDef tool fill:#FFF4E6,stroke:#D97706,stroke-width:1.5px,color:#7C2D12
+    classDef external fill:#E0E7FF,stroke:#6366F1,stroke-width:1.5px,color:#3730A3
     class M main
     class BS stage1
     class AU stage2
     class CR stage3
     class BD stage4
+    class DS stage45
     class AD stage5
     class TE bypass
     class SK skill
     class BP tool
+    class EX external
 ```
 
 **6 层比喻**:
@@ -136,7 +154,9 @@ flowchart TB
 
 ---
 
-## 3. 五个 agent + 旁路各自的角色
+## 3. 六个 agent + 旁路各自的角色
+
+> **流水线顺序**:brainstorm → author(C)→ critic(C)→ author(D)→ critic(D)→ builder → **designer** → audience。下方章节按"复杂度递进"排序(builder § 在 audience § 之前,designer § 在 audience § 之后),不是按时间顺序;designer §3.6 实际跑在 audience §3.5 之**前**。
 
 ### 3.1 iloveppt-brainstorm(Stage A+B)
 
@@ -360,7 +380,54 @@ flowchart TB
 
 **详细 agent 文件**:`.claude/agents/iloveppt-audience.md`
 
-### 3.6 iloveppt-template-extractor(旁路)
+### 3.6 iloveppt-designer(Stage E.5 · v0.5.2 新)
+
+**职责**:builder 完成 .pptx 后**自动跑一次**(audience 之前),给 deck 主动加视觉资产(icon / hero / 装饰)+ 优化布局节奏。
+
+```mermaid
+flowchart TB
+    I([pptx + render PNG + deck_plan.json + content.md + brief.md]) --> S0
+    S0["Step 0 · 能力探测<br/>cairosvg 可用?<br/>UNSPLASH_ACCESS_KEY 存在?<br/>_assets/brand/ 存在?"] --> S1
+    S1["Step 1 · 视觉扫描<br/>Read 全部 PNG · 找 4 类机会:<br/>① icon 缺失 ② hero 缺失<br/>③ 装饰过简 ④ 布局节奏同质"] --> S2
+    S2["Step 2 · 主动加视觉<br/>2.1 iconify API(全 deck 同 prefix)<br/>2.2 Unsplash(若有 key)<br/>2.3 brand assets(优先)<br/>2.4 改 deck_plan.json + 加字段<br/>2.5 改 layout(节制,谨慎)"] --> S3
+    S3["Step 3 · 重 build<br/>build.py → 新 pptx + PNG"] --> S4
+    S4["Step 4 · 自检 fresh Read<br/>改了变好留下;变糟回滚"] --> S5
+    S5["Step 5 · 写 designer_report.md"] --> S6
+    S6["返回 report_complete<br/>ready_for_audience: true"]
+    classDef io fill:#FFF,stroke:#333,stroke-width:1.5px
+    classDef step fill:#F5F5F5,stroke:#555
+    class I,S6 io
+    class S0,S1,S2,S3,S4,S5 step
+```
+
+**4 类视觉提升机会**:
+1. **icon 缺失** — cards body 短(< 12 字)+ 标题前无 icon → 搜 iconify
+2. **hero image 缺失** — cover / pic_text 适合摄影但无图 → 搜 Unsplash(需 key)/ brand assets
+3. **装饰过简** — section_divider 太空 → 加 background 大字 / accent 线
+4. **布局节奏** — ≥ 3 张连续 cards-like 同质 → 中间 1 张改 `compare_pk` / `single_focus` 破型
+
+**外部资源 + graceful degrade**:
+- **iconify.design**(免费,首选):`api.iconify.design/<prefix>/<name>.svg?color=<hex>&height=<px>`,全 deck 同 prefix(`lucide` / `phosphor` / `heroicons` / `tabler` 选一)
+- **cairosvg**(SVG→PNG):若 `import cairosvg` 失败 → 跳过 iconify 优化 + 在 report 标"需 `pip install cairosvg`"
+- **Unsplash**(hero image,需 `UNSPLASH_ACCESS_KEY`):若 key 未设 → 跳过 + 在 report 标
+- **用户 brand assets**(`<working_dir>/_assets/brand/`):**优先级最高**
+
+**风格统一硬规则**:
+- 全 deck icon 同一 prefix(开始用 `lucide` 就全 deck `lucide`,某 icon 没有就改用同套其他 name,**不换 prefix**)
+- 染色限定 `BRAND_*` / `GRAY_*` 色板(`helpers.py` SSOT)
+- 不混 flat + 写实(单 deck 选一)
+
+**节制原则**:咨询稿是**文字驱动**,不是 marketing flyer。**没合适 icon 就不加**,比将就加更专业。
+
+**自检**:改完跑新 PNG → fresh Read → 改了变好留下,变糟回滚。
+
+**人设**:做过 100+ 咨询稿的 BCG/McKinsey 视觉团队 lead。信奉"好视觉服务于内容,不是炫技"。
+
+**红线**:不改 content.md(只动 deck_plan.json);不混 icon 风格;不超出 theme 色板。
+
+**详细 agent 文件**:`.claude/agents/iloveppt-designer.md`
+
+### 3.7 iloveppt-template-extractor(旁路)
 
 **职责**:当用户提供 `.pptx` 模板时,提取媒体 + 4 级 token + 跑 probe deck + 视觉分析,让 author 拓写时能用上模板视觉资产。**一次性任务,不多轮派发**。
 
@@ -1002,6 +1069,7 @@ T+24m    主线程写 STATUS.md(quality_grade: A)
 | **iloveppt-author 完整 prompt** | `.claude/agents/iloveppt-author.md` |
 | **iloveppt-critic 完整 prompt(v0.5.1 新)** | `.claude/agents/iloveppt-critic.md` |
 | **iloveppt(builder)完整 prompt** | `.claude/agents/iloveppt.md` |
+| **iloveppt-designer 完整 prompt(v0.5.2 新)** | `.claude/agents/iloveppt-designer.md` |
 | **iloveppt-audience 完整 prompt(v0.5.1 新)** | `.claude/agents/iloveppt-audience.md` |
 | iloveppt-template-extractor 完整 prompt | `.claude/agents/iloveppt-template-extractor.md` |
 | markdown schema(outline.md + content.md) | `skills/pptx-deck/content-writing.md` |

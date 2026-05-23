@@ -16,21 +16,22 @@
 ## 概览
 
 ```
-brainstorm → author(Stage C)→ critic(Stage C) → author(Stage D)→ critic(Stage D) → builder → audience
-   ↑                              ↑                                    ↑                          ↓
-   └─ extractor 旁路 ─────────────┘                                    └─ 5 轮 cap         9 分 cap
-                                独立 5 轮 cap                          (4 选 1)        (5 轮后 4 选 1)
+brainstorm → author(C) → critic(C) → author(D) → critic(D) → builder → designer → audience
+   ↑                       ↑                       ↑                                 ↓
+   └─ extractor 旁路 ─────┘ 5 轮 cap               5 轮 cap        视觉优化         9 分 cap
+                          (4 选 1)               (4 选 1)         (auto)         (5 轮后 4 选 1)
 ```
 
-5 个 agent + 1 旁路(v0.5.1 起 critic 在 Stage C/D 各跑一次):
+6 个 agent + 1 旁路:
 
 | agent | 角色 | 何时派 |
 |---|---|---|
 | `iloveppt-brainstorm` | Stage A-B 收 brief + 素材 | 用户首次说"做 PPT" |
 | `iloveppt-author` | Stage C-D 出 outline + content | brainstorm 收齐后 |
-| `iloveppt-critic` | 评审员:14 项 checklist + 4 维度判断性(论据强度 / 节奏 / 措辞 / 平衡)+ 三档 verdict | Stage C 用户批准 outline 后跑一次(轻审);Stage D 用户批准 content 后跑一次(全套) |
-| `iloveppt`(builder) | Stage E 构建 .pptx + 视觉 QA 循环 | critic Stage D pass / pass_with_notes 后 |
-| `iloveppt-audience` | 模拟受众读 deck 给评分 | builder 出 .pptx 后强制跑;评分 < 9 反馈给 author |
+| `iloveppt-critic` | 评审员:14 项 checklist + 4 维度判断性 + 三档 verdict | Stage C 用户批准 outline 后跑一次;Stage D 用户批准 content 后跑一次 |
+| `iloveppt`(builder) | Stage E 构建 .pptx + 机械视觉 QA | critic Stage D pass / pass_with_notes 后 |
+| `iloveppt-designer` | **视觉设计师**:搜 iconify / Unsplash / brand assets,改 deck_plan.json 加 icon / hero / 装饰 / 布局优化 | builder 出 .pptx 后**自动跑一次**(audience 之前) |
+| `iloveppt-audience` | 模拟受众读 deck 给评分 | designer 完成后跑;评分 < 9 反馈给 author 或 designer |
 | `iloveppt-template-extractor` | 旁路 · 提取 .pptx 模板 4 级 token | 用户给新 .pptx 模板时 |
 
 agent 设计的源 rationale:`docs/superpowers/specs/2026-05-23-iloveppt-agent-design.md`。
@@ -322,14 +323,77 @@ note: "author 已豁免此项(理由:数据下周才有)。builder 仍判定 fai
 
 ---
 
+## 8.5. designer 自动视觉优化(v0.5.2 新增)
+
+`iloveppt-designer` 是视觉设计师,**主动**给 deck 加视觉资产 + 优化布局,**填补 builder 机械 QA / audience 认知评审之间的真空** —— 没人主动加 icon / 装饰 / 节奏破型。
+
+**位置**:builder 完成后**自动跑一次**(audience 评分之前),让 audience 评的是视觉优化后的版本。
+
+```
+builder 完成 → .pptx + render PNG
+  ↓
+主线程派 iloveppt-designer(auto trigger,不问用户)
+  ↓ Step 1 扫 PNG · 找视觉提升机会(4 类:icon 缺失 / hero 缺失 / 装饰过简 / 布局节奏)
+  ↓ Step 2 搜外部素材:iconify(默认) → Unsplash(若有 KEY) → brand assets(若用户提供)
+  ↓ Step 3 改 deck_plan.json 加 asset path + 字段
+  ↓ Step 4 重 build → 新 .pptx + 新 PNG
+  ↓ Step 5 自检 · 比对新旧 PNG,改了反而糟的回滚
+  ↓ Step 6 写 designer_report.md
+  ↓
+主线程派 audience(评新版本)
+```
+
+**入参**:
+```yaml
+working_dir: /abs/path
+pptx_path: <working_dir>/deck_v{N}.pptx
+deck_plan_json_path: <working_dir>/deck_plan.json
+rendered_dir: <working_dir>/deck_v{N}_render/
+content_md_path: <working_dir>/deck_v{N}_content.md   # 只读,不修改
+brief_md_path: <working_dir>/brief.md
+designer_iteration: 1                                  # 主线程维护
+```
+
+**4 类视觉提升机会**(designer 主动扫描):
+1. **icon 缺失** —— cards body 短 + 无 icon → 搜 iconify
+2. **hero image 缺失** —— cover / pic_text 内容更适合摄影 → 搜 Unsplash(需 KEY)或 brand assets
+3. **装饰过简** —— section_divider 太空 → 加 background 大字 / accent 线
+4. **布局节奏** —— ≥ 3 张连续 cards-like 同质 → 中间 1 张改 `compare_pk` / `single_focus` 破型
+
+**外部资源**:
+- **iconify.design**(免费,MIT/Apache):全 deck 用同一 prefix(`lucide` / `phosphor` / `heroicons` / `tabler` 选一),染色统一 `BRAND_PRIMARY` / `GRAY_700`
+- **Unsplash**(需 `UNSPLASH_ACCESS_KEY` 环境变量,免费 with attribution):若无 KEY → graceful skip + 在 report 里说明
+- **用户 brand assets**(`<working_dir>/_assets/brand/`):**优先级最高**,有就先用
+
+**SVG → PNG 转换**:`cairosvg`(Python lib)。若未装 → graceful degrade,在 report 里标"需 `pip install cairosvg`"。
+
+**风格统一硬规则**:
+- 全 deck icon 必须同一 prefix(开始定 `lucide` 就全 deck `lucide`,某 icon 没有就改用同套其他 icon name,**不换 prefix**)
+- 配色全用 `BRAND_*` / `GRAY_*` 色板(`helpers.py` SSOT),不用随机色
+- icon + 写实摄影不混用(单 deck 选一)
+
+**节制原则**:咨询稿是**文字驱动**,不是 marketing flyer。**没合适 icon 就不加**,比将就加更专业。BCG/McKinsey 的 deck icon 通常很少。
+
+**自检**:designer 改完跑新 build → Read 新 PNG → 跟改前对比。若 icon 跟内容不贴 / 颜色违和 / 文字被挤变形 → **回滚** deck_plan.json 该项,标 `rolled_back: true`。
+
+**5 轮上限(跟 audience 共用)**:designer 跑后 audience 评分若 < 9 + 视觉问题 → 主线程把 audience.needs_designer_revision 派回 designer 改;计入跟 audience 同一个 5 轮 cap。
+
+**designer 窗口每轮新建**(跟 critic / audience 一致) —— 无状态,所有 state 在 `designer_report.md`。
+
+**designer 不改 content.md**(原文是用户批准的 SSOT) —— 改的是 `deck_plan.json`(可选地用 builder 的 `.postbuild.md` 副本)。
+
 ## 9. builder → audience handoff + 反馈环
 
-**串行 + 9 分硬阈值** — builder 完成后不直接把 .pptx 给用户,**必须先派 audience 评审**。audience `overall_score < 9` 一律不交付,自动进入修复环,**直到拿到 ≥ 9 才允许交付**。理由:audience < 9 的 deck 给用户也用不出去,白送有缺陷版本损害体验。9 分门槛比"7 合格"更进取 —— audience 在 anti-prompt 里被要求"敢打低分",9 分代表"真正打磨过"。
+**串行 + 9 分硬阈值** — builder 完成 + **designer 视觉优化完**(v0.5.2)后再派 audience。audience `overall_score < 9` 一律不交付,自动进入修复环,**直到拿到 ≥ 9 才允许交付**。
 
-**author rewrite 先,theme fix 后** — audience 同时返回 `needs_author_rewrite` + `needs_theme_fix` 时:
-- 主线程**先**派 author 改 content → author 完 → 主线程再改 themes(若有 `needs_theme_fix`)→ 重派 builder
-- 不允许 theme fix 先(author 改完 content 又得 rebuild 一次,白跑一轮)
-- 不允许 theme + content 并行(同一份 content.md 上 theme/content 改动可能耦合,例如 audience 说 page 8 "section_divider 数字背景缺",这既是 theme 也是 content 的事,要 author 先判定哪一层的事)
+**audience 反馈三类分流**(v0.5.2 扩展):
+- `needs_author_rewrite: [page numbers]` → **文字 / 论点 / 结构问题**,派 author 改 content
+- `needs_designer_revision: [page numbers]` → **视觉素材 / icon 选错 / 装饰过头**问题,派 designer 重跑
+- `needs_theme_fix: [page numbers]` → **theme 层视觉**(主线程改 themes/tech_blue.py),通常 ` make_*` 函数缺字段
+
+**修复顺序**:author rewrite 先 → designer revision → theme fix → 重派 builder → 重派 designer → 重派 audience。
+
+理由:author 改 content 后 designer 要重新加 icon(因为 content 变了);theme 改完所有都要重 build。
 
 **用户 cherry-pick audience 建议** — audience 返回 review.md 后,主线程**不**直接把 top_3_must_fix 转发给 author。流程:
 1. 主线程把 `audience_review.md` 路径 + `overall_score` + `top_3_must_fix` 摘要展示给用户
@@ -414,12 +478,16 @@ audience ≥ 9 + Pyramid pass + 无 architectural blocker
   audience_review.md                         ← 最后一轮 audience 报告
   critic_report_C.md                         ← Stage C critic 评审(最后一轮)
   critic_report_D.md                         ← Stage D critic 评审(最后一轮)
+  designer_report.md                         ← 最后一轮 designer 视觉优化报告
   brief.md                                   ← 起始 brief
   deck_v{N}_outline.md                       ← 章节骨架
   deck_v{N}_content.md                       ← 用户批准版(SSOT)
   deck_v{N}_content.postbuild.md             ← builder 自动调整版
   deck_plan.json                             ← mechanical seam,可手改重 build
-  _assets/charts/                            ← 出图 PNG
+  _assets/charts/                            ← 出图 PNG(author 出的)
+  _assets/icons/                             ← icon PNG(designer 搜的,iconify)
+  _assets/hero/                              ← hero 图(designer 搜的,Unsplash)
+  _assets/brand/                             ← 用户自带 brand assets(可选)
   <deck_name>_render/                        ← 视觉 QA 用的逐页 PNG
   STATUS.md                                  ← 主线程写的交付摘要(见下)
   .iloveppt_*_state.json                    ← 各 agent state(回看用)
@@ -473,8 +541,9 @@ how_to_resume: 跟主线程说"继续 deck <slug>",会从 stage X 续接
 | 已有 brief,要出 outline / content | 派 **iloveppt-author** | content 拓写是独立 context 任务;主线程脑补容易跑偏 |
 | 用户批准 outline 后 | 派 **iloveppt-critic (stage=C)** | 第三方评审 outline 结构 + 判断性问题;早 catch 代价低 |
 | 用户批准 content 后 | 派 **iloveppt-critic (stage=D)** | 第三方全套评审(14 项 + 4 维度判断性)+ build 前最后内容把关 |
-| critic Stage D pass / pass_with_notes,要构建 .pptx | 派 **iloveppt** (builder) | Pyramid 自检 + 视觉 QA 循环是 agent 内逻辑 |
-| .pptx 构建完,要评视觉 | 派 **iloveppt-audience** | 读者视角是新视角;主线程的自检是作者视角,有盲区 |
+| critic Stage D pass / pass_with_notes,要构建 .pptx | 派 **iloveppt** (builder) | Pyramid 自检 + 机械视觉 QA 循环是 agent 内逻辑 |
+| builder 完成 .pptx,要做视觉优化(icon / hero / 装饰) | 派 **iloveppt-designer** | 主动加视觉资产,搜外部 / 改 deck_plan.json;不是机械 QA 也不是认知评审 |
+| designer 完成,要评视觉认知 | 派 **iloveppt-audience** | 读者视角是新视角;主线程的自检是作者视角,有盲区 |
 | 用户给新 .pptx 模板 | 派 **iloveppt-template-extractor** | 模板提取是独立 4 级 token 流程 |
 
 **反例(v0.4.0 失误)**:主线程自己重写了 claude-code-training 24 页 content + 自己跑 visual check。**应该派 author 写 content + 派 audience 评视觉**。
@@ -487,5 +556,6 @@ how_to_resume: 跟主线程说"继续 deck <slug>",会从 stage X 续接
 
 - v0.5.0 引入"主线程派发规则"(本文第 12 节)
 - v0.5.1 引入各 handoff 细则(第 1-11 节)+ critic 双 gate(第 7 节,前身 content-review,后期演进为 partner critic 跑 Stage C/D 双轮 + 4 维度判断性评审)
+- v0.5.2 引入 designer 自动视觉优化(第 8.5 节)+ audience 反馈三类分流(needs_author_rewrite / needs_designer_revision / needs_theme_fix)
 - 旧 v3 markdown-first 设计(brief.md → outline.md → content.md → deck_plan.json)继续沿用,见 `2026-05-23-iloveppt-v3-markdown-first.md`
 - agent 设计的整体 rationale 见 `2026-05-23-iloveppt-agent-design.md`

@@ -40,7 +40,7 @@ pdftoppm -jpeg -r 120 /tmp/<file>.pdf /tmp/slide
 
 ## 架构
 
-### Agent 流水线(5 agent + 1 旁路)
+### Agent 流水线(6 agent + 1 旁路)
 
 `.claude/agents/` 是项目的运行时流水线:
 
@@ -49,8 +49,9 @@ pdftoppm -jpeg -r 120 /tmp/<file>.pdf /tmp/slide
 | `iloveppt-brainstorm` | Stage A-B:多轮对话收 brief + 素材,出 brief.md 让用户确认 |
 | `iloveppt-author` | Stage C-D:出 outline.md(章节骨架)+ 拓写 content.md(全文) |
 | `iloveppt-critic` | **partner 评审员**:14 项 checklist 底线 + 4 维度判断性评审(论据强度 / 节奏 / 措辞 / 平衡),Stage C(用户批准 outline 后)和 Stage D(用户批准 content 后)各跑一次 |
-| `iloveppt`(builder) | Stage E:构建 .pptx + 机械视觉 QA 循环 |
-| `iloveppt-audience` | 模拟目标受众读 deck 评分(9 分硬阈值) |
+| `iloveppt`(builder) | Stage E:构建 .pptx + **机械**视觉 QA 循环(字号 / 对齐 / 颜色 / 溢出) |
+| `iloveppt-designer` | **视觉设计师**:builder 之后自动跑,搜 iconify / Unsplash / brand assets,改 deck_plan.json 加 icon / hero / 装饰 / 布局优化 |
+| `iloveppt-audience` | 模拟目标受众读 deck 评分(9 分硬阈值);反馈三类分流(needs_author_rewrite / needs_designer_revision / needs_theme_fix) |
 | `iloveppt-template-extractor` | 旁路:用户给 .pptx 模板时摄入 4 级 token |
 
 👉 **运行时流水线协议(派发顺序 / handoff / gate / 退出条件)** —— AI 运行时活协议,放 `.claude/`:[`.claude/pipeline-protocol.md`](.claude/pipeline-protocol.md)
