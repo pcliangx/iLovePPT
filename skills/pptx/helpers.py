@@ -74,6 +74,52 @@ FOOTER_TOP    = Inches(7.0)
 
 
 # ============================================================================
+# Presentation Mode(v0.3.0)
+# ============================================================================
+#
+# 双模式支持:
+# - speaker(默认):BCG 现场演讲风,文字少,讲者口头补充
+# - handout:阅读手册风,文字密度 3-4×,适合无讲者独立阅读
+#
+# build.py 在 build_deck 开头根据 plan["presentation_mode"] set PRESENTATION_MODE,
+# theme layout 函数读 PRESENTATION_MODE 切字号 / box 高度 / padding。
+
+PRESENTATION_MODE: str = "speaker"   # 全局,build.py 会 set
+
+# 双模式字数限制表(给 agent 拓写 + author 校验用)
+# action_title 在两种 mode 都 ≤ 24 字(layout 物理限制,不是规范限制)
+WORD_LIMITS: dict[str, dict[str, int]] = {
+    # field_name: {"speaker": N, "handout": N}
+    "cover_title":       {"speaker": 20, "handout": 30},
+    "cover_subtitle":    {"speaker": 24, "handout": 50},
+    "toc_each":          {"speaker": 12, "handout": 25},
+    "section_divider":   {"speaker": 10, "handout": 20},
+    "single_focus_big":  {"speaker": 12, "handout": 20},
+    "single_focus_expl": {"speaker": 20, "handout": 60},
+    "compare_title":     {"speaker": 6,  "handout": 12},
+    "compare_body":      {"speaker": 22, "handout": 80},
+    "cards_title":       {"speaker": 6,  "handout": 12},
+    "cards_body":        {"speaker": 18, "handout": 80},
+    "bullet":            {"speaker": 12, "handout": 40},
+    "table_cell":        {"speaker": 8,  "handout": 25},
+    "pic_text_body":     {"speaker": 15, "handout": 50},
+    "summary":           {"speaker": 15, "handout": 60},
+    "closing_subtitle":  {"speaker": 24, "handout": 60},
+    "action_title":      {"speaker": 24, "handout": 24},   # 硬约束不变
+}
+
+
+def get_word_limit(field: str) -> int:
+    """按当前 PRESENTATION_MODE 取字数限制。"""
+    return WORD_LIMITS.get(field, {}).get(PRESENTATION_MODE, 0)
+
+
+def is_handout() -> bool:
+    """语义糖,layout 函数用 if is_handout() 切分支"""
+    return PRESENTATION_MODE == "handout"
+
+
+# ============================================================================
 # 2. 字体工具
 # ============================================================================
 
@@ -324,12 +370,31 @@ def embed_picture(
     *,
     height: Length | None = None,
     width: Length | None = None,
+    box_w: Length | None = None,
+    box_h: Length | None = None,
 ) -> Any:
     """嵌入图片到 slide。
 
-    传 height 或 width 之一（若都传,width 会被忽略）。
-    都不传则按原始像素尺寸嵌入。
+    模式:
+    - 传 box_w + box_h: 按图片原始 aspect ratio fit 在 (box_w × box_h) 内,居中放置。
+      横图按 box_w 缩放、竖图按 box_h 缩放,任一维不溢出。
+    - 传 height: 按指定高度缩放(width 按比例)。
+    - 传 width: 按指定宽度缩放(height 按比例)。
+    - 都不传: 按原始像素尺寸嵌入。
     """
+    if box_w is not None and box_h is not None:
+        pic = slide.shapes.add_picture(str(path), x, y)
+        orig_w, orig_h = pic.width, pic.height
+        scale_w = box_w / orig_w
+        scale_h = box_h / orig_h
+        scale = min(scale_w, scale_h)
+        new_w = int(orig_w * scale)
+        new_h = int(orig_h * scale)
+        pic.width = new_w
+        pic.height = new_h
+        pic.left = x + (box_w - new_w) // 2
+        pic.top = y + (box_h - new_h) // 2
+        return pic
     if height is not None:
         return slide.shapes.add_picture(str(path), x, y, height=height)
     if width is not None:

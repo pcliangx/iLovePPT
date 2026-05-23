@@ -292,7 +292,16 @@ def build_deck(plan: dict[str, Any]) -> Path:
     - **footer**: 内容页(FOOTERED_LAYOUTS)统一加分隔线 + "N / TOTAL" + 可选元数据
     - **footer_meta**(plan 顶层): classification / project / version,显示在 footer 左侧
     - **source**(slide 级): 数据 slide 的引文,渲染在 footer 上方
+
+    presentation_mode(v0.3.0):plan 顶层可设 "speaker"(默认)或 "handout",
+    会 set helpers.PRESENTATION_MODE,theme layout 据此切字号 / box 高度 / padding。
     """
+    # set presentation mode(影响 layout 字数 / 字号)
+    mode = plan.get("presentation_mode", "speaker")
+    if mode not in ("speaker", "handout"):
+        raise ValueError(f"presentation_mode 必须是 speaker / handout,得到 {mode!r}")
+    H.PRESENTATION_MODE = mode
+
     theme = load_theme(plan["theme"], plan.get("_plan_dir"))
     prs = Presentation()
     prs.slide_width = H.SLIDE_W

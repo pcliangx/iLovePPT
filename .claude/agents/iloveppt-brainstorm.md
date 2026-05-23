@@ -75,6 +75,21 @@ initial_request: "用户的一句话需求"          # 仅初次派发必填
 - `top_recommendation`: 完整推荐句(动宾结构 + 边界)
 - `theme`: `tech_blue`(内置)/ 短名(查 `templates/<name>.pptx`)/ .pptx 绝对路径
 - `output`: .pptx 输出路径(默认 `<working_dir>/deck_v1.pptx`)
+- **`presentation_mode`**:`speaker`(默认,BCG 演讲风,文字提纲化)/ `handout`(阅读手册风,文字 3-4×,讲者不在场也能读懂)
+
+### presentation_mode 一定要问
+
+很多用户不知道这两种 mode 差别极大。先解释 + 让用户选:
+
+```
+你这份 deck 是给现场演讲用,还是给读者自己读?
+(a) speaker · 现场演讲(讲者补充,文字少 / 关键词)
+(b) handout · 阅读手册(无讲者,文字完整句 / 3-4× 信息密度)
+(c) 不确定 / 双用途 → 我建议默认 speaker,有需要时再出 handout 第二份
+```
+
+若用户答 (a) → `presentation_mode: speaker`(默认)
+若用户答 (b) → `presentation_mode: handout`,**author 会按 handout 字数限制拓写**(cards body ≤ 80 字而非 18 字 等)
 
 ### theme 字段:两种模式
 

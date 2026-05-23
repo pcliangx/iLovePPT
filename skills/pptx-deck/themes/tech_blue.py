@@ -202,52 +202,60 @@ def make_single_focus(
 
 
 def make_compare(prs: _Pres, title: str, items: list[dict[str, str]]) -> Slide:
-    """N 列对比卡片，accent 色交替。与 make_cards 结构相同，仅 accent 逻辑不同。"""
+    """N 列对比卡片,accent 色交替。handout mode body 字号降 + box 加高。"""
     s = _blank_slide(prs)
     _add_title(s, title)
     region = L.content_region()
-    card_h = Inches(3.4)
+    card_h = Inches(4.6) if H.is_handout() else Inches(3.4)
     row = L.stack(region, [card_h], align="middle")[0]
     cols = L.columns(row, len(items))
+    body_size = 14 if H.is_handout() else 16
+    body_box_h = Inches(3.6) if H.is_handout() else Inches(2.2)
     for i, (col, item) in enumerate(zip(cols, items)):
         accent = PRIMARY if i % 2 == 0 else ACCENT
         H.card(s, col.x, col.y, col.w, col.h, fill=H.WHITE,
                border=H.GRAY_300, accent=accent)
         inner = L.inset(col, Inches(0.3), Inches(0.25))
-        parts = L.stack(inner, [Inches(0.6), Inches(2.2)], gap=Inches(0.15),  # 卡内: 标题行 / 正文行(高度加大装 20pt 标题 + 16pt body)
+        parts = L.stack(inner, [Inches(0.6), body_box_h], gap=Inches(0.15),
                         align="top")
         _text(s, parts[0], item["title"], size=20, bold=True, color=PRIMARY_DEEP)
-        _text(s, parts[1], item["body"], size=16, color=H.GRAY_700)
+        _text(s, parts[1], item["body"], size=body_size, color=H.GRAY_700)
     return s
 
 
 def make_cards(prs: _Pres, title: str, cards: list[dict[str, str]]) -> Slide:
+    """N 张并列卡片。handout mode body 字号降 + box 加高。"""
     s = _blank_slide(prs)
     _add_title(s, title)
     region = L.content_region()
-    card_h = Inches(3.4)
-    # 卡片行在内容区纵向居中,而非占满整个内容区高度
+    card_h = Inches(4.6) if H.is_handout() else Inches(3.4)
     row = L.stack(region, [card_h], align="middle")[0]
     cols = L.columns(row, len(cards))
+    body_size = 12 if H.is_handout() else 16
+    body_box_h = Inches(3.6) if H.is_handout() else Inches(2.2)
     for col, card in zip(cols, cards):
         H.card(s, col.x, col.y, col.w, col.h, fill=H.WHITE,
                border=H.GRAY_300, accent=PRIMARY)
         inner = L.inset(col, Inches(0.3), Inches(0.25))
-        parts = L.stack(inner, [Inches(0.6), Inches(2.2)], gap=Inches(0.15),
-                        align="top")  # 卡内: 标题行 / 正文行
+        parts = L.stack(inner, [Inches(0.6), body_box_h], gap=Inches(0.15),
+                        align="top")
         _text(s, parts[0], card["title"], size=20, bold=True, color=PRIMARY_DEEP)
-        _text(s, parts[1], card["body"], size=16, color=H.GRAY_700)
+        _text(s, parts[1], card["body"], size=body_size, color=H.GRAY_700)
     return s
 
 
 def make_bullet_list(prs: _Pres, title: str, items: list[str]) -> Slide:
+    """要点列表。handout mode 字号降到 14pt + 行距加大(因长句多)"""
     s = _blank_slide(prs)
     _add_title(s, title)
     region = L.content_region()
-    line_h = Emu(int(Pt(18) * 1.45))  # 匹配 H.bullets 的 size=18 + line_spacing=1.45
+    # handout mode 14pt + 行距 1.6;speaker mode 18pt + 行距 1.45
+    bullet_size = 14 if H.is_handout() else 18
+    line_factor = 1.6 if H.is_handout() else 1.45
+    line_h = Emu(int(Pt(bullet_size) * line_factor))
     block = L.stack(region, [Emu(line_h * len(items))], align="middle")[0]
-    H.bullets(s, block.x, block.y, block.w, block.h, items=items, size=18,
-              accent_color=PRIMARY, body_color=H.GRAY_700)
+    H.bullets(s, block.x, block.y, block.w, block.h, items=items,
+              size=bullet_size, accent_color=PRIMARY, body_color=H.GRAY_700)
     return s
 
 
@@ -273,19 +281,22 @@ def make_pic_text(
     image_path: str,
     points: list[dict[str, str]],
 ) -> Slide:
+    """左图右文。handout mode body 字号降 + box 加高。"""
     s = _blank_slide(prs)
     _add_title(s, title)
     left, right = L.split(L.content_region(), 0.42)
-    H.embed_picture(s, image_path, left.x, left.y, height=left.h)
+    H.embed_picture(s, image_path, left.x, left.y, box_w=left.w, box_h=left.h)
     rboxes = L.rows(right, len(points))
+    body_size = 11 if H.is_handout() else 13
+    body_box_h = Inches(0.9) if H.is_handout() else Inches(0.5)
     for rb, p in zip(rboxes, points):
         H.card(s, rb.x, rb.y, rb.w, rb.h, fill=H.WHITE,
                border=H.GRAY_300, accent=PRIMARY)
         inner = L.inset(rb, Inches(0.25), Inches(0.12))
-        parts = L.stack(inner, [Inches(0.4), Inches(0.5)], gap=Inches(0.05),
+        parts = L.stack(inner, [Inches(0.4), body_box_h], gap=Inches(0.05),
                         align="top")
         _text(s, parts[0], p["title"], size=16, bold=True, color=PRIMARY_DEEP)
-        _text(s, parts[1], p["body"], size=13, color=H.GRAY_700)
+        _text(s, parts[1], p["body"], size=body_size, color=H.GRAY_700)
     return s
 
 
@@ -294,11 +305,12 @@ def make_summary(
     conclusions: list[str],
     title: str = "核心结论",
 ) -> Slide:
+    """总结 N 条结论。handout mode 字号降 + 行高加大(因结论可能 60 字)"""
     s = _blank_slide(prs)
     _add_title(s, title, size=36, color=PRIMARY_DEEP)
     rboxes = L.rows(L.content_region(), len(conclusions))
+    text_size = 14 if H.is_handout() else 20
     for i, (rb, c) in enumerate(zip(rboxes, conclusions)):
-        # 序号大色块（固定宽度）
         num_w = Inches(0.9)
         H.rect(s, rb.x, rb.y, num_w, rb.h, PRIMARY)
         n_tb = s.shapes.add_textbox(rb.x, rb.y, num_w, rb.h)
@@ -308,14 +320,14 @@ def make_summary(
         rn = pn.add_run()
         rn.text = str(i + 1)
         H.set_font(rn, name=FONT_NUM, size=32, bold=True, color=H.WHITE)
-        # 结论文字
         text_x = Emu(rb.x + num_w + Inches(0.25))
         text_w = Emu(rb.w - num_w - Inches(0.25))
         t_tb = s.shapes.add_textbox(text_x, rb.y, text_w, rb.h)
         H.fix_textbox_margins(t_tb.text_frame)
+        t_tb.text_frame.word_wrap = True   # handout 长结论必须换行
         rt = t_tb.text_frame.paragraphs[0].add_run()
         rt.text = c
-        H.set_font(rt, name=FONT_HEADER, size=20, color=H.GRAY_700)
+        H.set_font(rt, name=FONT_HEADER, size=text_size, color=H.GRAY_700)
     return s
 
 

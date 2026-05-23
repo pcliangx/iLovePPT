@@ -63,6 +63,24 @@ user_response: "用户对上轮 outline/content 的反馈"  # 后续派发可能
    - decorative_bg → section_divider 备用(若模板有装饰元素)
    - **不要硬塞**:若内容跟模板素材没关系(如纯文字论证),不用强行加图
 
+### Stage D 拓写按 mode 选字数(关键)
+
+`brief.presentation_mode` 决定每个字段的字数限制:
+
+| 字段 | speaker | handout |
+|---|---|---|
+| cards body | ≤ 18 字 | ≤ 80 字 |
+| bullet items | ≤ 12 字 | ≤ 40 字 |
+| summary | ≤ 15 字 | ≤ 60 字 |
+| compare body | ≤ 22 字 | ≤ 80 字 |
+| table 单元格 | ≤ 8 字 | ≤ 25 字 |
+| pic_text body | ≤ 15 字 | ≤ 50 字 |
+| action_title | ≤ 24 字 **(两种 mode 都一样,硬约束)** | ≤ 24 字 |
+
+Stage D 拓写时**严守对应 mode 的字数**。**handout 模式不要写关键词**,要写完整可读的句子(无讲者,读者只能靠文字)。
+
+完整双模式字数表见 `skills/pptx-deck/content-writing.md` "双模式字数表" 章节。
+
 ### Step 1A · Stage C(出 outline)
 
 **触发**:`state.stage == "C"` 且 `state.approvals.outline != true`。

@@ -1,0 +1,215 @@
+{
+  "theme": "tech_blue",
+  "presentation_mode": "handout",
+  "output": "/Users/pc2026/Documents/DevTools/iLovePPT/decks/claude-code-training/deck_v1_handout.pptx",
+  "footer_meta": {
+    "classification": "INTERNAL",
+    "project": "Claude Code Training",
+    "version": "v1.0"
+  },
+  "slides": [
+    {
+      "layout": "cover",
+      "title": "Claude Code · 不只是 copilot",
+      "subtitle": "它是 agentic coding platform",
+      "prepared_by": "培训组",
+      "date": "2026-05-23",
+      "version": "v1.0",
+      "classification": "INTERNAL"
+    },
+    {
+      "layout": "toc",
+      "sections": [
+        "什么是 Claude Code",
+        "≠ Copilot · 3 个根本差别",
+        "心智 1 · Agentic loop",
+        "心智 2 · 6 件套扩展能力",
+        "心智 3 · 真实 case"
+      ]
+    },
+    {"layout": "section_divider", "num": 1, "title": "什么是 Claude Code"},
+    {
+      "layout": "cards",
+      "title": "五端可用的 agentic coding tool",
+      "cards": [
+        {"title": "定义", "body": "agentic coding tool · 不是补全也不是 chat,是个能独立跑多步开发任务的 AI agent,你给一个目标它自己规划、动手、验证。"},
+        {"title": "能力", "body": "读 codebase / 改文件 / 跑命令 / 验测试 · 全套都能干。不是只给建议,而是替你按下 enter,跑完整流程,出真正可 merge 的代码。"},
+        {"title": "场景", "body": "多步开发任务 · 比如 'fix 这个 bug 并补测试'、'重构这个模块'、'按这份 spec 实现功能',Claude 自己走完闭环,不达标不停。"}
+      ],
+      "source": "code.claude.com/docs/en/overview"
+    },
+    {
+      "layout": "cards",
+      "title": "一套 Claude · 五个 surface 跑",
+      "cards": [
+        {"title": "Terminal", "body": "原生 CLI · 功能最全。所有 slash command / agent / hook / MCP 都先在这里发布,其他端逐步跟进。"},
+        {"title": "VS Code", "body": "官方插件嵌入 · 同一 Claude 但带视觉 diff 和文件树联动,代码改动可视化更直观。"},
+        {"title": "JetBrains", "body": "跨 IDE 一致体验 · IntelliJ / PyCharm / WebStorm 等共用同一插件,Java / Python 用户不用切环境。"},
+        {"title": "Desktop App", "body": "独立 Mac / Windows app · 不依赖终端,带 GUI 设置面板,适合给非工程同事用。"},
+        {"title": "Web · iOS", "body": "claude.ai/code 云端跑 · 手机也能发任务,适合 review PR、追进度、远程操作场景。"}
+      ],
+      "source": "官方 overview 文档"
+    },
+    {
+      "layout": "compare",
+      "title": "跟 Claude.ai 和 API 是三回事",
+      "items": [
+        {"title": "Claude.ai", "body": "浏览器聊天 · 没有本地文件权限,不能跑命令,适合问答和文本协作,不是编码工具。"},
+        {"title": "Claude Code", "body": "五端 agentic 跑任务 · 读 / 改 / 跑 / 验 全套,带 6 件套扩展机制,这次培训讲的就是它。"},
+        {"title": "Claude API", "body": "程序员调模型自建 app · 你写代码调 Claude,跟 Code 不是一个产品,Code 是产品,API 是底层。"}
+      ],
+      "source": "官方对比表"
+    },
+    {"layout": "section_divider", "num": 2, "title": "≠ Copilot · 3 个根本差别"},
+    {
+      "layout": "cards",
+      "title": "Copilot 给建议 · Claude Code 干活",
+      "cards": [
+        {"title": "单步 vs 多步", "body": "Copilot 是按行 / 函数级别补全,建议完就停。Claude Code 跑多步任务,自动连续 plan / act / verify 直到目标达成。"},
+        {"title": "写 vs 全干", "body": "Copilot 只写代码不动文件不跑命令。Claude Code 读 codebase / 改文件 / 跑测试 / 验证结果 全套都干,无需你按 enter。"},
+        {"title": "IDE 内 vs 五端", "body": "Copilot 绑死在 IDE 里。Claude Code 五端(Terminal / VS Code / JetBrains / Desktop / Web)跨场景,任务上下文跟着你走。"}
+      ],
+      "source": "官方 vs Copilot 定位"
+    },
+    {"layout": "section_divider", "num": 3, "title": "心智 1 · Agentic loop"},
+    {
+      "layout": "pic_text",
+      "title": "Plan → Act → Verify · 闭环跑到目标",
+      "image_path": "/Users/pc2026/Documents/DevTools/iLovePPT/decks/claude-code-training/_assets/charts/agentic_loop.png",
+      "points": [
+        {"title": "Plan", "body": "读 codebase 文件结构 / 现有逻辑 / 测试覆盖,产出步骤清单。"},
+        {"title": "Act", "body": "按计划改文件 + 跑命令(npm test / pytest / build 等)。"},
+        {"title": "Verify", "body": "跑测试 / 类型检查 / lint,看实际结果跟预期是否对齐。"},
+        {"title": "循环", "body": "未达标 → 回 Plan 调整,直到 verify 通过才返回给你。"}
+      ]
+    },
+    {
+      "layout": "single_focus",
+      "big_text": "/goal \"全测试过再停\"",
+      "big_number": "v2.1.139+",
+      "explanation": "/goal 是设定完成条件的 slash command。Claude 会持续 plan / act / verify 直到条件满足才返回 —— 这就是 agentic loop 的最小可用实践。",
+      "source": "code.claude.com/docs/en/commands"
+    },
+    {"layout": "section_divider", "num": 4, "title": "心智 2 · 6 件套扩展能力"},
+    {
+      "layout": "bullet_list",
+      "title": "它是 platform · 不是 chat · 6 件套",
+      "items": [
+        "Commands · 30+ 内置 slash 命令,/help /goal /clear /init 等,一句话触发常用动作",
+        "Skills · 可复用工作流,把多步流程封装成 .md 文件,Claude 自动按步骤执行",
+        "Sub-agents · 独立上下文的子任务执行器,可限制工具范围,主线程不被污染",
+        "Hooks · 31 个事件钩子,如 PreToolUse / PostToolUse,把外部脚本接入自动化",
+        "MCP · open standard 连外部工具数据 API,Claude 能调你的 GitHub / Slack / DB",
+        "Plugins · marketplace 生态,一包装好 commands + skills + hooks + MCP 全套"
+      ]
+    },
+    {
+      "layout": "cards",
+      "title": "Commands + Skills · 触发与复用",
+      "cards": [
+        {"title": "Commands", "body": "30+ 内置 slash · /help /clear /init /agents /hooks /mcp 等。一句话触发常用动作,不用每次敲全描述。"},
+        {"title": "/help · /goal", "body": "新手必学两个:/help 看所有命令清单 + 当前可用工具;/goal 设完成条件让 Claude 持续跑。"},
+        {"title": "Skills", "body": "可复用工作流 · .md 文件 + frontmatter,Claude 读后按步骤执行,适合 'PPT 生成''代码 review' 这种多步流程。"},
+        {"title": "frontmatter", "body": "Skill 的元数据头 · 写 description / when_to_use / model / tools 等,控制 Skill 何时触发、用什么模型、能调哪些工具。"}
+      ],
+      "source": "docs 30+ commands 全集"
+    },
+    {
+      "layout": "cards",
+      "title": "Sub-agents + Hooks · 隔离与自动化",
+      "cards": [
+        {"title": "Sub-agents", "body": "独立上下文的子任务执行器 · 在主线程派一个 sub-agent 干特定活,完了把结果返回,主线程 context 不被污染。"},
+        {"title": "工具限制", "body": "Sub-agent frontmatter 可限定 tools 字段 · 比如只给 Read / Grep 不给 Write,既安全又聚焦,避免误改文件。"},
+        {"title": "Hooks", "body": "31 个事件钩子 · PreToolUse / PostToolUse / SessionStart 等,把外部 shell 脚本接入 Claude 生命周期。"},
+        {"title": "事件驱动", "body": "用法:每次 Write 后跑 lint,每次 Bash 前 audit 命令安全。把人工 review 步骤自动化,跑完不通过会自动重试或阻止。"}
+      ],
+      "source": "docs sub-agents + hooks"
+    },
+    {
+      "layout": "cards",
+      "title": "MCP + Plugins · 连外部与生态",
+      "cards": [
+        {"title": "MCP", "body": "Model Context Protocol · Anthropic 主导的开放标准,让 LLM 跟外部工具 / 数据源用统一协议对接,不用每个工具重写一遍。"},
+        {"title": "连外部", "body": "已有 MCP server 几百个 · GitHub / Slack / Postgres / Figma / Chrome 等,装上 Claude 就能直接调它们的 API 干活。"},
+        {"title": "Plugins", "body": "marketplace 生态 · 一个 plugin 包打包 commands + skills + sub-agents + hooks + MCP,装一包就拿到一整套工作流。"},
+        {"title": "v2.1.100+", "body": "Plugins 是 v2.1.100 引入的最新机制 · 之前要逐个 install,现在 /plugin marketplace add <url> 一行搞定。"}
+      ],
+      "source": "docs mcp + plugins"
+    },
+    {
+      "layout": "table",
+      "title": "6 件套何时用 · 一表速查",
+      "headers": ["需求场景", "用什么", "典型例子"],
+      "rows": [
+        ["一句话触发常用动作", "Commands", "/help /clear /init /goal"],
+        ["把多步流程封装可复用", "Skills", "PPT 生成 / 代码 review"],
+        ["跑独立子任务不污染主线", "Sub-agents", "并行查代码 / 跑大测试"],
+        ["事件触发自动化", "Hooks", "每次 Write 自动 lint"],
+        ["连外部工具数据 API", "MCP", "GitHub / Slack / DB"],
+        ["一次装一整包生态", "Plugins", "marketplace 整包工作流"]
+      ]
+    },
+    {"layout": "section_divider", "num": 5, "title": "心智 3 · 真实 case · iLovePPT"},
+    {
+      "layout": "bullet_list",
+      "title": "起点 · v2 单 agent 痛点真实存在",
+      "items": [
+        "单 agent 端到端体感粗 · 一个 agent 从 brief 到 build 全包,context 越来越长,越后面越易跑偏",
+        "yaml 接口用户读不懂 · brief.yaml 字段几十个,小白要查文档,跟「自然对话生成 PPT」完全不符",
+        "视觉规范缺标准 · 字号 / 颜色 / 间距全靠 vibes,出来的 PPT 跨主题不一致,看上去像不同人做的",
+        "模板复用零支持 · 想用公司 PPT 模板只能复制配色硬编码,无标准摄入路径,每次重做"
+      ],
+      "source": "本仓库 git history"
+    },
+    {
+      "layout": "pic_text",
+      "title": "演进 · 1 session 6 milestone",
+      "image_path": "/Users/pc2026/Documents/DevTools/iLovePPT/decks/claude-code-training/_assets/charts/evolution_timeline.png",
+      "points": [
+        {"title": "commits", "body": "15 → 82 · 一个 session 内推 67 commit,持续小步快走"},
+        {"title": "tests", "body": "42 → 68 · 测试覆盖增长 62%,核心 layout 全有 spec 守护"},
+        {"title": "agents", "body": "1 → 4 · 主 agent + brainstorm + author + extractor 四件套"},
+        {"title": "release", "body": "v0.1 + v0.2 · 两次正式 tag 发布,可被其他项目作为 skill 引入"}
+      ]
+    },
+    {
+      "layout": "compare",
+      "title": "v2 vs v3.1 · 架构演进对比",
+      "items": [
+        {"title": "v2 单 agent", "body": "一个 iloveppt agent 从 brief 收集到 visual QA 全包。context 一直增长,后段决策质量下滑,且无法多轮对话(每次重派全失忆)。"},
+        {"title": "v3.1 三 agent", "body": "主线程做薄分发器 · 派 brainstorm 收 brief,派 author 出 outline/content,派 builder 跑 build.py。每个 agent 独立 context + state file,可多轮迭代。"}
+      ],
+      "source": "docs/agent-internals.zh.md"
+    },
+    {
+      "layout": "table",
+      "title": "真实成绩 · 1 个 session 跑出",
+      "headers": ["维度", "v2 起点", "v0.2.0 终点"],
+      "rows": [
+        ["Agent 数", "1", "4"],
+        ["Tests 数", "42", "68"],
+        ["Docs 数", "8", "28"],
+        ["Release 数", "0", "2"],
+        ["模板复刻", "0%", "75%"]
+      ],
+      "source": "本仓库实际统计"
+    },
+    {
+      "layout": "summary",
+      "conclusions": [
+        "agentic loop 是核心心智:Plan → Act → Verify 闭环跑到目标,不是 copilot 单步补全,是替你跑完整任务。",
+        "6 件套远不只 chat:Commands + Skills + Sub-agents + Hooks + MCP + Plugins,它是 platform,你可以自定义自动化。",
+        "1 session 出 2 release:本仓库 iLovePPT 就是用 Claude Code 跑出来的,从 v2 单 agent 演进到 v3.1 三 agent + 模板系统,真实可复制。"
+      ]
+    },
+    {
+      "layout": "closing",
+      "subtitle": "Q&A · 下一步动作",
+      "next_steps": [
+        {"action": "装 Claude Code 跑一次 /goal demo", "owner": "每人", "due": "本周"},
+        {"action": "看 docs 6 件套各自细节", "owner": "进阶者", "due": "本月"},
+        {"action": "用本 case 复制自己的项目流程", "owner": "兴趣组", "due": "下月"}
+      ]
+    }
+  ]
+}

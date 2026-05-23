@@ -35,3 +35,7 @@ templates/*.yaml
 
 # 模板提取 / deck 工作素材(版权 + 体积)
 _assets/
+
+# deck 构建产物(.pptx + 渲染 JPG · 仅源文件 .json / .md 入 git)
+decks/*/deck_v*.pptx
+decks/*/deck_v*_render/
