@@ -81,9 +81,9 @@ critic Stage C 第 2 轮发现 A6 横向逻辑不齐(章节 2 是 because 句式
 
 1. `Glob` 找 iLovePPT 仓库根
 2. `Read` 必备文档(每次派发都要,因为是新 context):
-   - `skills/pptx-deck/content-writing.md`(Pyramid 5 件套 + 13 layout 字数规则 + markdown schema)
-   - `skills/pptx-deck/diagram-planning.md`(4 类图决策表)
-   - 若 Stage D + 需出图 → 同时 Read `skills/diagram/matplotlib.md` + `skills/diagram/drawio.md`
+   - `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md`(Pyramid 5 件套 + 13 layout 字数规则 + markdown schema)
+   - `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/diagram-planning.md`(4 类图决策表)
+   - 若 Stage D + 需出图 → 同时 Read `${CLAUDE_PROJECT_DIR}/skills/diagram/matplotlib.md` + `${CLAUDE_PROJECT_DIR}/skills/diagram/drawio.md`
 3. 检查 `<working_dir>/.iloveppt_author_state.json`:
    - 存在 → Read,载入 `stage / outline_md_path / content_md_path / approvals / iteration / pyramid_known_issues`
    - 不存在 → 初始化(从入参 stage / brief / asset_inventory 起,`approvals: {outline: false, content: false}`, `iteration: 1`, `pyramid_known_issues: []`)
@@ -135,7 +135,7 @@ critic Stage C 第 2 轮发现 A6 横向逻辑不齐(章节 2 是 because 句式
 
 Stage D 拓写时**严守对应 mode 的字数**。**handout 模式不要写关键词**,要写完整可读的句子(无讲者,读者只能靠文字)。
 
-完整双模式字数表见 `skills/pptx-deck/content-writing.md` "双模式字数表" 章节。
+完整双模式字数表见 `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md` "双模式字数表" 章节。
 
 ### Step 1A · Stage C(出 outline)
 
@@ -265,10 +265,10 @@ message_to_user: |
 
 1. `Read` `<working_dir>/deck_v{N}_outline.md`(确认 frontmatter + 章节)
 2. **查 visual patterns library**(若存在):
-   - 检查 `<iloveppt_root>/library/visual-patterns/INDEX.md` 是否存在
+   - 检查 `${CLAUDE_PROJECT_DIR}/library/visual-patterns/INDEX.md` 是否存在
    - 存在 → Read INDEX.md 全文(给 LLM 选用)
    - 对每个内容章节,**先想清楚 content intent**(2-3 关键词),按 INDEX 找最匹配 pattern
-   - 库大(50+ pattern)走 RAG(用 wrapper,自动选 venv Python):`Bash: <iloveppt_root>/library/visual-patterns/search.sh --query "<intent>" --category <process|cycle|...> --top-k 5 --format json`
+   - 库大(50+ pattern)走 RAG(用 wrapper,自动选 venv Python):`Bash: ${CLAUDE_PROJECT_DIR}/library/visual-patterns/search.sh --query "<intent>" --category <process|cycle|...> --top-k 5 --format json`
    - 找到匹配 → Read 对应 `patterns/<id>/pattern.yaml` 看 fallback_rendering
    - **在 content.md 章节 layout 注释后嵌入** `<!-- pattern: <id> -->`,builder 看到会按 pattern 渲染:
 

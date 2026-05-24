@@ -92,7 +92,7 @@ library/visual-patterns/search.sh --query-image /path/to/inspiration.png --mode 
 ## 场景 B · 用户只给截图(图片素材)
 
 跟场景 A 类似,差异:
-- Step 1:`cp screenshot.png library/visual-patterns/_source_inspiration/`
+- Step 1:`cp screenshot.png ${CLAUDE_PROJECT_DIR}/library/visual-patterns/_source_inspiration/`
 - Step 3:跳过(已是 PNG)
 - Step 4:Read 这张 PNG → 推断里面包含的 patterns(可能多个,需分割)
   - 若用户单张图含多个 layout 缩略图(像幻灯片缩略图视图)→ 我按缩略图位置切割推断

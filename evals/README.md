@@ -10,12 +10,12 @@ bash evals/run_eval.sh
 
 ## 评分
 
-runner 出 `evals/_run/scorecard.md` 模板。Claude 用 Read 看
-`evals/plans/<name>_render/page-*.jpg`,按 `rubric.md` 逐页记 fail 项,填 scorecard。
+runner 出 `${CLAUDE_PROJECT_DIR}/evals/_run/scorecard.md` 模板。Claude 用 Read 看
+`${CLAUDE_PROJECT_DIR}/evals/plans/<name>_render/page-*.jpg`,按 `rubric.md` 逐页记 fail 项,填 scorecard。
 
 ## 回归判定
 
-新 scorecard 对比 `evals/baseline/scorecard.md`。fail 项变多 = 回归。
+新 scorecard 对比 `${CLAUDE_PROJECT_DIR}/evals/baseline/scorecard.md`。fail 项变多 = 回归。
 
 ## 为什么用固定 plan
 

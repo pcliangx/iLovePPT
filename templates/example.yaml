@@ -1,7 +1,7 @@
 # 模板元数据 schema 示例
 #
-# 用法:把这份文件复制成 templates/<你的模板名>.yaml(同名 .pptx 旁边)
-# 比如:templates/company_a.pptx + templates/company_a.yaml
+# 用法:把这份文件复制成 ${CLAUDE_PROJECT_DIR}/templates/<你的模板名>.yaml(同名 .pptx 旁边)
+# 比如:${CLAUDE_PROJECT_DIR}/templates/company_a.pptx + ${CLAUDE_PROJECT_DIR}/templates/company_a.yaml
 #
 # agent 在 Stage A 问 theme 时会读这份元数据 prompt 给用户:
 #   "company_a (公司外部提案模板, 推荐 executive/sales): 客户演示 / 销售提案"

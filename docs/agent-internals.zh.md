@@ -3,7 +3,7 @@
 > 这份文档讲清楚 iLovePPT **怎么工作的** —— 系统架构、6 agent 流水线 + 1 旁路、多轮派发机制、关键设计决策、library RAG。
 > 适合想理解或改造系统的人;不是用户操作手册(那个看 [`MANUAL.zh.md`](MANUAL.zh.md))。
 >
-> *运行时活协议(权威):[`.claude/pipeline-protocol.md`](../.claude/pipeline-protocol.md)*
+> *运行时活协议(权威):[`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)*
 
 **系统当前形态**:
 
@@ -12,7 +12,7 @@
 - **critic 双 gate** + 三档 verdict + 4 维度判断性评审(论据强度 / 节奏 / 措辞 / 平衡)
 - **audience 9 分硬阈值** + 5 轮 cap + 3 类反馈分流(author / designer / theme_fix)
 - **TeamCreate + 每 teammate 独立窗口**,主线程退化为 thin dispatcher(路由 next_action,不持业务)
-- **Visual Patterns 知识库**(`library/visual-patterns/`):patterns/<id>/{preview.png, pattern.yaml} + INDEX.md;接入 hosted multimodal RAG(阿里云 DashScope `tongyi-embedding-vision-plus`,dim 1152,文本+图像同 API)+ 3 mode 检索(text / image / hybrid)
+- **Visual Patterns 知识库**(`${CLAUDE_PROJECT_DIR}/library/visual-patterns/`):patterns/<id>/{preview.png, pattern.yaml};双路检索 = **INDEX.md**(库小 ≤ 30 直读)+ hosted multimodal RAG(阿里云 DashScope `tongyi-embedding-vision-plus`,dim 1152,3 mode:text / image / hybrid)。**当前 patterns/ 已清空,基础设施 ready,等用户重新入库**
 - **brief.md gate**:brainstorm 收齐字段后串行两步(写文件 + 用户确认),不并行
 
 ---
@@ -197,7 +197,7 @@ flowchart TB
 
 **素材摄入触发**(对话中识别):数据 / 报表 / 现有图 / 模板 / 参考报告。落到 `<working_dir>/_assets/{raw,refs}/`。
 
-**详细 agent 文件**:`.claude/agents/iloveppt-brainstorm.md`
+**详细 agent 文件**:`${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-brainstorm.md`
 
 ### 3.2 iloveppt-author(Stage C+D)
 
@@ -239,7 +239,7 @@ flowchart TB
 
 **接收 critic / audience 反馈**:主线程把用户筛过的反馈作为 `user_response` 自然语言指令传给 author。**不读** `critic_report_{C,D}.md` / `audience_review.md` 原文(那会被未筛建议干扰)。
 
-**详细 agent 文件**:`.claude/agents/iloveppt-author.md`
+**详细 agent 文件**:`${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-author.md`
 
 ### 3.3 iloveppt-critic(Stage C/D 双 gate)
 
@@ -293,7 +293,7 @@ flowchart TB
 
 **人设**:做过 50+ deck pitch + 30+ partner review 的资深合伙人。敢说狠话,evidence-based,不打圆场不油腻。
 
-**详细 agent 文件**:`.claude/agents/iloveppt-critic.md`
+**详细 agent 文件**:`${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-critic.md`
 
 ### 3.4 iloveppt(Stage E builder)
 
@@ -332,7 +332,7 @@ flowchart TB
 
 **3 层 Pyramid 防线**:author Stage C 自检(软阻塞)→ critic(Stage C + Stage D 强阻塞)→ builder Step 0 硬阻塞。质量优先,接受冗余。
 
-**详细 agent 文件**:`.claude/agents/iloveppt.md`
+**详细 agent 文件**:`${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt.md`
 
 ### 3.5 iloveppt-audience(Stage F)
 
@@ -372,7 +372,7 @@ flowchart TB
 - **5 轮上限**:audience-author-builder 循环第 5 轮仍 < 9 → 主线程问用户四选一(继续 / 接受 / 终止 / 回 brainstorm 改 brief)
 - **窗口每轮新建**:无状态,所有 state 在 `audience_review.md`
 
-**详细 agent 文件**:`.claude/agents/iloveppt-audience.md`
+**详细 agent 文件**:`${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-audience.md`
 
 ### 3.6 iloveppt-designer(Stage E.5)
 
@@ -419,7 +419,7 @@ flowchart TB
 
 **红线**:不改 content.md(只动 deck_plan.json);不混 icon 风格;不超出 theme 色板。
 
-**详细 agent 文件**:`.claude/agents/iloveppt-designer.md`
+**详细 agent 文件**:`${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-designer.md`
 
 ### 3.7 iloveppt-template-extractor(旁路)
 
@@ -451,7 +451,7 @@ flowchart TB
 
 **失败处理**:`template_ready: false` 时用 `[system] template_extractor_failed` 前缀返回 brainstorm,brainstorm 跟用户对话三选一(装依赖重试 / 降级 tech_blue / 终止)。
 
-**详细 agent 文件**:`.claude/agents/iloveppt-template-extractor.md`
+**详细 agent 文件**:`${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-template-extractor.md`
 
 ---
 
@@ -657,7 +657,7 @@ flowchart LR
 
 **触发后启动序列**(一气呵成):
 1. slug 推断(从 initial_request)
-2. `mkdir <iLovePPT-root>/decks/<slug>/`
+2. `mkdir ${CLAUDE_PROJECT_DIR}/decks/<slug>/`
 3. `TeamCreate team_name=iloveppt-<slug>`
 4. `SendMessage` 给 brainstorm,载荷三字段(`working_dir + iloveppt_root + initial_request`)
 
@@ -672,7 +672,7 @@ flowchart LR
 
 ## 5. 接口契约
 
-完整接口见 [`.claude/pipeline-protocol.md`](../.claude/pipeline-protocol.md)。摘要:
+完整接口见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)。摘要:
 
 ### 5.1 主线程 → agent 入参
 
@@ -681,7 +681,7 @@ flowchart LR
 working_dir: /abs/path/to/decks/<slug>/
 
 # brainstorm 初次派发
-iloveppt_root: /abs/path/to/<iLovePPT-root>/
+iloveppt_root: /abs/path/to/${CLAUDE_PROJECT_DIR}/
 initial_request: "<用户原话逐字粘贴>"
 
 # brainstorm 续轮
@@ -760,12 +760,12 @@ critic / designer / audience / builder / extractor —— **无 state file**(产
 
 ### 5.3 markdown schema
 
-完整 schema 在 [`content-writing.md` markdown schema 章节](../skills/pptx-deck/content-writing.md#markdown-schema主线程--agent-接口契约)。
+完整 schema 在 [`content-writing.md` markdown schema 章节](${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md#markdown-schema主线程--agent-接口契约)。
 
 ### 5.4 工作目录布局
 
 ```
-<iLovePPT-root>/decks/<slug>/
+${CLAUDE_PROJECT_DIR}/decks/<slug>/
 ├── brief.md                       # brainstorm 产出 + 用户审过的 SSOT
 ├── deck_v1_outline.md             # author Stage C 产出
 ├── deck_v1_content.md             # author Stage D 产出(用户批准版,SSOT)
@@ -806,7 +806,7 @@ critic / designer / audience / builder / extractor —— **无 state file**(产
 
 - **可重放**:任何人拿着 `deck_plan.json` 跑 `python3 build.py` 都出一模一样的 .pptx
 - **可调试**:出问题先看 JSON —— 是 builder 转错,还是 build.py 渲染错?一目了然
-- **可测试**:`evals/run_eval.sh` 跑固定 plan,验证 build.py 没回归,不掺 LLM 不确定性
+- **可测试**:`${CLAUDE_PROJECT_DIR}/evals/run_eval.sh` 跑固定 plan,验证 build.py 没回归,不掺 LLM 不确定性
 
 ### 6.2 markdown 是用户接口,而非 yaml
 
@@ -840,7 +840,7 @@ critic / designer / audience / builder / extractor —— **无 state file**(产
 
 ### 6.5 SSOT —— 代码层一份定义
 
-颜色 / 字体 / 尺寸只在 `skills/pptx/helpers.py`:
+颜色 / 字体 / 尺寸只在 `${CLAUDE_PROJECT_DIR}/skills/pptx/helpers.py`:
 
 ```python
 BRAND_PRIMARY = RGBColor(0x0A, 0x52, 0xBF)   # AAA 7.00:1 对比度
@@ -853,7 +853,7 @@ FOOTER_TOP    = Inches(7.0)
 
 ### 6.6 视觉规范全面对标 BCG/McKinsey
 
-body 18pt / 页标题 32pt / BRAND_PRIMARY AAA 7:1 / 自动 footer + source / closing 改 next_steps / matplotlib_rc SSOT / action title ≤ 24 字硬约束 / 12-col grid 锚定。详细规范见 `skills/pptx-deck/visual-qa.md`。
+body 18pt / 页标题 32pt / BRAND_PRIMARY AAA 7:1 / 自动 footer + source / closing 改 next_steps / matplotlib_rc SSOT / action title ≤ 24 字硬约束 / 12-col grid 锚定。详细规范见 `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/visual-qa.md`。
 
 ### 6.7 视觉 QA 三方严格分工 —— 机械 / 设计 / 认知
 
@@ -1133,39 +1133,39 @@ T+22m    主线程写 STATUS.md(quality_grade: A)
 
 | 想了解 | 看 |
 |---|---|
-| **运行时活协议(权威)** | [`.claude/pipeline-protocol.md`](../.claude/pipeline-protocol.md) |
-| markdown-first 设计 spec(历史决策记录) | `docs/archive/2026-05-23-iloveppt-v3-markdown-first.md` |
-| **iloveppt-brainstorm 完整 prompt** | `.claude/agents/iloveppt-brainstorm.md` |
-| **iloveppt-author 完整 prompt** | `.claude/agents/iloveppt-author.md` |
-| **iloveppt-critic 完整 prompt** | `.claude/agents/iloveppt-critic.md` |
-| **iloveppt(builder)完整 prompt** | `.claude/agents/iloveppt.md` |
-| **iloveppt-designer 完整 prompt** | `.claude/agents/iloveppt-designer.md` |
-| **iloveppt-audience 完整 prompt** | `.claude/agents/iloveppt-audience.md` |
-| iloveppt-template-extractor 完整 prompt | `.claude/agents/iloveppt-template-extractor.md` |
-| markdown schema(outline.md + content.md) | `skills/pptx-deck/content-writing.md` |
-| 双模式字数表(speaker / handout) | `skills/pptx-deck/content-writing.md` "双模式字数表" 章节 |
-| 金字塔原理 5 件套 + 自检 7 项 + 豁免路径 | `skills/pptx-deck/content-writing.md` |
-| 视觉自检 17 项 checklist(机械项分工) | `skills/pptx-deck/visual-qa.md` |
-| 图层规划 4 类决策表 | `skills/pptx-deck/diagram-planning.md` |
-| 模板提取(主色 + 字体) | `skills/pptx-deck/template-extract.md` |
-| draw.io / Mermaid / matplotlib 出图 | `skills/diagram/SKILL.md` |
-| matplotlib 风格 SSOT | `skills/diagram/matplotlib_rc.py` + `matplotlib.md` |
-| 底层 .pptx 读写 + footer/source helper | `skills/pptx/SKILL.md` + `skills/pptx/helpers.py` |
-| 12-col grid 原语 | `skills/pptx/layout.py: grid_columns()` |
-| 设计 token(SSOT 源头) | `skills/pptx/helpers.py` |
+| **运行时活协议(权威)** | [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md) |
+| markdown-first 设计 spec(历史决策记录) | `${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md` |
+| **iloveppt-brainstorm 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-brainstorm.md` |
+| **iloveppt-author 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-author.md` |
+| **iloveppt-critic 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-critic.md` |
+| **iloveppt(builder)完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt.md` |
+| **iloveppt-designer 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-designer.md` |
+| **iloveppt-audience 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-audience.md` |
+| iloveppt-template-extractor 完整 prompt | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-template-extractor.md` |
+| markdown schema(outline.md + content.md) | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md` |
+| 双模式字数表(speaker / handout) | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md` "双模式字数表" 章节 |
+| 金字塔原理 5 件套 + 自检 7 项 + 豁免路径 | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md` |
+| 视觉自检 17 项 checklist(机械项分工) | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/visual-qa.md` |
+| 图层规划 4 类决策表 | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/diagram-planning.md` |
+| 模板提取(主色 + 字体) | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/template-extract.md` |
+| draw.io / Mermaid / matplotlib 出图 | `${CLAUDE_PROJECT_DIR}/skills/diagram/SKILL.md` |
+| matplotlib 风格 SSOT | `${CLAUDE_PROJECT_DIR}/skills/diagram/matplotlib_rc.py` + `matplotlib.md` |
+| 底层 .pptx 读写 + footer/source helper | `${CLAUDE_PROJECT_DIR}/skills/pptx/SKILL.md` + `${CLAUDE_PROJECT_DIR}/skills/pptx/helpers.py` |
+| 12-col grid 原语 | `${CLAUDE_PROJECT_DIR}/skills/pptx/layout.py: grid_columns()` |
+| 设计 token(SSOT 源头) | `${CLAUDE_PROJECT_DIR}/skills/pptx/helpers.py` |
 | 仓库架构 / 三层职责区分(.claude / skills / docs) | `CLAUDE.md`(根目录,导航) |
-| 用户操作手册 | `docs/MANUAL.zh.md` |
-| **Agent eval 框架(量化 prompt 改动效果)** | `evals/agents/README.md` |
-| Agent eval 5 维评分标准 | `evals/agents/score_rubric.md` |
-| Agent eval 手动 runner | `evals/agents/runners/manual_runner.md` |
-| Agent eval 5 个 fixture | `evals/agents/fixtures/` |
-| **Visual Patterns 知识库** | `library/visual-patterns/README.md` |
-| Visual Patterns INDEX(LLM 友好语义索引) | `library/visual-patterns/INDEX.md` |
-| Visual Patterns RAG 检索 CLI(text/image/hybrid 3 mode) | `library/visual-patterns/search.sh`(agent 用 wrapper)/ `search.py`(底层)|
-| Visual Patterns 多模态 embedding 共享 lib(tongyi-embedding-vision-plus) | `library/visual-patterns/_rag/qwen_embedding.py` |
-| Visual Patterns API key 配置(gitignored) | `library/visual-patterns/_rag/.env` |
-| Visual Patterns ingest 流程(怎么入库) | `library/visual-patterns/ingest_workflow.md` |
+| 用户操作手册 | `${CLAUDE_PROJECT_DIR}/docs/MANUAL.zh.md` |
+| **Agent eval 框架(量化 prompt 改动效果)** | `${CLAUDE_PROJECT_DIR}/evals/agents/README.md` |
+| Agent eval 5 维评分标准 | `${CLAUDE_PROJECT_DIR}/evals/agents/score_rubric.md` |
+| Agent eval 手动 runner | `${CLAUDE_PROJECT_DIR}/evals/agents/runners/manual_runner.md` |
+| Agent eval 5 个 fixture | `${CLAUDE_PROJECT_DIR}/evals/agents/fixtures/` |
+| **Visual Patterns 知识库** | `${CLAUDE_PROJECT_DIR}/library/visual-patterns/README.md` |
+| Visual Patterns INDEX(LLM 友好语义索引) | `${CLAUDE_PROJECT_DIR}/library/visual-patterns/INDEX.md` |
+| Visual Patterns RAG 检索 CLI(text/image/hybrid 3 mode) | `${CLAUDE_PROJECT_DIR}/library/visual-patterns/search.sh`(agent 用 wrapper)/ `search.py`(底层)|
+| Visual Patterns 多模态 embedding 共享 lib(tongyi-embedding-vision-plus) | `${CLAUDE_PROJECT_DIR}/library/visual-patterns/_rag/qwen_embedding.py` |
+| Visual Patterns API key 配置(gitignored) | `${CLAUDE_PROJECT_DIR}/library/visual-patterns/_rag/.env` |
+| Visual Patterns ingest 流程(怎么入库) | `${CLAUDE_PROJECT_DIR}/library/visual-patterns/ingest_workflow.md` |
 
 ---
 
-*权威活协议:[`.claude/pipeline-protocol.md`](../.claude/pipeline-protocol.md)*
+*权威活协议:[`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)*

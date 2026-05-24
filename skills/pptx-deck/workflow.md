@@ -3,7 +3,7 @@
 端到端:用户一句话 → 主线程 dispatcher 调度 6 agent + 1 旁路 → 用户审 markdown → 交付 .pptx。
 **"智能"全部放进 6 个 agent**(brainstorm / author / critic / builder / designer / audience + template-extractor 旁路),主线程退化为 router。
 
-权威活协议见 [`.claude/pipeline-protocol.md`](../../.claude/pipeline-protocol.md);markdown-first 接缝设计 rationale 见 [设计史档](../../docs/archive/2026-05-23-iloveppt-v3-markdown-first.md)。
+权威活协议见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md);markdown-first 接缝设计 rationale 见 [设计史档](${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md)。
 
 ## 5 阶段 / 6 agent + 1 旁路 全景
 
@@ -94,7 +94,7 @@ brainstorm(直接用 enriched yaml)× N → author × M → builder × 1 → don
 
 ## Stage A · 需求挖掘(iloveppt-brainstorm)
 
-详见 [iloveppt-brainstorm agent](../../.claude/agents/iloveppt-brainstorm.md)。
+详见 [iloveppt-brainstorm agent](${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-brainstorm.md)。
 
 收齐字段:audience / duration_min / top_recommendation / theme / output。
 对话中识别素材需求 → prompt 用户提供。
@@ -105,7 +105,7 @@ agent 在对话中识别用户素材 → 引导提供 → `Read` 校验 → 落 
 
 ## Stage C · 内容规划(iloveppt-author Stage C)
 
-详见 [iloveppt-author agent](../../.claude/agents/iloveppt-author.md)。
+详见 [iloveppt-author agent](${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-author.md)。
 
 按金字塔原理 5 件套设计 outline:
 
@@ -132,7 +132,7 @@ agent 在对话中识别用户素材 → 引导提供 → `Read` 校验 → 落 
 
 ## Stage E · 终稿构建(iloveppt builder)
 
-详见 [iloveppt agent](../../.claude/agents/iloveppt.md)。
+详见 [iloveppt agent](${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt.md)。
 
 content 批准后,author 返回 `next_action: dispatch_builder`,主线程派发:
 
@@ -173,7 +173,7 @@ cover / toc / section_divider / single_focus / compare / compare_pk / matrix_2x2
 - 主线程不要把 PPT 业务逻辑写进自己的回复 —— 全部交给 6 agent
 - 主线程不要跳过 brainstorm 直接派 iloveppt builder —— builder 会 reject(缺 content.md)
 - 主线程不要在 dispatcher 角色之外做事(主线程**只**做 router + 转发 message)
-- 主线程不要混淆 6 个 agent 的角色;按 `next_action` 严格派发(参考 [`.claude/pipeline-protocol.md`](../../.claude/pipeline-protocol.md) §12 派发表)
+- 主线程不要混淆 6 个 agent 的角色;按 `next_action` 严格派发(参考 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md) §12 派发表)
 - iloveppt-brainstorm 不要做大纲设计 —— 那是 author 的事
 - iloveppt-author 不要做 brief 收集 / 视觉构建 —— 各有边界
 - iloveppt 不要做 brief 解析 / 大纲设计 / 文案拓写 —— 只做 build

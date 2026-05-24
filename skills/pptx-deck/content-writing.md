@@ -13,7 +13,7 @@
 | **author agent**(Stage C-D) | 设计 outline + 拓写 content | 按 13 layout 文案规则写;按 Pyramid 5 件套设计 outline;按 markdown schema 输出 .md |
 | **builder agent**(Stage E build) | 拿到 content.md → md→JSON | 反向应用规则:验证 md 合规、推断 layout、转 JSON |
 
-接缝设计 rationale 见 [设计史档](../../docs/archive/2026-05-23-iloveppt-v3-markdown-first.md)。
+接缝设计 rationale 见 [设计史档](${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md)。
 
 ---
 
@@ -82,7 +82,7 @@ action title 在两种 mode 字数限制一致(24 字硬约束) —— 那是 te
 ## deck 级论证结构（核心要求:麦肯锡金字塔原理）
 
 > **iLovePPT 的内容设计核心要求**:整份 deck 必须按麦肯锡金字塔原理(Minto Pyramid Principle)组织。
-> 这不是"建议遵守",而是 Stage C outline 必须通过的硬约束 —— [iloveppt-author agent](../../.claude/agents/iloveppt-author.md) state file 强制包含 `top_recommendation` / `scqa` / `pyramid_known_issues` 字段,任一不过即不能交付。author / critic / builder 三层 Pyramid 防线均不接受"先放着"含糊过关。
+> 这不是"建议遵守",而是 Stage C outline 必须通过的硬约束 —— [iloveppt-author agent](${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-author.md) state file 强制包含 `top_recommendation` / `scqa` / `pyramid_known_issues` 字段,任一不过即不能交付。author / critic / builder 三层 Pyramid 防线均不接受"先放着"含糊过关。
 
 金字塔原理由五件套组成,缺一不可:
 
@@ -370,7 +370,7 @@ cards / compare 实现上都是"横向卡片列",视觉上**同属一类**。即
 
 ## 与 brief.md 字段的映射
 
-brief.md schema 见 [pipeline-protocol.md §3](../../.claude/pipeline-protocol.md#3-brainstorm-收齐字段后的总结--确认-gate)。author Stage C/D 在拓写时如下消费这些字段：
+brief.md schema 见 [pipeline-protocol.md §3](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md#3-brainstorm-收齐字段后的总结--确认-gate)。author Stage C/D 在拓写时如下消费这些字段：
 
 | brief.md 字段 | 用于拓写的位置 |
 |---|---|

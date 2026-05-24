@@ -6,7 +6,7 @@
 
 本文档的 17 项 checklist 是 **builder Step 3 的机械视觉检查表**:字号 / 对齐 / 颜色 / 文字溢出 / 留白 / footer / 表格 banding 等**可量化机械项**。
 
-**认知接收**(论点清晰度 / 节奏感 / 记忆点 / 哪页让读者走神 / 5 秒能否抓到要点)**不在此 checklist 范围内**,由 `iloveppt-audience` agent 评分(见 `.claude/agents/iloveppt-audience.md`,用自定义 4 维度评分)。
+**认知接收**(论点清晰度 / 节奏感 / 记忆点 / 哪页让读者走神 / 5 秒能否抓到要点)**不在此 checklist 范围内**,由 `iloveppt-audience` agent 评分(见 `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-audience.md`,用自定义 4 维度评分)。
 
 | builder Step 3(本文档) | audience(iloveppt-audience.md) |
 |---|---|
@@ -155,7 +155,7 @@ Claude 根据 `issue.suggested_fix` 决策如何修改 `deck_plan.json`：
 
 ## 视觉 QA checklist（17 项，deck 级）
 
-> 本 checklist 对应 [evals/rubric.md](../../evals/rubric.md) 的 **Design（设计）维**（D1–D14）；Content / Coherence 维的全面评估见该文档。
+> 本 checklist 对应 [evals/rubric.md](${CLAUDE_PROJECT_DIR}/evals/rubric.md) 的 **Design（设计）维**（D1–D14）；Content / Coherence 维的全面评估见该文档。
 
 完成所有单页 check 后，对整个 deck 做最终核查：
 

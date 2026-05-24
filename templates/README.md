@@ -82,7 +82,7 @@ agent 在 Stage A 问"用哪个模板?"时会列出来:
 
 **不提取**:背景图 / 装饰元素 / 自定义 layout / 圆角风格 / 间距 / 动画 / 模板内容。
 
-也就是说,模板**只用于换色 + 换字体**,布局仍然是 iLovePPT 内置的 13 种 layout。如果要"完全照模板视觉风格出稿",超出本系统能力——需要写自定义 theme 模块(类似 `skills/pptx-deck/themes/tech_blue.py`)。
+也就是说,模板**只用于换色 + 换字体**,布局仍然是 iLovePPT 内置的 13 种 layout。如果要"完全照模板视觉风格出稿",超出本系统能力——需要写自定义 theme 模块(类似 `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/themes/tech_blue.py`)。
 
 ## 多人协作建议
 
@@ -91,7 +91,7 @@ agent 在 Stage A 问"用哪个模板?"时会列出来:
 | 模式 | 怎么做 |
 |---|---|
 | **私有 Git 仓库镜像** | 团队建一个 private repo 存模板,本目录 `git clone` 或加 git submodule(`.gitignore` 已忽略 .pptx,需手动覆盖) |
-| **共享盘 / OneDrive** | 模板放共享盘,本地 `ln -s <共享盘>/templates/* templates/` 符号链接进来 |
+| **共享盘 / OneDrive** | 模板放共享盘,本地 `ln -s <共享盘>/templates/* ${CLAUDE_PROJECT_DIR}/templates/` 符号链接进来 |
 | **CI 注入** | 团队 CI build 时从 secrets 拉模板放进本目录 |
 
 挑你方便的方式。

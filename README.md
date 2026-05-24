@@ -49,7 +49,7 @@
 |---|---|
 | **6 Agent 流水线 + 1 旁路** | brainstorm / author / critic(C·D 双 gate)/ builder / designer(自动视觉)/ audience(9 分阈值)+ template-extractor 旁路;主线程只 router 不持业务 |
 | **Markdown 双 checkpoint + critic 双 gate** | 用户审 `outline.md` + `content.md`,critic 在每个 checkpoint 跑 14 项 checklist + 4 维度判断性评审(论据强度 / 节奏 / 措辞 / 平衡) |
-| **BCG/McKinsey 视觉规范 + Visual Patterns RAG** | AAA 对比度 · body 18pt · footer 自动加 · source 引文 · 17 项视觉 QA · 麦肯锡金字塔原理硬约束;接入 `library/visual-patterns/` hosted multimodal RAG(text/image/hybrid 3 种检索) |
+| **BCG/McKinsey 视觉规范 + Visual Patterns RAG** | AAA 对比度 · body 18pt · footer 自动加 · source 引文 · 17 项视觉 QA · 麦肯锡金字塔原理硬约束;接入 `${CLAUDE_PROJECT_DIR}/library/visual-patterns/` hosted multimodal RAG(text/image/hybrid 3 种检索) |
 
 ## 快速试跑
 
@@ -65,19 +65,19 @@ python3 skills/pptx-deck/build.py skills/pptx-deck/examples/demo_plan.json
 
 ## Agent 用法
 
-把本仓库的 `.claude/agents/` 链接到目标项目的 `.claude/agents/` 下(或在仓库内直接用),然后在 Claude Code 里:
+把本仓库的 `${CLAUDE_PROJECT_DIR}/.claude/agents/` 链接到目标项目的 `${CLAUDE_PROJECT_DIR}/.claude/agents/` 下(或在仓库内直接用),然后在 Claude Code 里:
 
 ```
 帮我做个 X 主题的 PPT
 ```
 
-主线程自动派发 `iloveppt-brainstorm`,后续接力到 `.pptx` 交付。详细用户操作见 [`docs/MANUAL.zh.md`](docs/MANUAL.zh.md)。
+主线程自动派发 `iloveppt-brainstorm`,后续接力到 `.pptx` 交付。详细用户操作见 [`${CLAUDE_PROJECT_DIR}/docs/MANUAL.zh.md`](${CLAUDE_PROJECT_DIR}/docs/MANUAL.zh.md)。
 
 ## 13 种 Layout
 
 `cover` · `toc` · `section_divider` · `single_focus` · `compare` · `compare_pk` · `matrix_2x2` · `cards` · `bullet_list` · `table` · `pic_text` · `summary` · `closing`
 
-各 layout 字段约束 + markdown schema 见 [`skills/pptx-deck/content-writing.md`](skills/pptx-deck/content-writing.md)。
+各 layout 字段约束 + markdown schema 见 [`${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md`](${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md)。
 
 ## 内容规范 · 麦肯锡金字塔原理(硬约束)
 
@@ -101,23 +101,23 @@ python3 skills/pptx-deck/build.py skills/pptx-deck/examples/demo_plan.json
 - **12-col grid** `grid_columns()` 锚定跨页对齐
 - **视觉 QA 17 项**(12 基础 + 5 进阶 + 3 deck-level 一致性)
 
-完整 checklist 见 [`skills/pptx-deck/visual-qa.md`](skills/pptx-deck/visual-qa.md)。
+完整 checklist 见 [`${CLAUDE_PROJECT_DIR}/skills/pptx-deck/visual-qa.md`](${CLAUDE_PROJECT_DIR}/skills/pptx-deck/visual-qa.md)。
 
 ## 文档地图
 
 | 文档 | 给谁看 |
 |---|---|
-| [`docs/MANUAL.zh.md`](docs/MANUAL.zh.md) | **用户**(PM / 设计 / 讲者)— 操作手册 |
-| [`docs/agent-internals.zh.md`](docs/agent-internals.zh.md) | **改造者** — 系统架构与工作原理 |
-| [`.claude/pipeline-protocol.md`](.claude/pipeline-protocol.md) | **AI 运行时活协议** — 6 agent 派发 / handoff / gate 权威定义 |
-| [`docs/archive/2026-05-23-iloveppt-v3-markdown-first.md`](docs/archive/2026-05-23-iloveppt-v3-markdown-first.md) | **历史设计** — markdown-first spec + 8 决策记录(供溯源) |
+| [`${CLAUDE_PROJECT_DIR}/docs/MANUAL.zh.md`](${CLAUDE_PROJECT_DIR}/docs/MANUAL.zh.md) | **用户**(PM / 设计 / 讲者)— 操作手册 |
+| [`${CLAUDE_PROJECT_DIR}/docs/agent-internals.zh.md`](${CLAUDE_PROJECT_DIR}/docs/agent-internals.zh.md) | **改造者** — 系统架构与工作原理 |
+| [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md) | **AI 运行时活协议** — 6 agent 派发 / handoff / gate 权威定义 |
+| [`${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md`](${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md) | **历史设计** — markdown-first spec + 8 决策记录(供溯源) |
 | [`CLAUDE.md`](CLAUDE.md) | **Claude Code** — 仓库代码地图 + 不变式 |
-| [`skills/pptx-deck/workflow.md`](skills/pptx-deck/workflow.md) | 5 阶段主流程 + dispatcher 协议 |
-| [`skills/pptx-deck/content-writing.md`](skills/pptx-deck/content-writing.md) | 13 layout 字数规则 + markdown schema |
-| [`skills/pptx-deck/visual-qa.md`](skills/pptx-deck/visual-qa.md) | 视觉自检 17 项 |
-| [`skills/diagram/SKILL.md`](skills/diagram/SKILL.md) | draw.io / matplotlib / Mermaid 出图工具链 |
-| [`skills/pptx/helpers.py`](skills/pptx/helpers.py) | 设计 token SSOT(色 / 字体 / 几何) |
-| [`library/visual-patterns/README.md`](library/visual-patterns/README.md) | Visual Patterns RAG(hosted multimodal) |
+| [`${CLAUDE_PROJECT_DIR}/skills/pptx-deck/workflow.md`](${CLAUDE_PROJECT_DIR}/skills/pptx-deck/workflow.md) | 5 阶段主流程 + dispatcher 协议 |
+| [`${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md`](${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md) | 13 layout 字数规则 + markdown schema |
+| [`${CLAUDE_PROJECT_DIR}/skills/pptx-deck/visual-qa.md`](${CLAUDE_PROJECT_DIR}/skills/pptx-deck/visual-qa.md) | 视觉自检 17 项 |
+| [`${CLAUDE_PROJECT_DIR}/skills/diagram/SKILL.md`](${CLAUDE_PROJECT_DIR}/skills/diagram/SKILL.md) | draw.io / matplotlib / Mermaid 出图工具链 |
+| [`${CLAUDE_PROJECT_DIR}/skills/pptx/helpers.py`](${CLAUDE_PROJECT_DIR}/skills/pptx/helpers.py) | 设计 token SSOT(色 / 字体 / 几何) |
+| [`${CLAUDE_PROJECT_DIR}/library/visual-patterns/README.md`](${CLAUDE_PROJECT_DIR}/library/visual-patterns/README.md) | Visual Patterns RAG(hosted multimodal) |
 
 ## 仓库结构
 

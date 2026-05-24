@@ -1,12 +1,12 @@
 # 模板摄入完整指南(Stage T · Tier 1)
 
-> 当用户在 brief 里要"按某个 .pptx 模板出稿"时,**iLovePPT 自动跑 Stage T**(模板摄入):L1 媒体提取 + L2 扩展 token + probe 渲染 + agent 视觉分析。结果写进 `templates/<name>.yaml`,供后续 author 拓写时利用。
+> 当用户在 brief 里要"按某个 .pptx 模板出稿"时,**iLovePPT 自动跑 Stage T**(模板摄入):L1 媒体提取 + L2 扩展 token + probe 渲染 + agent 视觉分析。结果写进 `${CLAUDE_PROJECT_DIR}/templates/<name>.yaml`,供后续 author 拓写时利用。
 
 ## 触发条件
 
 **自动触发**:`iloveppt-brainstorm` Stage A 问"对模板有要求吗?",用户答"是"+ 提供 `.pptx` 路径时:
 
-- 若 `templates/<name>.yaml` 已存在且 `probe.visual_observations` 已填 → **跳过 Stage T**(已 enriched,直接用)
+- 若 `${CLAUDE_PROJECT_DIR}/templates/<name>.yaml` 已存在且 `probe.visual_observations` 已填 → **跳过 Stage T**(已 enriched,直接用)
 - 否则 → 派发 `iloveppt-template-extractor`,跑完后回 brainstorm
 
 **手动触发**(CLI,适合 CI / 不走 agent 场景):
@@ -100,7 +100,7 @@ probe:
 
 `iloveppt-author` Step 0 自动:
 
-1. Read `templates/<theme>.yaml`
+1. Read `${CLAUDE_PROJECT_DIR}/templates/<theme>.yaml`
 2. Read `<working_dir>/_assets/template_<name>/` 列媒体清单
 3. Stage D 拓写时:
    - **cover 后第 1 页**:若 `recommended_usage.hero_image` 存在,用 `pic_text` layout 嵌入

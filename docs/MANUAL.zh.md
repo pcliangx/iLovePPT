@@ -3,7 +3,7 @@
 > 给 PM、设计师、讲者、运营、咨询——任何想把一句话需求变成完整 PPT 的人。
 > 你不需要写代码,也不需要看懂 `build.py`——读完这份手册你就能用。
 >
-> 本手册聚焦用户视角(对话、审稿、收稿)。系统内部完整架构 + 派发协议见 [`.claude/pipeline-protocol.md`](../.claude/pipeline-protocol.md) 和 [`docs/agent-internals.zh.md`](agent-internals.zh.md)。
+> 本手册聚焦用户视角(对话、审稿、收稿)。系统内部完整架构 + 派发协议见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md) 和 [`${CLAUDE_PROJECT_DIR}/docs/agent-internals.zh.md`](agent-internals.zh.md)。
 >
 > 用法上你不用记 agent 名字——你只跟主线程说"做个 PPT",主线程自动建 team + 派发,后面接力下去。
 
@@ -70,7 +70,7 @@ cd <你的-iLovePPT-仓库>
 python3 skills/pptx-deck/build.py skills/pptx-deck/examples/demo_plan.json
 ```
 
-成功的话,在 `skills/pptx-deck/examples/` 下会看到:
+成功的话,在 `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/examples/` 下会看到:
 
 - `sample_output.pptx` —— 成品
 - `sample_output_render/page-01.jpg` … —— 每页渲染图(用来视觉自检)
@@ -171,10 +171,10 @@ brainstorm: 好的。你这边有素材吗?
 
 ### 工作目录约定
 
-你的 deck 会用一个目录管所有产物。主线程从你需求里推断 slug,在 `<iLovePPT-root>/decks/<slug>/` 建工作目录:
+你的 deck 会用一个目录管所有产物。主线程从你需求里推断 slug,在 `${CLAUDE_PROJECT_DIR}/decks/<slug>/` 建工作目录:
 
 ```
-<iLovePPT-root>/decks/<slug>/
+${CLAUDE_PROJECT_DIR}/decks/<slug>/
 ├── brief.md                       # brainstorm Stage B 产出,等你 OK
 ├── deck_v1_outline.md             # author Stage C 产出,等你审
 ├── deck_v1_content.md             # author Stage D 产出,等你审(SSOT)
@@ -659,9 +659,9 @@ agent 会跳过 Stage A-D,从 Stage E builder 开始重跑。
 | `BRAND_TINT` | `#E6F0FC` | 卡片底、tag 背景 |
 | `ACCENT` | `#00D1C1` | 极个别强调点 |
 
-> **以 `skills/pptx/helpers.py` 的常量为唯一权威源**。手册里的 hex 是抄录,可能因主题更新而过时。
+> **以 `${CLAUDE_PROJECT_DIR}/skills/pptx/helpers.py` 的常量为唯一权威源**。手册里的 hex 是抄录,可能因主题更新而过时。
 
-字体:**Microsoft YaHei**(中文)+ 字符回退链。所有字号、间距体系见 `skills/pptx/design-system.md`。
+字体:**Microsoft YaHei**(中文)+ 字符回退链。所有字号、间距体系见 `${CLAUDE_PROJECT_DIR}/skills/pptx/design-system.md`。
 
 ### 9.2 换品牌色
 
@@ -694,7 +694,7 @@ theme: /Users/me/templates/company.pptx
 
 ### 9.4 预制多个模板(短名引用)
 
-如果你有多份模板(公司外部 / 客户演示 / 内部评审),不必每次贴长路径。**放进仓库 `templates/` 目录**:
+如果你有多份模板(公司外部 / 客户演示 / 内部评审),不必每次贴长路径。**放进仓库 `${CLAUDE_PROJECT_DIR}/templates/` 目录**:
 
 ```
 templates/
@@ -742,11 +742,11 @@ agent 会读 `notes` 用于拓写时尊重模板约束(比如 subtitle 字数收
 
 **查找顺序**:`<deck 工作目录>/templates/` 优先 → `<iLovePPT repo>/templates/` 兜底。
 
-详细见仓库 [`templates/README.md`](../templates/README.md)。
+详细见仓库 [`${CLAUDE_PROJECT_DIR}/templates/README.md`](${CLAUDE_PROJECT_DIR}/templates/README.md)。
 
 ### 9.5 想要彻底自定义视觉?
 
-需要写 Python——`skills/pptx-deck/themes/tech_blue.py` 是模板,新建 `themes/party_red.py` 复制改即可。这超出本手册范围,见仓库 `CLAUDE.md` 与 `skills/pptx/design-system.md`。
+需要写 Python——`${CLAUDE_PROJECT_DIR}/skills/pptx-deck/themes/tech_blue.py` 是模板,新建 `themes/party_red.py` 复制改即可。这超出本手册范围,见仓库 `CLAUDE.md` 与 `${CLAUDE_PROJECT_DIR}/skills/pptx/design-system.md`。
 
 ---
 
@@ -983,7 +983,7 @@ python3 skills/pptx-deck/build.py <deck_plan.json> [--no-render]
 python3 plot_trend.py    # 内部 dpi=200, savefig('./_assets/trend.png')
 ```
 
-详细模板见 `skills/diagram/drawio.md` 与 `skills/diagram/matplotlib.md`。
+详细模板见 `${CLAUDE_PROJECT_DIR}/skills/diagram/drawio.md` 与 `${CLAUDE_PROJECT_DIR}/skills/diagram/matplotlib.md`。
 
 ### 12.4 一键校验输出
 
@@ -1004,7 +1004,7 @@ open /tmp/slide-01.jpg
 bash evals/run_eval.sh
 ```
 
-跑完会在 `evals/_run/scorecard.md` 出 scorecard 模板,对照 `evals/baseline/scorecard.md`——fail 项变多说明回归了。
+跑完会在 `${CLAUDE_PROJECT_DIR}/evals/_run/scorecard.md` 出 scorecard 模板,对照 `${CLAUDE_PROJECT_DIR}/evals/baseline/scorecard.md`——fail 项变多说明回归了。
 
 ---
 
@@ -1054,17 +1054,17 @@ bash evals/run_eval.sh
 
 | 想了解 | 看 |
 |---|---|
-| agent 的完整设计与约束 | `.claude/agents/iloveppt.md` |
-| skill 全貌 | `skills/pptx-deck/SKILL.md` |
-| 7 步主流程 | `skills/pptx-deck/workflow.md` |
-| 13 layout 文案规则 + **金字塔原理 5 件套** + Pyramid 自检表 | `skills/pptx-deck/content-writing.md` |
-| 图层规划 4 类决策表 | `skills/pptx-deck/diagram-planning.md` |
-| 视觉自检 12 项 checklist | `skills/pptx-deck/visual-qa.md` |
-| 模板提取(主色 + 字体) | `skills/pptx-deck/template-extract.md` |
-| draw.io / Mermaid / matplotlib 出图 | `skills/diagram/SKILL.md` |
-| 底层 .pptx 读写 / 字体处理 | `skills/pptx/SKILL.md` |
-| 设计 token(色值 / 字号 / helper) | `skills/pptx/design-system.md` |
-| 评分标准(Content / Design / Coherence) | `evals/rubric.md` |
+| agent 的完整设计与约束 | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt.md` |
+| skill 全貌 | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/SKILL.md` |
+| 7 步主流程 | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/workflow.md` |
+| 13 layout 文案规则 + **金字塔原理 5 件套** + Pyramid 自检表 | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md` |
+| 图层规划 4 类决策表 | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/diagram-planning.md` |
+| 视觉自检 12 项 checklist | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/visual-qa.md` |
+| 模板提取(主色 + 字体) | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/template-extract.md` |
+| draw.io / Mermaid / matplotlib 出图 | `${CLAUDE_PROJECT_DIR}/skills/diagram/SKILL.md` |
+| 底层 .pptx 读写 / 字体处理 | `${CLAUDE_PROJECT_DIR}/skills/pptx/SKILL.md` |
+| 设计 token(色值 / 字号 / helper) | `${CLAUDE_PROJECT_DIR}/skills/pptx/design-system.md` |
+| 评分标准(Content / Design / Coherence) | `${CLAUDE_PROJECT_DIR}/evals/rubric.md` |
 | 仓库架构与代码约定 | `CLAUDE.md`(根目录) |
 
 > 这些 `.md` 不只是"文档"——它们是 agent 在跑的时候**实时读取**的运行手册。改它们等于改 agent 行为。

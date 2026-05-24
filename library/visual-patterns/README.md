@@ -164,7 +164,7 @@ print(f'API OK, dim {len(v)}')
 
 | 资产 | 性质 | 跟 library 关系 |
 |---|---|---|
-| `skills/pptx-deck/themes/tech_blue.py` | 13 内置 layout(Python make_*) | library pattern 可标 `matches_iloveppt_layout: <name>` 直接调用 |
-| `skills/diagram/` | 现画工具(draw.io / matplotlib / mermaid) | library pattern 没有 Python 实现时,fallback 到这里现画 |
-| `templates/<name>.yaml` | .pptx 模板提取的 4 级 token | 跟 library 平行;templates 管"主题色字体",library 管"视觉表达模式" |
+| `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/themes/tech_blue.py` | 13 内置 layout(Python make_*) | library pattern 可标 `matches_iloveppt_layout: <name>` 直接调用 |
+| `${CLAUDE_PROJECT_DIR}/skills/diagram/` | 现画工具(draw.io / matplotlib / mermaid) | library pattern 没有 Python 实现时,fallback 到这里现画 |
+| `${CLAUDE_PROJECT_DIR}/templates/<name>.yaml` | .pptx 模板提取的 4 级 token | 跟 library 平行;templates 管"主题色字体",library 管"视觉表达模式" |
 | `decks/<slug>/` | 单个 deck 工作目录 | library 是跨 deck 的知识库,decks/ 是单 deck 工作产物 |

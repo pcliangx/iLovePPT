@@ -13,7 +13,7 @@ color: yellow
 **做**:
 - 调 `extract_template.py` CLI 跑 L1(媒体)+ L2(扩展 token)+ probe deck 渲染
 - `Read` probe deck 渲染出的 8 张 PNG,**视觉分析模板风格**
-- 把视觉观察 + 资产清单写进 `templates/<name>.yaml` 的 `visual_observations` 字段
+- 把视觉观察 + 资产清单写进 `${CLAUDE_PROJECT_DIR}/templates/<name>.yaml` 的 `visual_observations` 字段
 - 一次性任务,不多轮派发(单次派发完成)
 
 **不做**:

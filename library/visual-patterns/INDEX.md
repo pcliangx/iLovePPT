@@ -41,7 +41,7 @@
 
 ## category: data(数据 / 图表)
 
-*用 `skills/diagram/matplotlib_rc.py` 现画 · 通常不在本 library 范围*
+*用 `${CLAUDE_PROJECT_DIR}/skills/diagram/matplotlib_rc.py` 现画 · 通常不在本 library 范围*
 
 ## category: relationship(关系 / 互动)
 
@@ -67,14 +67,14 @@
 
 完整流程见 [`ingest_workflow.md`](ingest_workflow.md)。简版:
 
-1. 用户:`cp 新模板.pptx library/visual-patterns/_source_inspiration/`
+1. 用户:`cp 新模板.pptx ${CLAUDE_PROJECT_DIR}/library/visual-patterns/_source_inspiration/`
 2. 用户:跟主线程说"入库"
 3. 主线程:渲染每页 PNG → Read → 推断 pattern.yaml 草稿
 4. 主线程:列 draft 给用户审(改名 / 弃用 / 调字段)
 5. 通过的入 `patterns/<id>/`(pattern.yaml + preview.png)
-6. 跑 embedding:`library/visual-patterns/_rag/.venv/bin/python library/visual-patterns/_rag/embed_text.py`
+6. 跑 embedding:`${CLAUDE_PROJECT_DIR}/library/visual-patterns/_rag/.venv/bin/python ${CLAUDE_PROJECT_DIR}/library/visual-patterns/_rag/embed_text.py`
 7. 同步更新**本 INDEX.md**(加 entry 到对应 category)
-8. 验证:`library/visual-patterns/search.sh --query "<新 pattern 关键词>" --top-k 3`
+8. 验证:`${CLAUDE_PROJECT_DIR}/library/visual-patterns/search.sh --query "<新 pattern 关键词>" --top-k 3`
 
 ---
 

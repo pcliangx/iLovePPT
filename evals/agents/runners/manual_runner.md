@@ -4,8 +4,8 @@ iLovePPT 流水线需要 Claude Code agent infra 才能跑,**没有 fully automa
 
 ## 准备
 
-1. 确认你在 iLovePPT 仓库根目录(`pwd` 应有 `skills/pptx-deck/build.py`)
-2. 确认 fixture 存在:`ls evals/agents/fixtures/<fixture-id>/brief.md`
+1. 确认你在 iLovePPT 仓库根目录(`pwd` 应有 `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/build.py`)
+2. 确认 fixture 存在:`ls ${CLAUDE_PROJECT_DIR}/evals/agents/fixtures/<fixture-id>/brief.md`
 3. 确认环境干净:
    - `python3 -c "import cairosvg"` ✓(designer 需要)
    - `echo $UNSPLASH_ACCESS_KEY`(可选,designer hero 图)
@@ -80,9 +80,9 @@ STATUS.md
 
 ### Step 6 · 评分 + 记 baseline
 
-按 `evals/agents/score_rubric.md` 5 维度评分(或喂给独立 Claude 跑 LLM 评分模式)。
+按 `${CLAUDE_PROJECT_DIR}/evals/agents/score_rubric.md` 5 维度评分(或喂给独立 Claude 跑 LLM 评分模式)。
 
-把分数记到 `evals/agents/baseline/<YYYY-MM-DD>-<git-sha>.json`:
+把分数记到 `${CLAUDE_PROJECT_DIR}/evals/agents/baseline/<YYYY-MM-DD>-<git-sha>.json`:
 
 ```json
 {

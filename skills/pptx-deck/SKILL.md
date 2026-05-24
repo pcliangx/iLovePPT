@@ -6,7 +6,7 @@ description: pptx-deck 知识库 —— 13 个 layout 的主题(tech_blue)、bui
 # pptx-deck — 端到端 PPT 生成器
 
 > **主入口:`@agent-iloveppt`**(独立上下文跑 Stage C(出 outline 等批准)→ Stage D(拓写 content)→ Stage E(构建 .pptx + 机械视觉 QA)→ designer + audience)。本 skill 仍可被主线程 Claude 直接读用作 skill-mode 后备入口;触发关键词已搬到 agent 的 description。
-> agent 设计见 [iLovePPT Agent 设计](../../docs/archive/2026-05-23-iloveppt-agent-design.md)。
+> agent 设计见 [iLovePPT Agent 设计](${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-agent-design.md)。
 
 复制人类快速生成 PPT 的能力：用户给主题或参考模板,skill 自动产出含视觉自检的完整 .pptx。Claude 产出 `deck_plan.json`，`build.py` 机械地将其渲染为 `.pptx` + PNG。
 

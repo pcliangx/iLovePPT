@@ -6,9 +6,9 @@
 
 ## 仓库是什么
 
-iLovePPT 是一个 **Claude Code 技能库**(skill library),**不是独立应用**。交付物是 `skills/` 目录:三个 skill(`pptx-deck` / `pptx` / `diagram`),每个由 `SKILL.md` 入口文档 + 子 `.md` 文档 + Python helper 模块组成。装到一个项目的 `.claude/skills/` 之后,Claude 在运行时读这些文档,端到端生成 PowerPoint deck。
+iLovePPT 是一个 **Claude Code 技能库**(skill library),**不是独立应用**。交付物是 `${CLAUDE_PROJECT_DIR}/skills/` 目录:三个 skill(`pptx-deck` / `pptx` / `diagram`),每个由 `SKILL.md` 入口文档 + 子 `.md` 文档 + Python helper 模块组成。装到一个项目的 `${CLAUDE_PROJECT_DIR}/.claude/skills/` 之后,Claude 在运行时读这些文档,端到端生成 PowerPoint deck。
 
-仓库的两种用法:(1) 作为 skill 库,别的项目软链到 `.claude/skills/` 引用;(2) 直接跑 `python3 skills/pptx-deck/build.py deck_plan.json`。
+仓库的两种用法:(1) 作为 skill 库,别的项目软链到 `${CLAUDE_PROJECT_DIR}/.claude/skills/` 引用;(2) 直接跑 `python3 ${CLAUDE_PROJECT_DIR}/skills/pptx-deck/build.py deck_plan.json`。
 
 ## 常用命令
 
@@ -42,7 +42,7 @@ pdftoppm -jpeg -r 120 /tmp/<file>.pdf /tmp/slide
 
 ### Agent 流水线(6 agent + 1 旁路)
 
-`.claude/agents/` 是项目的运行时流水线:
+`${CLAUDE_PROJECT_DIR}/.claude/agents/` 是项目的运行时流水线:
 
 | agent | 角色 |
 |---|---|
@@ -54,21 +54,21 @@ pdftoppm -jpeg -r 120 /tmp/<file>.pdf /tmp/slide
 | `iloveppt-audience` | 模拟目标受众读 deck 评分(9 分硬阈值);反馈三类分流(needs_author_rewrite / needs_designer_revision / needs_theme_fix) |
 | `iloveppt-template-extractor` | 旁路:用户给 .pptx 模板时摄入 4 级 token |
 
-👉 **运行时流水线协议(派发顺序 / handoff / gate / 退出条件)** —— AI 运行时活协议,放 `.claude/`:[`.claude/pipeline-protocol.md`](.claude/pipeline-protocol.md)
+👉 **运行时流水线协议(派发顺序 / handoff / gate / 退出条件)** —— AI 运行时活协议,放 `${CLAUDE_PROJECT_DIR}/.claude/`:[`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)
 
-👉 **agent 设计 rationale(给人看,为什么这么拆)**:[`docs/archive/2026-05-23-iloveppt-agent-design.md`](docs/archive/2026-05-23-iloveppt-agent-design.md)
+👉 **agent 设计 rationale(给人看,为什么这么拆)**:[`${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-agent-design.md`](${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-agent-design.md)
 
-👉 **markdown-first 设计(brief.md / outline.md / content.md schema)**:[`docs/archive/2026-05-23-iloveppt-v3-markdown-first.md`](docs/archive/2026-05-23-iloveppt-v3-markdown-first.md)
+👉 **markdown-first 设计(brief.md / outline.md / content.md schema)**:[`${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md`](${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md)
 
-👉 **agent 工作原理(给人看,系统怎么跑)**:[`docs/agent-internals.zh.md`](docs/agent-internals.zh.md)
+👉 **agent 工作原理(给人看,系统怎么跑)**:[`${CLAUDE_PROJECT_DIR}/docs/agent-internals.zh.md`](${CLAUDE_PROJECT_DIR}/docs/agent-internals.zh.md)
 
-👉 **Visual Patterns 知识库**:[`library/visual-patterns/README.md`](library/visual-patterns/README.md) —— hosted multimodal RAG(阿里云 tongyi-embedding-vision-plus,dim 1152,文本+图像同 API)+ INDEX.md 双路检索 + 3 search mode(text/image/hybrid)。agent 拓写 / 加视觉时可查 library 找最匹配 pattern
+👉 **Visual Patterns 知识库**:[`${CLAUDE_PROJECT_DIR}/library/visual-patterns/README.md`](${CLAUDE_PROJECT_DIR}/library/visual-patterns/README.md) —— hosted multimodal RAG(阿里云 tongyi-embedding-vision-plus,dim 1152,文本+图像同 API)+ INDEX.md 双路检索 + 3 search mode(text/image/hybrid)。agent 拓写 / 加视觉时可查 library 找最匹配 pattern
 
 ### 主线程派发规则(一句话总结)
 
 用户表达"做 PPT"意图时 → 主线程**必须** `TeamCreate` 建 team 并派 agent(**不要**自己写 brief / 写 content / 跑视觉 QA)。改仓库代码(helpers.py / themes / build.py / tests)时 → 主线程直接干(跨文件一致性)。
 
-完整派发表 + 理由:见 [pipeline protocol §12](.claude/pipeline-protocol.md#12-主线程派发表)。
+完整派发表 + 理由:见 [pipeline protocol §12](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md#12-主线程派发表)。
 
 ### 三 skill 分层
 
@@ -92,12 +92,12 @@ diagram    ── 图表生成;也可独立使用
 
 ### SSOT 标准 —— helpers.py 是唯一真实源
 
-`skills/pptx/helpers.py` 是两件事的权威定义,下游只能引用或扩展,**不允许重新定义**:
+`${CLAUDE_PROJECT_DIR}/skills/pptx/helpers.py` 是两件事的权威定义,下游只能引用或扩展,**不允许重新定义**:
 
 1. **底层 pptx 操作** —— 所有字体/形状/表格原语(`set_font` / `_fix_ph_font` / `card` / `bullets` / `table_modern` / `section_header` 等)。Theme 模块在此基础上写 `make_*` layout 函数,**绝不**在 theme 里复制字体/形状逻辑。
 2. **设计 token** —— 字体(`FONT_CN` / `FONT_NUM`)、品牌色(`BRAND_PRIMARY` / `BRAND_DARK` / `BRAND_TINT` / `ACCENT`)、灰阶、slide 尺寸(`SLIDE_W` / `SLIDE_H`)。`tech_blue.py` **不**重新定义这些 —— 而是 alias(`PRIMARY = H.BRAND_PRIMARY`、`FONT_HEADER = H.FONT_CN`)。`build.py` 用 `H.SLIDE_W/H`,不写死 `Inches(...)`。
 
-`skills/pptx/layout.py` 提供**几何原语**(`Box` / `content_region` / `full_region` / `columns` / `rows` / `stack` / `split` / `inset`),主题无关,跟 `helpers.py` 并列。Theme 的 `make_*` 函数用这些算元素位置,不重复几何数学。
+`${CLAUDE_PROJECT_DIR}/skills/pptx/layout.py` 提供**几何原语**(`Box` / `content_region` / `full_region` / `columns` / `rows` / `stack` / `split` / `inset`),主题无关,跟 `helpers.py` 并列。Theme 的 `make_*` 函数用这些算元素位置,不重复几何数学。
 
 改动的连带后果:
 - 改色或改字体 = **只**改 `helpers.py` 一处,会传到 theme 和所有 helper 默认值。
@@ -108,13 +108,13 @@ diagram    ── 图表生成;也可独立使用
 
 `SKILL.md` + 子 `.md` 文件**不是**辅助文档 —— 它们是 Claude 在运行时读的内容,决定怎么生成 deck。改它们就是改产品行为。文档之间用 `[[skill-name]]` 语法交叉引用。
 
-`skills/pptx/scripts/office/` 从 Anthropic 的 pptx skill **逐字 vendor 过来,不要改动**。
+`${CLAUDE_PROJECT_DIR}/skills/pptx/scripts/office/` 从 Anthropic 的 pptx skill **逐字 vendor 过来,不要改动**。
 
 ## 核心原则 —— 一图胜千文
 
-表达**结构、流程、关系、数据对比**的内容应该变成**图**,**不是**一堵 bullet 文字墙。生成或审 deck 时,**主动用** AI 画图能力(`diagram` skill)处理这类内容;**拿不准的时候,画**。这条原则在工作流 Step 3(Claude 执行的图层规划步骤)落地,文档在 `skills/pptx-deck/diagram-planning.md`。任何改动生成行为都应保留这个"偏视觉"的倾向。
+表达**结构、流程、关系、数据对比**的内容应该变成**图**,**不是**一堵 bullet 文字墙。生成或审 deck 时,**主动用** AI 画图能力(`diagram` skill)处理这类内容;**拿不准的时候,画**。这条原则在工作流 Step 3(Claude 执行的图层规划步骤)落地,文档在 `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/diagram-planning.md`。任何改动生成行为都应保留这个"偏视觉"的倾向。
 
-结构化图(流程图、架构、矩阵、决策树、关系图)默认走 **draw.io** —— 颜色精确、布局可控、跨图视觉一致。Mermaid 只是快速 sketch 的 fallback;matplotlib 处理数据图。工具选择表见 `skills/diagram/SKILL.md`。
+结构化图(流程图、架构、矩阵、决策树、关系图)默认走 **draw.io** —— 颜色精确、布局可控、跨图视觉一致。Mermaid 只是快速 sketch 的 fallback;matplotlib 处理数据图。工具选择表见 `${CLAUDE_PROJECT_DIR}/skills/diagram/SKILL.md`。
 
 ## 关键不变量
 
@@ -125,6 +125,7 @@ diagram    ── 图表生成;也可独立使用
 
 ## 约定
 
+- **路径表示**:文档里的 `${CLAUDE_PROJECT_DIR}/...` 是 [Claude Code 标准环境变量](https://code.claude.com/docs/en/hooks.md),指**项目根**。**开发场景**(直接开 iLovePPT 仓库) = iLovePPT 仓库根,文档当字面用即可。**使用场景**(iLovePPT 装为 skill 库,被别人项目 `${CLAUDE_PROJECT_DIR}/.claude/skills/` 软链)agent 通过 `iloveppt_root` dispatch 参数(见 [pipeline protocol §1](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md#1-ppt-意图触发规则强制))拿到实际 iLovePPT 路径,文档里的 `${CLAUDE_PROJECT_DIR}` 取**开发场景**语义。
 - Commit message 用 conventional commits + scope:`feat(pptx-deck):` / `fix(pptx):` / `docs(diagram):` / `refactor:` / `test(pptx):` / `chore:`。
 - `pyproject.toml` 设了 `pythonpath = ["skills/pptx", "skills/pptx-deck"]`,测试直接 import `helpers` / `layout` / `themes.tech_blue` / `build`,**无需** `sys.path` hack。非 test 模块保留幂等的 `sys.path.insert`,方便脚本直接跑。
-- 历史设计 spec / 实施计划归档在 `docs/archive/`。流水线协议 spec(上方链接)是 agent 派发 / handoff 行为的权威。
+- 历史设计 spec / 实施计划归档在 `${CLAUDE_PROJECT_DIR}/docs/archive/`。流水线协议 spec(上方链接)是 agent 派发 / handoff 行为的权威。

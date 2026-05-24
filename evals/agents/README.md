@@ -1,11 +1,11 @@
 # Agent Eval 框架
 
-这是用来量化 iLovePPT agent 输出质量的 eval 集 —— 跟 `evals/plans/` 的 build.py 回归测试**性质不同**:
+这是用来量化 iLovePPT agent 输出质量的 eval 集 —— 跟 `${CLAUDE_PROJECT_DIR}/evals/plans/` 的 build.py 回归测试**性质不同**:
 
 | 集 | 测什么 | 谁评 |
 |---|---|---|
-| `evals/plans/` | build.py 机械构建回归(固定 plan → .pptx) | 跟 `baseline/scorecard.md` diff |
-| **`evals/agents/`(本目录)** | agent 输出质量(brainstorm/author/critic/designer/audience 的产出是否好) | 人工 + audience LLM 评分 |
+| `${CLAUDE_PROJECT_DIR}/evals/plans/` | build.py 机械构建回归(固定 plan → .pptx) | 跟 `baseline/scorecard.md` diff |
+| **`${CLAUDE_PROJECT_DIR}/evals/agents/`(本目录)** | agent 输出质量(brainstorm/author/critic/designer/audience 的产出是否好) | 人工 + audience LLM 评分 |
 
 ## 为什么需要这个 eval
 
@@ -70,7 +70,7 @@ cat evals/agents/fixtures/01-exec-decision/brief.md
 - ✅ 改 agent prompt 前后(`few-shot 示范` 节有变 / `人设` 改 / `red lines` 加减)
 - ✅ 给 agent 加新工具(WebSearch / WebFetch / Skill 之类)
 - ✅ 改派发逻辑(主线程的路由变了)
-- ⏸️ 改 helpers.py / themes.py(那是 `evals/plans/` 的事,跟 agent 输出无关)
+- ⏸️ 改 helpers.py / themes.py(那是 `${CLAUDE_PROJECT_DIR}/evals/plans/` 的事,跟 agent 输出无关)
 
 ## 不跑这个 eval 的代价
 

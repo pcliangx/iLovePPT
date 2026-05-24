@@ -2,7 +2,7 @@
 # Wrapper · 自动用 _rag/.venv 跑 search.py,agent 不用关心 Python 路径。
 #
 # 用法(同 search.py):
-#   library/visual-patterns/search.sh --query "PDCA" --top-k 3 --format json
+#   ${CLAUDE_PROJECT_DIR}/library/visual-patterns/search.sh --query "PDCA" --top-k 3 --format json
 #
 # 找不到 venv 时 fallback 到 system python3(可能会 ImportError,引导用户装 venv)。
 

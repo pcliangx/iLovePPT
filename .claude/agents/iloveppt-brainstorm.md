@@ -111,7 +111,7 @@ initial_request: "用户的一句话需求"          # 仅初次派发必填
 - `audience`: executive | technical | general | sales
 - `duration_min`: 整数(常见 10/15/20/30/45)
 - `top_recommendation`: 完整推荐句(动宾结构 + 边界)
-- `theme`: `tech_blue`(内置)/ 短名(查 `templates/<name>.pptx`)/ .pptx 绝对路径
+- `theme`: `tech_blue`(内置)/ 短名(查 `${CLAUDE_PROJECT_DIR}/templates/<name>.pptx`)/ .pptx 绝对路径
 - `output`: .pptx 输出路径(默认 `<working_dir>/deck_v1.pptx`)
 - **`presentation_mode`**:`speaker`(默认,BCG 演讲风,文字提纲化)/ `handout`(阅读手册风,文字 3-4×,讲者不在场也能读懂)
 
@@ -166,7 +166,7 @@ message_to_user: "首次用这个模板,先让 extractor 深度学一下(~1min),
 
 4. 若用户给的 .pptx 已有 enriched yaml → 直接用,记 brief.theme = 短名 / 路径
 
-若 `templates/` 空 + 用户没自带模板 → 用户只能选 (a) tech_blue。
+若 `${CLAUDE_PROJECT_DIR}/templates/` 空 + 用户没自带模板 → 用户只能选 (a) tech_blue。
 
 **素材摄入触发**(对话中识别):
 - 用户提到"数据 / 报表 / 增长 / 对比" → prompt 数据
