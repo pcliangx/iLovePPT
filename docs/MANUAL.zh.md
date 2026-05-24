@@ -316,9 +316,9 @@ footer_meta:
 
 批准 outline + critic Stage C pass 后,主线程派 author Stage D:
 
-1. **出图** —— author 调 matplotlib_rc / draw.io,PNG 落到 `_assets/charts/`
+1. **出图** —— author 调 matplotlib_rc / draw.io,PNG 落到 `author/charts/`
 2. **拓写每节** —— 按 layout 字数规则展开;关键数据加 `> 数据:Source: ...` 引文
-3. **嵌入图** —— 用 `![alt](_assets/charts/X.png)` 嵌进 markdown
+3. **嵌入图** —— 用 `![alt](author/charts/X.png)` 嵌进 markdown
 
 产出 `deck_v1_content.md`(20 页 deck 约 3000-5000 字 + 嵌入图)。
 
@@ -520,7 +520,7 @@ Pyramid 自检第 ④ 项不过:第 3 节"评审流程"和第 4 节"组织保障
 |---|---|
 | **每节文案** | 数字对不对?术语统一吗?有没有错字? |
 | **数据 source** | 关键数据有没有 `> 数据:Source: ...` 引文? |
-| **图嵌入** | `![](_assets/charts/X.png)` 路径对吗?图本身好看吗(直接看 PNG)? |
+| **图嵌入** | `![](author/charts/X.png)` 路径对吗?图本身好看吗(直接看 PNG)? |
 | **字数** | 看到 bullet 特别长 / cards body 特别短的就标出来 |
 | **action title** | 还是 outline 那 7 项的延伸:是结论句吗?≤ 24 字吗? |
 | **tone 是否一致** | 全 deck 同一语气(executive / technical 等) |
@@ -1013,14 +1013,14 @@ bash evals/run_eval.sh
 | 术语 | 意思 |
 |---|---|
 | **主线程 Claude** | 与你直接对话的 Claude;**thin dispatcher** —— 只 router 消息 + `TeamCreate` 建 team,不持有 PPT 业务逻辑 |
-| **iloveppt-brainstorm**(第 1 agent) | Stage A+B —— 多轮问你需求 + 引导你提素材。多次派发模式,状态在 `.iloveppt_dialog_state.json` |
-| **iloveppt-author**(第 2 agent) | Stage C+D —— 出 outline.md → 等你批 → 出 content.md → 等你批。状态在 `.iloveppt_author_state.json` |
+| **iloveppt-brainstorm**(第 1 agent) | Stage A+B —— 多轮问你需求 + 引导你提素材。多次派发模式,状态在 `brainstorm/state.json` |
+| **iloveppt-author**(第 2 agent) | Stage C+D —— 出 outline.md → 等你批 → 出 content.md → 等你批。状态在 `author/state.json` |
 | **iloveppt-critic**(第 3 agent) | Stage C/D 双 gate —— outline 评审 + content 评审。14 项 checklist + 4 维度判断性评审。verdict ∈ {pass, pass_with_notes, needs_revision} |
 | **iloveppt**(builder,第 4 agent) | Stage E —— 接 content.md → Pyramid 自检 → md→JSON → build → 17 项机械视觉 QA。单次派发完成 |
 | **iloveppt-designer**(第 5 agent) | Stage E.5 —— builder 后自动跑,搜 iconify / Unsplash / brand assets,改 deck_plan.json 加 icon / hero / 装饰 |
 | **iloveppt-audience**(第 6 agent) | Stage F —— 模拟目标受众读 deck 评分,9 分硬阈值。反馈分 3 类:author rewrite / designer revision / theme fix |
 | **iloveppt-template-extractor**(旁路) | 用户给 .pptx 模板时,提取主色 + 中文字体 + layout token |
-| **state file** | agent 的"跨派发记忆"——`.iloveppt_*_state.json`。多次派发同一 agent 时,它读 state 恢复进度 |
+| **state file** | agent 的"跨派发记忆"——`brainstorm/state.json` / `author/state.json`。多次派发同一 agent 时,它读 state 恢复进度 |
 | **brief** | 你输入的需求。一句话起步,brainstorm 多轮对话补齐字段,落到 brief.md |
 | **brief.md** | brainstorm Stage B 收齐字段后写的 brief 文件,主线程跟用户确认后开始 author |
 | **outline.md** | Stage C 产出物(`deck_v{N}_outline.md`),章节 + Pyramid 自检 checkbox,等你批准 |

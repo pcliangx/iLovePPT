@@ -134,7 +134,7 @@ flowchart TB
 ```mermaid
 flowchart TB
     I([initial_request / user_response]) --> S0
-    S0["Step 0 · 启动 / 恢复<br/>Read .iloveppt_dialog_state.json"] --> S1
+    S0["Step 0 · 启动 / 恢复<br/>Read brainstorm/state.json"] --> S1
     S1["Step 1 · 解析最新输入<br/>检测 [system] 前缀<br/>填进 collected"] --> S2
     S2{字段全收齐<br/>+ 素材到位?}
     S2 -->|否| S3["Step 2 · 问下一批<br/>2-3 个相关问题"] --> SA["返回 next_action: ask_user"]
@@ -185,7 +185,7 @@ flowchart TB
 ```mermaid
 flowchart TB
     I([brief / user_response]) --> S0
-    S0["Step 0 · 启动 / 恢复<br/>Read .iloveppt_author_state.json"] --> ST
+    S0["Step 0 · 启动 / 恢复<br/>Read author/state.json"] --> ST
     ST{state.stage?}
     ST -->|C 未批准| C["Stage C · 出 outline<br/>Pyramid 5 件套设计<br/>自检 7 项(软阻塞 + 豁免)<br/>Write deck_v{N}_outline.md"] --> AC["返回 ask_user(审 outline)"]
     ST -->|C 已批准 + critic_C 未跑| DC["返回 dispatch_critic stage=C"]
@@ -295,7 +295,7 @@ flowchart TB
     S00["<b>Step 0.0</b> · 强前置 gate<br/>Read critic_report_D.md<br/>验 verdict ∈ {pass, pass_with_notes}"]
     S00 -->|缺失 / needs_revision| HS0["<b>hard stop</b><br/>error: critic_d_missing/not_passed"]
     S00 -->|pass| S01
-    S01["<b>Step 0.1</b> · Read 文件<br/>content.md(含 frontmatter footer_meta)<br/>.iloveppt_author_state.json"] --> S02
+    S01["<b>Step 0.1</b> · Read 文件<br/>content.md(含 frontmatter footer_meta)<br/>author/state.json"] --> S02
     S02["<b>Step 0.2</b> · Pyramid 自检 7 项<br/>(3 层防线的第 3 层)"]
     S02 -->|有 fail| HS2["<b>hard stop</b><br/>error: pyramid_check_failed"]
     S02 -->|全过| S1
@@ -499,8 +499,8 @@ sequenceDiagram
 
 **state file 位置**(在 `working_dir` 下):
 
-- `.iloveppt_dialog_state.json` —— brainstorm(round / collected / asset_inventory / brief_md_path / brief_approved)
-- `.iloveppt_author_state.json` —— author(stage / approvals / iteration / pyramid_known_issues)
+- `brainstorm/state.json` —— brainstorm(round / collected / asset_inventory / brief_md_path / brief_approved)
+- `author/state.json` —— author(stage / approvals / iteration / pyramid_known_issues)
 - builder / critic / audience / designer / extractor —— **无 state file**(单次派发或无状态,所有 state 在产物 .md 里)
 
 **为什么这套机制 work**:
@@ -884,9 +884,9 @@ asset_inventory: [...]
 
 # critic 派发
 stage: C | D
-brief_md_path: <working_dir>/brief.md
-outline_md_path: <working_dir>/deck_v{N}_outline.md
-content_md_path: <working_dir>/deck_v{N}_content.md   # Stage D 必填
+brief_md_path: <working_dir>/brainstorm/brief.md
+outline_md_path: <working_dir>/author/deck_v{N}_outline.md
+content_md_path: <working_dir>/author/deck_v{N}_content.md   # Stage D 必填
 asset_inventory: [...]                                # Stage D 必填
 
 # builder 派发
@@ -917,7 +917,7 @@ template_path: /abs/path/to/<template>.pptx
 
 ### 5.3 state file schema + 工作目录布局
 
-**`.iloveppt_dialog_state.json`** (brainstorm):
+**`brainstorm/state.json`** (brainstorm):
 
 ```json
 {
@@ -926,13 +926,13 @@ template_path: /abs/path/to/<template>.pptx
   "collected": { "audience": "...", "duration_min": 15, "top_recommendation": "...", ... },
   "asset_inventory": [{"type": "csv", "path": "...", "desc": "...", "summary": "..."}],
   "history": [{"q": "...", "a": "..."}],
-  "brief_md_path": "<working_dir>/brief.md",
+  "brief_md_path": "<working_dir>/brainstorm/brief.md",
   "brief_approved": true,
   "status": "complete"
 }
 ```
 
-**`.iloveppt_author_state.json`** (author):
+**`author/state.json`** (author):
 
 ```json
 {
@@ -954,27 +954,38 @@ critic / designer / audience / builder / extractor —— **无 state file**(产
 
 ```
 ${CLAUDE_PROJECT_DIR}/decks/<slug>/
-├── brief.md                       # brainstorm 产出 + 用户审过的 SSOT
-├── deck_v1_outline.md             # author Stage C 产出
-├── deck_v1_content.md             # author Stage D 产出(用户批准版,SSOT)
-├── deck_v1_content.postbuild.md   # builder 自动调整版(原文不动)
-├── critic_report_C.md             # Stage C critic 评审(最后一轮)
-├── critic_report_D.md             # Stage D critic 评审(最后一轮)
-├── designer_report.md             # 最后一轮 designer 视觉优化报告
-├── audience_review.md             # 最后一轮 audience 报告
-├── deck_plan.json                 # builder 产出(可手改重 build)
-├── deck_v1.pptx                   # 最终产物
-├── deck_v1_render/                # 渲染图(QA 用)
-├── STATUS.md                      # 主线程交付摘要(quality_grade A/B/C)
-├── .iloveppt_dialog_state.json    # brainstorm 状态
-├── .iloveppt_author_state.json    # author 状态
-└── _assets/
-    ├── raw/                       # 用户提供的原始素材
-    ├── charts/                    # matplotlib / draw.io 生成的图(author)
-    ├── icons/                     # iconify 下载的 icon(designer)
-    ├── hero/                      # Unsplash 下载的 hero 图(designer)
-    ├── brand/                     # 用户自带 brand assets(designer 优先用)
-    └── refs/                      # 用户直接给的参考图
+├── STATUS.md                          ← 主线程产物(交付摘要)
+│
+├── brainstorm/                        ← Stage A-B
+│   ├── state.json                       (round / collected / brief_approved)
+│   └── brief.md                         (用户审过的 SSOT)
+├── author/                            ← Stage C-D
+│   ├── state.json                       (stage / approvals / pyramid_known_issues)
+│   ├── deck_v1_outline.md
+│   ├── deck_v1_content.md               (用户批准版,SSOT)
+│   └── charts/                          (matplotlib / draw.io 出图)
+├── critic/                            ← Stage C/D 双 gate
+│   ├── critic_report_C.md
+│   └── critic_report_D.md
+├── builder/                           ← Stage E
+│   ├── deck_v1_content.postbuild.md     (builder 自动调整版,原文不动)
+│   ├── deck_plan.json                   (机械接缝,可手改重 build)
+│   ├── deck_v1.pptx                     (最终产物)
+│   └── deck_v1_render/                  (QA 用 PNG)
+├── designer/                          ← Stage E.5
+│   ├── designer_report.md
+│   ├── icons/                           (iconify 下载)
+│   └── hero/                            (Unsplash 下载)
+├── audience/                          ← Stage F
+│   ├── audience_review.md               (r1)
+│   ├── audience_review_r2.md            (多轮迭代)
+│   └── audience_review_rN.md
+├── extractor/                         ← 旁路(用户给模板时才有)
+│   └── template_<name>/                 (extractor 提取的媒体)
+└── _assets/                           ← 用户提供,跨 agent 共享
+    ├── raw/                             (用户给的原始素材)
+    ├── brand/                           (用户自带 brand assets,designer 优先用)
+    └── refs/                            (用户给的参考图)
 ```
 
 ### 5.4 进一步阅读

@@ -5,7 +5,7 @@
     python3 skills/pptx-deck/extract_template.py templates/company_a.pptx --no-probe
 
 输出:
-    _assets/template_company_a/      ← L1:解压 ppt/media/* 到这
+    extractor/template_company_a/    ← L1:解压 ppt/media/* 到这(在 deck working_dir 下)
     templates/company_a.yaml         ← L2:enriched 元数据 + extracted tokens
     /tmp/probe_company_a/page-*.jpg  ← probe deck 渲染图(若 --probe)
                                        agent 读这些 PNG 做视觉分析,
@@ -240,7 +240,7 @@ def write_enriched_yaml(yaml_path: Path, pptx_path: Path,
         "extracted": {
             "source_pptx": str(pptx_path.resolve()),
             "media_files": media_files,
-            "media_dir": f"_assets/template_{name}/",
+            "media_dir": f"extractor/template_{name}/",
             "tokens": {k: v for k, v in tokens.items() if v is not None},
         },
     }
@@ -268,7 +268,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--no-probe", action="store_true",
                         help="跳过 probe deck 渲染(只做 L1+L2)")
     parser.add_argument("--working-dir", default=".",
-                        help="工作目录(_assets/ 落在这下面),默认 cwd")
+                        help="工作目录(extractor/ 落在这下面),默认 cwd")
     args = parser.parse_args(argv)
 
     pptx_path = Path(args.pptx).resolve()
@@ -280,7 +280,7 @@ def main(argv: list[str]) -> int:
     name = pptx_path.stem
 
     # L1
-    media_dir = working / "_assets" / f"template_{name}"
+    media_dir = working / "extractor" / f"template_{name}"
     print(f"[L1] 解压 media → {media_dir}")
     media_files = extract_media(pptx_path, media_dir)
     print(f"  {len(media_files)} 个文件: {', '.join(media_files[:5])}"

@@ -92,7 +92,7 @@ SendMessage(to="team-lead", summary="<5-10 字摘要>", message="<整段 yaml �
 ## 入参契约
 
 ```yaml
-rendered_dir: /abs/path/to/deck_v1_render/      # 必填,含 page-*.jpg
+rendered_dir: <working_dir>/builder/deck_v{N}_render/      # 必填,含 page-*.jpg(builder 产物)
 audience: technical | executive | general | sales  # 必填,模拟谁的视角
 top_recommendation: "..."                         # 必填,deck 的顶端论点
 brief:                                             # 可选,提供上下文
@@ -179,7 +179,7 @@ top_3_must_fix:
 
 ### Step 4 · 写报告
 
-`Write` `<working_dir>/audience_review.md`:
+`Write` `<working_dir>/audience/audience_review.md`(若 `audience/` 不存在,mkdir;多轮迭代时 r2/r3/r4 后缀文件也写在 `audience/` 下):
 
 ```markdown
 # Audience Review · {audience} 视角
@@ -218,7 +218,7 @@ top_3_must_fix:
 
 ```yaml
 next_action: report_complete
-review_path: <working_dir>/audience_review.md
+review_path: <working_dir>/audience/audience_review.md
 overall_score: 9.2
 verdict: excellent | good | needs_minor_revision | needs_major_revision
 top_3_must_fix: [...]

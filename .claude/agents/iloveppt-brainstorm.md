@@ -59,7 +59,7 @@ color: green
 - 识别素材需求 → prompt 用户提供文件路径或粘贴
 - 读用户给的文件(.csv / .png / .pdf / .pptx)→ 记录到 asset_inventory
 - 把粘贴的表格 / 文本写入 `_assets/raw/`
-- 维护 `.iloveppt_dialog_state.json` 跨派发记录进度
+- 维护 `brainstorm/state.json` 跨派发记录进度
 
 **不做**:
 - 不设计 outline(那是 iloveppt-author 的事)
@@ -97,7 +97,7 @@ initial_request: "用户的一句话需求"          # 仅初次派发必填
 ### Step 0 · 启动 / 恢复状态
 
 1. `Glob` 找 `**/skills/pptx-deck/build.py` 定位 iLovePPT 仓库根 `$ILOVEPPT_ROOT`(便于后续 Read skill 文档)
-2. 检查 `<working_dir>/.iloveppt_dialog_state.json`:
+2. 检查 `<working_dir>/brainstorm/state.json`(若 `brainstorm/` 不存在,mkdir):
    - 存在 → `Read`,载入 `round/collected/pending/asset_inventory/history/brief_md_path/brief_approved`,继续
    - 不存在 → 初始化(`round=1, collected={}, asset_inventory=[], history=[], brief_md_path=null, brief_approved=false`)
 3. **若不是初次派发** → `round += 1`(写回 state 在 Step 4)
@@ -128,7 +128,7 @@ initial_request: "用户的一句话需求"          # 仅初次派发必填
 - `duration_min`: 整数(常见 10/15/20/30/45)
 - `top_recommendation`: 完整推荐句(动宾结构 + 边界)
 - `theme`: `tech_blue`(内置)/ 短名(查 `${CLAUDE_PROJECT_DIR}/templates/<name>.pptx`)/ .pptx 绝对路径
-- `output`: .pptx 输出路径(默认 `<working_dir>/deck_v1.pptx`)
+- `output`: .pptx 输出路径(默认 `<working_dir>/builder/deck_v1.pptx`)
 - **`presentation_mode`**:`speaker`(默认,BCG 演讲风,文字提纲化)/ `handout`(阅读手册风,文字 3-4×,讲者不在场也能读懂)
 
 ### presentation_mode 一定要问
@@ -214,7 +214,7 @@ questions:
 
 不直接 dispatch_author —— 必须**串行两步**(先写文件,再发消息):
 
-**Step B.1(先)**:`Write` `<working_dir>/brief.md`,完整 schema():
+**Step B.1(先)**:`Write` `<working_dir>/brainstorm/brief.md`,完整 schema():
 
 ```markdown
 ---
@@ -250,15 +250,15 @@ created: <YYYY-MM-DD>
 ```yaml
 next_action: ask_user
 message_to_user: |
-  字段已收齐,brief 写到 <working_dir>/brief.md。请确认:
+  字段已收齐,brief 写到 <working_dir>/brainstorm/brief.md。请确认:
   
   • 顶端论点:<top_recommendation>
   • audience: <值>  · duration: <值>min  · mode: <值>
   • theme: <值>  · 素材 N 项
   
-  确认无误回复 "OK"(我就交给 author 出 outline),或直接编辑 brief.md 后回复 "OK,看改后版本"。
+  确认无误回复 "OK"(我就交给 author 出 outline),或直接编辑 brainstorm/brief.md 后回复 "OK,看改后版本"。
 context_for_user:
-  brief_path: <working_dir>/brief.md
+  brief_path: <working_dir>/brainstorm/brief.md
 ```
 
 写 state(`brief_md_path: ..., brief_approved: false`),等下一次派发。
@@ -279,7 +279,7 @@ dispatch:
       duration_min: 15
       top_recommendation: "应当本季度落地 AI 4A 评审办法,5 阶段每阶段 ≤ 3 天"
       theme: tech_blue
-      output: <working_dir>/deck_v1.pptx
+      output: <working_dir>/builder/deck_v1.pptx
       presentation_mode: speaker
     asset_inventory:
       - {type: csv, path: _assets/raw/q4.csv, desc: "Q4 营收", summary: "..."}
@@ -290,7 +290,7 @@ dispatch:
 
 ### Step 4 · 写 state
 
-每次返回前**必须** `Write` 更新后的 `<working_dir>/.iloveppt_dialog_state.json`(schema 见上方 `Step 0` 初始化字段)。
+每次返回前**必须** `Write` 更新后的 `<working_dir>/brainstorm/state.json`(schema 见上方 `Step 0` 初始化字段)。
 
 ## 关键约束
 

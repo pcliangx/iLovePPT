@@ -131,11 +131,11 @@ working_dir: /abs/path
 user_response: "<用户对上轮问题的答,逐字>"
 ```
 
-不传 `iloveppt_root`、不传历史问题 —— brainstorm 自己从 `.iloveppt_dialog_state.json` 捞。state file 是 SSOT,主线程不复述。
+不传 `iloveppt_root`、不传历史问题 —— brainstorm 自己从 `brainstorm/state.json` 捞。state file 是 SSOT,主线程不复述。
 
 **ask_user 转发协议** — brainstorm 返回 `next_action: ask_user` 时,主线程把 `message_to_user` + `questions` **原文**贴给用户(brainstorm 的口吻直通,不用 `AskUserQuestion` 包装成结构化多选)。原因:brainstorm 是有性格的对话方,主线程只做透明转发。
 
-**软上限兜底** — `.iloveppt_dialog_state.json` 里维护 `round` 字段(brainstorm 每轮 +1)。主线程在 `round >= 10` 时,转发 brainstorm 问题前**附加一行**给用户:
+**软上限兜底** — `brainstorm/state.json` 里维护 `round` 字段(brainstorm 每轮 +1)。主线程在 `round >= 10` 时,转发 brainstorm 问题前**附加一行**给用户:
 
 > "我们已经聊到第 10 轮还没收齐字段。要继续答,还是直接让 author 用当前已知信息开工(缺的字段走默认值)?"
 
@@ -147,7 +147,7 @@ user_response: "<用户对上轮问题的答,逐字>"
 
 brainstorm 在返回 `dispatch_author` **之前**必须**串行两步**(不允许并行、不允许跳过):
 
-**Step 1(先)**:`Write` `<working_dir>/brief.md` —— 把结构化 brief + asset_inventory 序列化成人话(schema 见下方)。**等文件落盘成功后**再进 Step 2。
+**Step 1(先)**:`Write` `<working_dir>/brainstorm/brief.md` —— 把结构化 brief + asset_inventory 序列化成人话(schema 见下方)。**等文件落盘成功后**再进 Step 2。
 
 **Step 2(后)**:返回一次 `ask_user` 做最终确认 —— `message_to_user` 含 brief 节选(top_recommendation + 6 必填字段 + 素材数 + brief.md 路径),让用户"在 brief.md 直接编辑 或 回复 OK"。
 
@@ -170,7 +170,7 @@ created: 2026-05-24
 - audience: technical
 - duration_min: 15
 - theme: tech_blue
-- output: <working_dir>/deck_v1.pptx
+- output: <working_dir>/builder/deck_v1.pptx
 - presentation_mode: speaker
 
 # 素材清单
@@ -188,13 +188,13 @@ created: 2026-05-24
 
 ## 4. brainstorm → author handoff
 
-**brainstorm 窗口命运** — 收到 `dispatch_author` 后,主线程**关闭** brainstorm 窗口(不保留 idle)。`.iloveppt_dialog_state.json` 是 SSOT,需要召回时重开窗口 + Read state 即可。
+**brainstorm 窗口命运** — 收到 `dispatch_author` 后,主线程**关闭** brainstorm 窗口(不保留 idle)。`brainstorm/state.json` 是 SSOT,需要召回时重开窗口 + Read state 即可。
 
 **主线程不做 brief 完整性校验** — brainstorm 自己 Step 2 已检查必填字段。若 brainstorm 返回不完整 brief,那是 brainstorm bug,在 brainstorm 修而不是主线程兜底。
 
 **handoff 消息原文转发** — 主线程拿到 brainstorm 的 `dispatch.args`(`{working_dir, stage:C, brief, asset_inventory}`)整块 SendMessage 给 author。主线程当邮局,不当海关。
 
-**author 不读 brainstorm 的 state file** — `.iloveppt_dialog_state.json` 是 brainstorm 的内部记忆,不是 handoff 接口。author 只信入参里的 brief / asset_inventory,避免两个 agent 隐式耦合。
+**author 不读 brainstorm 的 state file** — `brainstorm/state.json` 是 brainstorm 的内部记忆,不是 handoff 接口。author 只信入参里的 brief / asset_inventory,避免两个 agent 隐式耦合。
 
 ---
 
@@ -202,7 +202,7 @@ created: 2026-05-24
 
 **Stage 间硬隔离** — author 收到"批准 outline"后,不在同一次派发里继续拓 content。标 `approvals.outline=true` → 返回主线程 → **主线程再派一次** author(stage=D)才开始 Stage D。原因:Stage D 出图 + 拓 content 是分钟级动作,每个昂贵动作独立派发,主线程可见性 + 用户可中途叫停。
 
-**md 文件是 SSOT,state 只记 approval** — author 不维护 md 的 hash/mtime。每次派发都 Read `deck_v{N}_outline.md` / `deck_v{N}_content.md` 当唯一真相源。`.iloveppt_author_state.json` 只记 `{stage, outline_md_path, content_md_path, approvals: {outline: bool, content: bool}, iteration: N, pyramid_known_issues: [...]}`。用户在 md 里直接改了 → 下次派发 Read md 自然加载新内容,询问"批准当前版本?"。
+**md 文件是 SSOT,state 只记 approval** — author 不维护 md 的 hash/mtime。每次派发都 Read `deck_v{N}_outline.md` / `deck_v{N}_content.md` 当唯一真相源。`author/state.json` 只记 `{stage, outline_md_path, content_md_path, approvals: {outline: bool, content: bool}, iteration: N, pyramid_known_issues: [...]}`。用户在 md 里直接改了 → 下次派发 Read md 自然加载新内容,询问"批准当前版本?"。
 
 **版本号迭代:author 判断 + 询问** — author 收到改动指令时:
 - 改动小(改 page X / 改某段措辞)→ 就地 Edit,版本号不动
@@ -276,9 +276,9 @@ Stage C / Stage D **独立计数**,各自 5 轮 cap。
 ```yaml
 working_dir: /abs/path
 stage: C | D                                # 必填
-brief_md_path: <working_dir>/brief.md
-outline_md_path: <working_dir>/deck_v{N}_outline.md
-content_md_path: <working_dir>/deck_v{N}_content.md   # Stage D 必填,Stage C 可省
+brief_md_path: <working_dir>/brainstorm/brief.md
+outline_md_path: <working_dir>/author/deck_v{N}_outline.md
+content_md_path: <working_dir>/author/deck_v{N}_content.md   # Stage D 必填,Stage C 可省
 asset_inventory: [...]                      # Stage D 必填(主线程从 brainstorm dispatch 透传)
 ```
 
@@ -356,7 +356,7 @@ asset_inventory: [...]                      # Stage D 必填(主线程从 brains
 
 builder Step 3 不允许评"这页论点不清"(那是 audience 的),audience 不允许标"字号 14 偏小"(那是 builder 的)。
 
-**Pyramid 自检 builder 独立跑,但读 author 豁免状态** — builder Step 0 独立跑 7 项自检(基于当前 md 文件状态,含用户手改后版本),不信任 author 的自检结果(author 可能漏标 / 用户后续手改了 md)。但 builder Read author state(`.iloveppt_author_state.json`)拿 `pyramid_known_issues`,若 builder 检出 fail 的项恰好是 author 已豁免的,错误信息加注:
+**Pyramid 自检 builder 独立跑,但读 author 豁免状态** — builder Step 0 独立跑 7 项自检(基于当前 md 文件状态,含用户手改后版本),不信任 author 的自检结果(author 可能漏标 / 用户后续手改了 md)。但 builder Read author state(`author/state.json`)拿 `pyramid_known_issues`,若 builder 检出 fail 的项恰好是 author 已豁免的,错误信息加注:
 
 ```yaml
 error: pyramid_check_failed
@@ -368,7 +368,7 @@ note: "author 已豁免此项(理由:数据下周才有)。builder 仍判定 fai
 
 这是 **builder 唯一允许 Read author state 的场景**(handoff 隔离的例外)。
 
-**`deck_plan.json` 持久化 + commit-worthy** — builder 生成 `<working_dir>/deck_plan.json` 到工作目录,**不视为 ephemeral**。用户可绕过 author 直接手改 deck_plan.json 跑 `build.py` 重新出 .pptx(适用 mechanical tweak 场景,如调字号 / 微调位置)。这跟"the seam is deck_plan.json"的设计一致。
+**`deck_plan.json` 持久化 + commit-worthy** — builder 生成 `<working_dir>/builder/deck_plan.json` 到工作目录,**不视为 ephemeral**。用户可绕过 author 直接手改 deck_plan.json 跑 `build.py` 重新出 .pptx(适用 mechanical tweak 场景,如调字号 / 微调位置)。这跟"the seam is deck_plan.json"的设计一致。
 
 **`*_render/` 同目录 build 时覆盖** — `<working_dir>/<deck_name>_render/page-*.jpg` 每次 build 覆盖。不做版本化、不做自动清理。audience 后续 Read 这些 PNG,清理早会断流;清理交由用户手动处理。
 
@@ -397,14 +397,14 @@ builder 完成 → .pptx + render PNG
 **入参**:
 ```yaml
 working_dir: /abs/path
-pptx_path: <working_dir>/deck_v{N}.pptx
-deck_plan_json_path: <working_dir>/deck_plan.json
-rendered_dir: <working_dir>/deck_v{N}_render/
-content_md_path: <working_dir>/deck_v{N}_content.md   # 只读,不修改
-brief_md_path: <working_dir>/brief.md
+pptx_path: <working_dir>/builder/deck_v{N}.pptx
+deck_plan_json_path: <working_dir>/builder/deck_plan.json
+rendered_dir: <working_dir>/builder/deck_v{N}_render/
+content_md_path: <working_dir>/author/deck_v{N}_content.md   # 只读,不修改
+brief_md_path: <working_dir>/brainstorm/brief.md
 designer_iteration: 1                                  # 主线程维护
-prev_audience_review_path: <working_dir>/audience_review.md  # 可选 · 第 2 轮起传
-prev_designer_report_path: <working_dir>/designer_report.md  # 可选 · 第 2 轮起传
+prev_audience_review_path: <working_dir>/audience/audience_review.md  # 可选 · 第 2 轮起传
+prev_designer_report_path: <working_dir>/designer/designer_report.md  # 可选 · 第 2 轮起传
 ```
 
 **历史反馈环**:第 2 轮起,主线程把上轮 `audience_review.md` + `designer_report.md` 路径传给 designer:
@@ -529,26 +529,38 @@ audience ≥ 9 + Pyramid pass + 无 architectural blocker
 **交付物 = 标准集**(主线程展示给用户的清单):
 
 ```
-主交付:
-  deck_v{N}.pptx                            ← 给客户/听众用的就是这一份
-
-辅料(供用户复盘 / 后续手改):
-  audience_review.md                         ← 最后一轮 audience 报告
-  critic_report_C.md                         ← Stage C critic 评审(最后一轮)
-  critic_report_D.md                         ← Stage D critic 评审(最后一轮)
-  designer_report.md                         ← 最后一轮 designer 视觉优化报告
-  brief.md                                   ← 起始 brief
-  deck_v{N}_outline.md                       ← 章节骨架
-  deck_v{N}_content.md                       ← 用户批准版(SSOT)
-  deck_v{N}_content.postbuild.md             ← builder 自动调整版
-  deck_plan.json                             ← mechanical seam,可手改重 build
-  _assets/charts/                            ← 出图 PNG(author 出的)
-  _assets/icons/                             ← icon PNG(designer 搜的,iconify)
-  _assets/hero/                              ← hero 图(designer 搜的,Unsplash)
-  _assets/brand/                             ← 用户自带 brand assets(可选)
-  <deck_name>_render/                        ← 视觉 QA 用的逐页 PNG
-  STATUS.md                                  ← 主线程写的交付摘要(见下)
-  .iloveppt_*_state.json                    ← 各 agent state(回看用)
+<working_dir>/   # = ${CLAUDE_PROJECT_DIR}/decks/<slug>/
+├── STATUS.md                                ← 主线程写的交付摘要(见下)
+├── brainstorm/
+│   ├── state.json                             (brainstorm 轮次/已收字段)
+│   └── brief.md                               ← 起始 brief
+├── author/
+│   ├── state.json                             (author stage/approval/pyramid_known_issues)
+│   ├── deck_v{N}_outline.md                  ← 章节骨架
+│   ├── deck_v{N}_content.md                  ← 用户批准版(SSOT)
+│   └── charts/                                ← 出图 PNG(author 出的)
+├── critic/
+│   ├── critic_report_C.md                    ← Stage C critic 评审(最后一轮)
+│   └── critic_report_D.md                    ← Stage D critic 评审(最后一轮)
+├── builder/
+│   ├── deck_v{N}.pptx                        ← 主交付:给客户/听众用
+│   ├── deck_v{N}_content.postbuild.md        ← builder 自动调整版(副本)
+│   ├── deck_plan.json                        ← mechanical seam,可手改重 build
+│   └── deck_v{N}_render/                     ← 视觉 QA 用的逐页 PNG
+├── designer/
+│   ├── designer_report.md                    ← 最后一轮 designer 视觉优化报告
+│   ├── icons/                                 ← icon PNG(iconify 搜)
+│   └── hero/                                  ← hero 图(Unsplash 搜)
+├── audience/
+│   ├── audience_review.md                    ← 最后一轮 audience 报告
+│   ├── audience_review_r2.md                  (多轮迭代)
+│   └── audience_review_rN.md
+├── extractor/                                 ← 旁路(用户给模板时才有)
+│   └── template_<name>/                       (extractor L1 提取的媒体)
+└── _assets/                                   ← 用户提供,跨 agent 共享
+    ├── raw/                                   (用户给的 csv / 原始素材)
+    ├── brand/                                 (用户自带 brand assets,designer 优先用)
+    └── refs/                                  (用户直接给的参考图)
 ```
 
 working_dir 不打包、不删 —— 留在 `${CLAUDE_PROJECT_DIR}/decks/<slug>/` 原地。主线程在最终给用户的消息里**列路径清单 + 一句话用途**,不要把所有文件内容贴出来。
@@ -568,10 +580,10 @@ pyramid_known_issues: []
 review_needed_architectural: []
 
 last_artifacts:
-  - brief.md ✓
-  - outline.md ✓ (approved)
-  - content.md ✓ (approved)
-  - deck_v1.pptx ✓
+  - brainstorm/brief.md ✓
+  - author/deck_v1_outline.md ✓ (approved)
+  - author/deck_v1_content.md ✓ (approved)
+  - builder/deck_v1.pptx ✓
 
 how_to_resume: 跟主线程说"继续 deck <slug>",会从 stage X 续接
 ```

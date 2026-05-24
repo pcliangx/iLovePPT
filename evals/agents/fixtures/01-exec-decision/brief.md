@@ -18,7 +18,7 @@
 | presentation_mode speaker / handout / 双用途? | speaker |
 | top_recommendation 完整推荐句是什么?(若 brainstorm 给几个候选)| 应当本季度落地 AI 4A 评审办法,5 阶段每阶段 ≤ 3 天,降 60% 人力 |
 | theme 用 tech_blue 还是自带模板? | tech_blue |
-| output 路径? | 默认即可(`<working_dir>/deck_v1.pptx`)|
+| output 路径? | 默认即可(`<working_dir>/builder/deck_v1.pptx`)|
 | 数据文件确认? | 是的,_assets/raw/q4_reviews.csv |
 | 参考图确认? | 是的,_assets/refs/current_arch.png |
 | brief.md 看后 OK? | OK |

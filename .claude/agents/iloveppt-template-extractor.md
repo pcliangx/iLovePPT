@@ -59,7 +59,7 @@ python3 <repo>/skills/pptx-deck/extract_template.py <template_path> --working-di
 
 CLI 自动做:L1 unzip media + L2 抽 token + probe 8-page render。
 
-**verification-before-completion**:跑完后 `Read` 输出文件验证(`_assets/template_<name>/` 真有文件,`<name>.yaml` 真被写,probe PNG 真存在)。
+**verification-before-completion**:跑完后 `Read` 输出文件验证(`extractor/template_<name>/` 真有文件,`<name>.yaml` 真被写,probe PNG 真存在)。
 
 ### Step 2 · 视觉分析 probe PNG
 
@@ -85,8 +85,8 @@ icon 库 12 个,author 可在 cards 引用
 **`extracted.recommended_usage`**(可选,主动提示 author):
 ```yaml
 recommended_usage:
-  hero_image: _assets/template_<name>/cover_hero.png
-  icons: [_assets/.../icon_1.png, _assets/.../icon_2.png]
+  hero_image: extractor/template_<name>/cover_hero.png
+  icons: [extractor/template_<name>/icon_1.png, extractor/template_<name>/icon_2.png]
 ```
 
 ### Step 4 · 返回

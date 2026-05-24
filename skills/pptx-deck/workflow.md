@@ -63,7 +63,7 @@ loop:
       break
 ```
 
-主线程**不存任何中间状态**——agent 自己用 `<working_dir>/.iloveppt_dialog_state.json` / `.iloveppt_author_state.json` 跨派发记忆。
+主线程**不存任何中间状态**——agent 自己用 `<working_dir>/brainstorm/state.json` / `author/state.json` 跨派发记忆。
 
 **典型派发序列**(无模板):
 ```
@@ -138,8 +138,8 @@ content 批准后,author 返回 `next_action: dispatch_builder`,主线程派发:
 
 ```
 iloveppt
-content_md_path: <working_dir>/deck_v1_content.md
-output_pptx: <working_dir>/deck_v1.pptx
+content_md_path: <working_dir>/author/deck_v1_content.md
+output_pptx: <working_dir>/builder/deck_v1.pptx
 theme: tech_blue
 footer_meta: { classification, project, version }
 ```

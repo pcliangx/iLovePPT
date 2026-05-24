@@ -263,10 +263,12 @@ def test_footer_page_num_uses_content_page_index_not_absolute(tmp_path):
 
 
 def test_footered_layouts_constant_matches_spec():
-    """常量必须覆盖规范要求的 10 种 layout(除 cover/section_divider/closing)。"""
+    """常量必须覆盖规范要求的 10 种核心 layout + visual pattern 衍生 layout(除 cover/section_divider/closing)。"""
     assert FOOTERED_LAYOUTS == frozenset({
         "toc", "single_focus", "compare", "compare_pk", "matrix_2x2", "cards",
         "bullet_list", "table", "pic_text", "summary",
+        # visual patterns 衍生 layout(template_training theme 引入)
+        "timeline_band_3", "tri_pyramid_4sub_3", "cards_flag_3",
     })
 
 
