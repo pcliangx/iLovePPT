@@ -38,6 +38,57 @@ agent 设计的源 rationale:`${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-ilov
 
 ---
 
+## 0. 团队模式通信(权威规则,所有 agent 必读)
+
+iLovePPT 流水线在 **`TeamCreate` + `Agent(team_name=...)` 常驻 teammate** 模式下运行,**不是** `Agent(prompt=...)` 单次调用模式。这点决定了 agent 之间所有通信的形式。
+
+**1. 你的 transcript 对 team-lead 不可见** —— 你写到自己 transcript 的最终文字、YAML、报告内容,team-lead(主线程)**完全看不到**。必须用 `SendMessage(to="team-lead", message=<内容>)` 工具调用才能传出去。
+
+**2. 所有 "return / 返回 yaml payload" 都是 SendMessage 调用的语义** —— agent 文档里所有形如:
+
+```yaml
+next_action: ask_user
+message_to_user: |
+  ...
+questions: [...]
+```
+
+或
+
+```yaml
+next_action: dispatch_author
+dispatch:
+  agent: iloveppt-author
+  args: {...}
+```
+
+**不是**写到自己的 transcript,而是这样发出去:
+
+```
+SendMessage(
+  to="team-lead",
+  summary="<5-10 字摘要,例:ask audience+duration>",
+  message="<上面整段 yaml 的字符串>"
+)
+```
+
+team-lead 收到后会按协议解析(`ask_user` → 转给用户;`dispatch_*` → 派下个 agent)。
+
+**3. 收到 team-lead 的 SendMessage 入站消息后**:
+- 把消息内容当作新的 `user_response` 或入参参数处理
+- 跑你的流程(Read state file → 干活 → 写 state → SendMessage 回结果)
+- **不允许只跑流程不发回信** —— 即使你只是 ack("已收到,正在处理 X"),也必须 SendMessage,否则 team-lead 卡死
+
+**4. idle 之前必须 SendMessage** —— 你的 turn 结束自动 idle 是正常的,但 **idle 前必须至少调一次 SendMessage** 把这轮成果(问题 / dispatch / 报告路径 / 错误)告诉 team-lead。**idle 前没发消息 = 你这轮等于没干**,team-lead 收到的只是个空 `idle_notification`,会以为你卡死。
+
+**5. 错误也要 SendMessage 出去** —— 工具失败 / 入参不全 / 检测到协议违反 → `SendMessage(to="team-lead", message="error: <reason>\n详情:...")`,让 team-lead 看到并决定下一步。不要静默卡住。
+
+**6. `dispatch_<next_agent>` 不是你直接派下个 agent** —— 你 SendMessage 给 team-lead 说"该派 author 了 + 这是入参",team-lead 真正派下个 teammate。agent 之间不直接互派(嵌套派 agent 是反模式)。
+
+**这条规则覆盖所有 agent 文件里 "return / 主线程会..." 的写法** —— 把那些都翻译成 SendMessage 工具调用。agent 文件里的 yaml payload 是**消息内容模板**,不是 transcript 模板。
+
+---
+
 ## 1. PPT 意图触发规则(强制)
 
 **主线程 Claude 一旦判断用户有制作 PPT 的意图,必须先建 team 再派 agent,不允许在主进程里串行调用 agent**。

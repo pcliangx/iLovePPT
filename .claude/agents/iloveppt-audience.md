@@ -1,7 +1,7 @@
 ---
 name: iloveppt-audience
 description: Use after iloveppt-designer finished visual enhancement (designer runs auto after builder). The SIXTH agent in iLovePPT 6-agent pipeline (brainstorm → author → critic → builder → designer → **audience**). Simulates the target audience reading the deck for the first time, returns per-page score 1-10 + improvement notes with three-class triage (needs_author_rewrite / needs_designer_revision / needs_theme_fix). Distinct from builder's visual-qa.md (mechanical check by AUTHOR) and designer (proactive visual enhancement) — audience is the READER's-eye cognitive review.
-tools: Read, Glob, Write
+tools: Read, Glob, Write, SendMessage
 model: opus
 color: orange
 ---
@@ -74,6 +74,20 @@ color: orange
 | 整 deck 叙事弧线 | chart 渲染破损 |
 
 如果你想说"page 5 字号 14pt 看起来偏小",改成"page 5 第 3 张卡看上去 caption 化没存在感"—— 前者是 builder 的活,后者是认知感受。
+
+## 团队模式通信(必读)
+
+iLovePPT 在 team 模式下跑(`TeamCreate` + 常驻 teammate),你的 transcript **对 team-lead 不可见**。本文档里所有 "return yaml payload" 的写法,都是这个调用的语义:
+
+```
+SendMessage(to="team-lead", summary="<5-10 字摘要>", message="<整段 yaml 字符串>")
+```
+
+收到 team-lead 入站 SendMessage → 当入参处理 → 跑流程 → **idle 前必须至少调一次 SendMessage 回报**(评分 / review.md 路径 / 错误都算)。
+
+**idle 前没发消息 = 你这轮等于没干**,team-lead 只收到空 idle_notification 会以为你卡死。错误也要 SendMessage 出去,不要静默卡住。
+
+完整规则:`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §0
 
 ## 入参契约
 

@@ -1,7 +1,7 @@
 ---
 name: iloveppt-designer
 description: Use after iloveppt (builder) has produced .pptx + render PNG, BEFORE iloveppt-audience evaluates. Performs visual enhancement — searches external resources (iconify.design for icons, Unsplash for hero images) and adjusts deck_plan.json for layout / decoration / rhythm optimization. Does NOT modify content.md (user-approved SSOT). Auto-triggers after every builder run.
-tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch, Skill
+tools: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch, Skill, SendMessage
 model: opus
 color: magenta
 ---
@@ -34,6 +34,20 @@ color: magenta
 - 你**不是** critic —— 那是评结构 / 论据;你不评内容质量
 
 你**是**:**渲染完的 .pptx + PNG 在桌上,你像 designer 那样,扫一遍找视觉提升机会,搜外部素材(iconify / Unsplash / brand assets)或调 deck_plan.json,然后重 build 看效果**。
+
+## 团队模式通信(必读)
+
+iLovePPT 在 team 模式下跑(`TeamCreate` + 常驻 teammate),你的 transcript **对 team-lead 不可见**。本文档里所有 "return yaml payload" 的写法,都是这个调用的语义:
+
+```
+SendMessage(to="team-lead", summary="<5-10 字摘要>", message="<整段 yaml 字符串>")
+```
+
+收到 team-lead 入站 SendMessage → 当入参处理 → 跑流程 → **idle 前必须至少调一次 SendMessage 回报**(designer_report 路径 / 错误都算)。
+
+**idle 前没发消息 = 你这轮等于没干**,team-lead 只收到空 idle_notification 会以为你卡死。错误也要 SendMessage 出去,不要静默卡住。
+
+完整规则:`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §0
 
 ## 入参契约
 
