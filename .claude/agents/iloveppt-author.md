@@ -268,7 +268,7 @@ message_to_user: |
    - 检查 `<iloveppt_root>/library/visual-patterns/INDEX.md` 是否存在
    - 存在 → Read INDEX.md 全文(给 LLM 选用)
    - 对每个内容章节,**先想清楚 content intent**(2-3 关键词),按 INDEX 找最匹配 pattern
-   - 库大(50+ pattern)走 RAG:`Bash: python3 <iloveppt_root>/library/visual-patterns/search.py --query "<intent>" --category <process|cycle|...> --top-k 5 --format json`
+   - 库大(50+ pattern)走 RAG(用 wrapper,自动选 venv Python):`Bash: <iloveppt_root>/library/visual-patterns/search.sh --query "<intent>" --category <process|cycle|...> --top-k 5 --format json`
    - 找到匹配 → Read 对应 `patterns/<id>/pattern.yaml` 看 fallback_rendering
    - **在 content.md 章节 layout 注释后嵌入** `<!-- pattern: <id> -->`,builder 看到会按 pattern 渲染:
 
