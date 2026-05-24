@@ -99,7 +99,7 @@ def test_load_theme_per_plan_overrides_repo_templates(tmp_path):
         load_theme("override_test")
 
 
-# ----- 扩展 token 提取测试(Phase 1 模板摄入)-----
+# ----- 扩展 token 提取测试(Tier 1 模板摄入)-----
 
 def test_extract_extended_tokens_returns_dict(tmp_path):
     """_extract_design_tokens 应返回 dict,即使模板很简单也不报错"""

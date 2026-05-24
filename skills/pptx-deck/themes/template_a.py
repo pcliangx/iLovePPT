@@ -1,4 +1,4 @@
-"""template_a 主题 —— iSlide 商业模板的部分复刻(Phase 2,~70% 视觉相似度)
+"""template_a 主题 —— iSlide 商业模板的部分复刻(Tier 2,~70% 视觉相似度)
 
 # 复刻原则
 - Tier 1(重写,占视觉权重 80%): make_cover / make_toc / make_section_divider / make_closing
@@ -12,7 +12,7 @@
 - section_divider 渐变方块 + 大数字 + 浅蓝带
 
 # 复刻限制(不到 100% 的部分)
-- SmartArt 类(辐射图 / 4 象限装饰)= 0% 复刻(iLovePPT 11 layout 不含)
+- SmartArt 类(辐射图 / 4 象限装饰)= 0% 复刻(iLovePPT 13 layout 不含)
 - iSlide footer 水印 = 不复制(模板作者签名,非视觉规范)
 - 复杂渐变 / 多层装饰 = 简化复刻
 """

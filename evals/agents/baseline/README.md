@@ -9,7 +9,7 @@
 ```json
 {
   "fixture_id": "01-exec-decision",
-  "iloveppt_version": "v0.5.2",
+  "iloveppt_version": "<git-tag-or-sha>",
   "git_sha": "855db62",
   "ran_at": "2026-05-24T10:00:00+08:00",
   "scorer": "manual" | "llm-claude-sonnet" | "llm-claude-opus",
@@ -58,7 +58,7 @@
 每个版本应该至少跑全部 5 个 fixture:
 
 ```
-v0.5.2:
+<git-tag>:
   01-exec-decision      total: 41.1
   02-tech-architecture  total: 39.4
   03-sales-pitch        total: 42.8
@@ -68,4 +68,4 @@ v0.5.2:
   avg: 39.88
 ```
 
-下个版本 avg 应该 ≥ 39.88 + 1.5 才能 commit。
+下个版本 avg 应该 ≥ 上版 avg + 1.5 才能 commit。

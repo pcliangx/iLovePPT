@@ -185,7 +185,7 @@ def open_db() -> sqlite3.Connection:
 def build_text_doc(p: dict) -> str:
     """把 pattern.yaml 关键字段拼成 embed 用的 document。
 
-    Qwen3-VL 对中文 + 关键词敏感,重复关键概念是好事(不是 noise)。
+    通义/Qwen 系列多模态 embedding 对中文 + 关键词敏感,重复关键概念是好事(不是 noise)。
     """
     parts: list[str] = []
     if name := p.get("name"):

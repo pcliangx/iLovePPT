@@ -1,4 +1,4 @@
-# Visual Patterns RAG · Python 依赖(v0.5.4 起 hosted API · 不再需要 torch / sentence-transformers)
+# Visual Patterns RAG · Python 依赖(hosted API · 不需要 torch / sentence-transformers)
 #
 # 安装(全新 venv):
 #   cd library/visual-patterns/_rag

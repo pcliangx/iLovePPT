@@ -13,7 +13,7 @@
 | 中文字体 | `ppt/slideMasters/slideMaster1.xml` → `<a:ea typeface="..."/>` | 替换 `tech_blue` 的 FONT_CN |
 
 **不提取**：背景、spacing、装饰元素、layout 定义、动画、占位符尺寸。
-提取后仍沿用 `tech_blue` 的全部 11 个 layout 函数，只把上面两个常量换掉。
+提取后仍沿用 `tech_blue` 的全部 13 个 layout 函数，只把上面两个常量换掉。
 
 ---
 

@@ -66,7 +66,7 @@ GRAY_50  = RGBColor(0xFA, 0xFA, 0xFA)  # 极少用,大色块底
 WHITE    = RGBColor(0xFF, 0xFF, 0xFF)
 BLACK    = RGBColor(0x00, 0x00, 0x00)
 
-# Muted palette(v0.5.0)— 用于 matrix_2x2 不同象限、compare 多列差异、
+# Muted palette — 用于 matrix_2x2 不同象限、compare 多列差异、
 # 装饰元素等"需要色彩区分但不抢主色"的场景。
 # 设计参考:Nordic muted tones,饱和度低,跟科技蓝主色不冲突。
 MUTED_BLUE     = RGBColor(0x4A, 0x7A, 0xB5)  # 灰蓝(主色 dimmed 版)
@@ -85,7 +85,7 @@ FOOTER_TOP    = Inches(7.0)
 
 
 # ============================================================================
-# Icon system(v0.5.0)— Unicode 几何字符 / emoji 作为轻图标
+# Icon system — Unicode 几何字符 / emoji 作为轻图标
 # ============================================================================
 #
 # 跨平台稳定 + 无需外部 SVG 资产 + python-pptx 原生支持。
@@ -134,7 +134,7 @@ ICONS: dict[str, str] = {
 
 
 # ============================================================================
-# Presentation Mode(v0.3.0)
+# Presentation Mode
 # ============================================================================
 #
 # 双模式支持:

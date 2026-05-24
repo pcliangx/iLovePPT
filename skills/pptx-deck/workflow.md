@@ -1,14 +1,14 @@
-# pptx-deck 主流程(v3:三 agent 流水线 + markdown-first)
+# pptx-deck 主流程(6 agent + 1 旁路 + markdown-first)
 
-端到端:用户一句话 → 主线程 dispatcher 调度 3 agent → 用户审 markdown → 交付 .pptx。
-**v3 把"智能"全部放进 3 个 agent**,主线程退化为 router。
+端到端:用户一句话 → 主线程 dispatcher 调度 6 agent + 1 旁路 → 用户审 markdown → 交付 .pptx。
+**"智能"全部放进 6 个 agent**(brainstorm / author / critic / builder / designer / audience + template-extractor 旁路),主线程退化为 router。
 
-详细设计见 [v3 spec](../../docs/superpowers/specs/2026-05-23-iloveppt-v3-markdown-first.md)。
+权威活协议见 [`.claude/pipeline-protocol.md`](../../.claude/pipeline-protocol.md);markdown-first 接缝设计 rationale 见 [设计史档](../../docs/archive/2026-05-23-iloveppt-v3-markdown-first.md)。
 
-## 5 阶段 / 3 agent 全景
+## 5 阶段 / 6 agent + 1 旁路 全景
 
 ```
-[主线程 = pure dispatcher]              [3 agents · 独立上下文]
+[主线程 = pure dispatcher]              [6 agents · 独立上下文]
 ────────────────────────                 ─────────────────────
 
 用户一句话需求
@@ -125,7 +125,7 @@ agent 在对话中识别用户素材 → 引导提供 → `Read` 校验 → 落 
 
 - 每节按 layout 选型规则(content-writing.md)
 - 数据图先调 matplotlib_rc 出 PNG → `_assets/charts/`
-- 严守 11 layout 字数规则
+- 严守 13 layout 字数规则
 - 关键 stat 加 `> 数据:Source: ...` 引文
 
 产出 `deck_v1_content.md` → ask_user 审。
@@ -148,50 +148,32 @@ builder 5 步:Pyramid 自检 → md→JSON → build.py → 视觉 QA(≤ 3 轮,
 
 主线程展示成品 + `auto_md_edits` + `review_needed`。
 
-## 接缝:为什么是 markdown 而不是 yaml(v2 旧设计)
+## 接缝:为什么是 markdown 而不是 yaml
 
-| 接缝介质 | v2 yaml | v3 markdown |
-|---|---|---|
-| 用户可读性 | 差(技术语言) | 强(自然文档) |
-| 编辑工具 | 必须用文本编辑器谨慎改 | 任何 markdown editor / Obsidian / VS Code |
-| 版本对比 | git diff 难读(嵌套字段) | git diff 易读(逐段) |
-| 多人协作 | 容易冲突 | markdown merge 相对友好 |
-| 用户能直接审什么 | 框架(120 字) | 完整文案(2000-5000 字) |
-| 改 1 个字成本 | 整个 deck rebuild | 改 md → rebuild 仍要 3-5 min,但**用户已知道改什么** |
+| 维度 | 选 markdown 而非 yaml 的原因 |
+|---|---|
+| 用户可读性 | markdown 是自然文档,可直接阅读;yaml 是结构化数据,需先理解字段 |
+| 编辑工具 | 任何 markdown editor / Obsidian / VS Code 都能编辑;yaml 要小心格式 |
+| 版本对比 | markdown git diff 逐段易读;yaml 嵌套字段 diff 难读 |
+| 多人协作 | markdown merge 相对友好;yaml 容易冲突 |
+| 用户能直接审什么 | 完整文案(2000-5000 字),不是只看框架(120 字) |
 
-## build.py 的能力边界(不变)
+## build.py 的能力边界
 
-build.py 仍是纯机械:`deck_plan.json → .pptx + PNG`。v3 没改 build.py 接口;只是输入的 `deck_plan.json` 由 agent 从 md 生成(v2 是 agent 从 brief 拓写)。
+build.py 是纯机械:`deck_plan.json → .pptx + PNG`,不调 LLM。`deck_plan.json` 由 agent 从 markdown 生成。
 
 CLI:`python3 build.py deck_plan.json [--no-render]`
 
-## 11 种 layout(不变)
+## 13 种 layout
 
-cover / toc / section_divider / single_focus / compare / cards / bullet_list / table / pic_text / summary / closing。字段约束与 markdown 表达形式见 [content-writing.md](content-writing.md)。
-
-## v2 → v3 主要差异速查
-
-| 维度 | v2 | v3 |
-|---|---|---|
-| 用户入口 | `@agent-iloveppt 帮我做 X` | "帮我做 X"(主线程会自动派发 iloveppt-brainstorm) |
-| Agent 数量 | 1(端到端) | **3**(brainstorm / author / iloveppt builder) |
-| 谁做 brief 解析 | agent Phase 1 | iloveppt-brainstorm |
-| 谁做大纲设计 | agent Phase 1 | iloveppt-author Stage C |
-| 谁做文案拓写 | agent Phase 2 | iloveppt-author Stage D |
-| 谁做构建 | agent Phase 2 | iloveppt(builder) |
-| 用户审什么 | YAML outline | outline.md + content.md(2 个 checkpoint) |
-| 主线程角色 | trigger 派发 | thin dispatcher(状态机 router) |
-| 多轮对话怎么实现 | ❌ subagent 单次派发硬做 | **多次派发 + state file**(每次 agent Read state) |
-| 主线程上下文 | 干净 | 干净(v3 把对话推给 agent,主线程不持有) |
-| 接缝 | brief → agent → pptx | content.md → builder → pptx |
-| 视觉修复 | agent 改 deck_plan.json | builder 改 content.md(用户最终源是 md) |
+cover / toc / section_divider / single_focus / compare / compare_pk / matrix_2x2 / cards / bullet_list / table / pic_text / summary / closing。字段约束与 markdown 表达形式见 [content-writing.md](content-writing.md)。
 
 ## Anti-prompt
 
-- 主线程不要把 PPT 业务逻辑写进自己的回复 —— 全部交给 3 agent
+- 主线程不要把 PPT 业务逻辑写进自己的回复 —— 全部交给 6 agent
 - 主线程不要跳过 brainstorm 直接派 iloveppt builder —— builder 会 reject(缺 content.md)
 - 主线程不要在 dispatcher 角色之外做事(主线程**只**做 router + 转发 message)
-- 主线程不要混淆 3 个 agent 的角色;按 `next_action` 严格派发
+- 主线程不要混淆 6 个 agent 的角色;按 `next_action` 严格派发(参考 [`.claude/pipeline-protocol.md`](../../.claude/pipeline-protocol.md) §12 派发表)
 - iloveppt-brainstorm 不要做大纲设计 —— 那是 author 的事
 - iloveppt-author 不要做 brief 收集 / 视觉构建 —— 各有边界
 - iloveppt 不要做 brief 解析 / 大纲设计 / 文案拓写 —— 只做 build

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""扫 library/visual-patterns/patterns/<id>/preview.png,调 Qwen3-VL embedding API
-生成图像 embedding 写入 patterns.sqlite 的 image_emb 表。
+"""扫 library/visual-patterns/patterns/<id>/preview.png,调阿里云 DashScope
+多模态 embedding API(默认 tongyi-embedding-vision-plus-2026-03-06)生成图像
+embedding 写入 patterns.sqlite 的 image_emb 表(FLOAT[EMBED_DIM=1152])。
 
-Qwen3-VL 是多模态 embedding,跟 text 用同一 API,但 input 传 image 而非 text。
-本地 PNG 会自动 base64 后塞进 data URI。
+文本和图像 embedding 同 API、同维度、同 cosine 空间 —— 因此 search.py 的
+image mode 既支持 text→image(文本描述视觉风格)也支持 image→image(参考图找
+相似)。本地 PNG 会自动 base64 后塞进 data URI。
 
 用法:
     cd library/visual-patterns/_rag
@@ -30,7 +32,7 @@ PATTERNS_DIR = Path(__file__).parent.parent / "patterns"
 
 
 def main():
-    parser = argparse.ArgumentParser(description="(Re)build IMAGE embeddings via Qwen3-VL API")
+    parser = argparse.ArgumentParser(description="(Re)build IMAGE embeddings via DashScope multimodal embedding API")
     parser.add_argument("--only", help="只更新某 1 个 pattern id(增量)")
     args = parser.parse_args()
 

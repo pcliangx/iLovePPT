@@ -1,5 +1,8 @@
 # iLovePPT Agent 重构 Implementation Plan
 
+> 📜 **实施史档**(2026-05-23) · 本文记录"把 iLovePPT 从 skill 库改造成 Claude Code agent"的逐步实施 plan,已完成。
+> 现状协议见 [`.claude/pipeline-protocol.md`](../../../.claude/pipeline-protocol.md)。
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把 iLovePPT 从 skill 库改造成 Claude Code 项目内 agent —— 新增一个 `.claude/agents/iloveppt.md` 作为 orchestrator,把现有 3 个 skill 降级为 agent 的参考库,引入大纲 checkpoint。

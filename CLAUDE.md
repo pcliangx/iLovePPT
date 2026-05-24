@@ -13,7 +13,7 @@ iLovePPT 是一个 **Claude Code 技能库**(skill library),**不是独立应用
 ## 常用命令
 
 ```bash
-# 跑全部测试(42 个;pythonpath 由 pyproject.toml 自动配)
+# 跑全部测试(72 个;pythonpath 由 pyproject.toml 自动配)
 python3 -m pytest tests/ -v
 
 # 跑单个测试
@@ -56,24 +56,24 @@ pdftoppm -jpeg -r 120 /tmp/<file>.pdf /tmp/slide
 
 👉 **运行时流水线协议(派发顺序 / handoff / gate / 退出条件)** —— AI 运行时活协议,放 `.claude/`:[`.claude/pipeline-protocol.md`](.claude/pipeline-protocol.md)
 
-👉 **agent 设计 rationale(给人看,为什么这么拆)**:[`docs/superpowers/specs/2026-05-23-iloveppt-agent-design.md`](docs/superpowers/specs/2026-05-23-iloveppt-agent-design.md)
+👉 **agent 设计 rationale(给人看,为什么这么拆)**:[`docs/archive/2026-05-23-iloveppt-agent-design.md`](docs/archive/2026-05-23-iloveppt-agent-design.md)
 
-👉 **markdown-first 设计(brief.md / outline.md / content.md schema)**:[`docs/superpowers/specs/2026-05-23-iloveppt-v3-markdown-first.md`](docs/superpowers/specs/2026-05-23-iloveppt-v3-markdown-first.md)
+👉 **markdown-first 设计(brief.md / outline.md / content.md schema)**:[`docs/archive/2026-05-23-iloveppt-v3-markdown-first.md`](docs/archive/2026-05-23-iloveppt-v3-markdown-first.md)
 
 👉 **agent 工作原理(给人看,系统怎么跑)**:[`docs/agent-internals.zh.md`](docs/agent-internals.zh.md)
 
-👉 **Visual Patterns 知识库(v0.5.3 新)**:[`library/visual-patterns/README.md`](library/visual-patterns/README.md) —— RAG + INDEX.md 双路检索,agent 拓写 / 加视觉时可查 library 找最匹配 pattern
+👉 **Visual Patterns 知识库**:[`library/visual-patterns/README.md`](library/visual-patterns/README.md) —— hosted multimodal RAG(阿里云 tongyi-embedding-vision-plus,dim 1152,文本+图像同 API)+ INDEX.md 双路检索 + 3 search mode(text/image/hybrid)。agent 拓写 / 加视觉时可查 library 找最匹配 pattern
 
 ### 主线程派发规则(一句话总结)
 
 用户表达"做 PPT"意图时 → 主线程**必须** `TeamCreate` 建 team 并派 agent(**不要**自己写 brief / 写 content / 跑视觉 QA)。改仓库代码(helpers.py / themes / build.py / tests)时 → 主线程直接干(跨文件一致性)。
 
-完整派发表 + 理由:见 [pipeline protocol §12](.claude/pipeline-protocol.md#12-主线程派发表v050-引入v051-扩展)。
+完整派发表 + 理由:见 [pipeline protocol §12](.claude/pipeline-protocol.md#12-主线程派发表)。
 
 ### 三 skill 分层
 
 ```
-pptx-deck  ── 编排者:brief.yaml → 完整 .pptx
+pptx-deck  ── 编排者:brief.md → outline.md → content.md → deck_plan.json → 完整 .pptx
    ├── 调用 → pptx      (helpers.py / office 脚本 / render 流水线)
    └── 调用 → diagram   (draw.io / mermaid / matplotlib → PNG)
 pptx       ── 底层 .pptx 读写;也可独立使用
@@ -127,4 +127,4 @@ diagram    ── 图表生成;也可独立使用
 
 - Commit message 用 conventional commits + scope:`feat(pptx-deck):` / `fix(pptx):` / `docs(diagram):` / `refactor:` / `test(pptx):` / `chore:`。
 - `pyproject.toml` 设了 `pythonpath = ["skills/pptx", "skills/pptx-deck"]`,测试直接 import `helpers` / `layout` / `themes.tech_blue` / `build`,**无需** `sys.path` hack。非 test 模块保留幂等的 `sys.path.insert`,方便脚本直接跑。
-- 设计 spec 放 `docs/superpowers/specs/`,实施计划放 `docs/superpowers/plans/`。流水线协议 spec(上方链接)是 agent 派发 / handoff 行为的权威。
+- 历史设计 spec / 实施计划归档在 `docs/archive/`。流水线协议 spec(上方链接)是 agent 派发 / handoff 行为的权威。

@@ -1,8 +1,8 @@
 # 逐页视觉自检 prompt 与流程
 
-本文档定义逐页视觉自检的 prompt 模板 + fix 循环 + 17 项 deck checklist。被 [workflow.md](workflow.md) Step 5 引用,**v0.5.1 起也是 iloveppt builder agent Step 3 的 checklist**。
+本文档定义逐页视觉自检的 prompt 模板 + fix 循环 + 17 项 deck checklist。被 [workflow.md](workflow.md) Step 5 引用,同时是 iloveppt builder agent Step 3 的 checklist。
 
-## 🆕 v0.5.1 严格分工 —— 本 checklist 只查机械视觉,不评认知接收
+## 严格分工 —— 本 checklist 只查机械视觉,不评认知接收
 
 本文档的 17 项 checklist 是 **builder Step 3 的机械视觉检查表**:字号 / 对齐 / 颜色 / 文字溢出 / 留白 / footer / 表格 banding 等**可量化机械项**。
 
@@ -75,7 +75,7 @@
 
 ---
 
-## fix → 重渲染 → 再 check 循环（v2 流程）
+## fix → 重渲染 → 再 check 循环
 
 ```
 Claude 产出 deck_plan.json
@@ -165,7 +165,7 @@ Claude 根据 `issue.suggested_fix` 决策如何修改 `deck_plan.json`：
 - [ ] **无截断**：所有文本框内容完整显示，无省略号或被裁剪
 - [ ] **字体统一**：全 deck 使用 Microsoft YaHei / Source Han Sans CN（正文）+ Bold（标题）
 - [ ] **配色一致**：色值仅来自 `BRAND_*` / `GRAY_*` 套色板，无随机色
-- [ ] **字号层级清晰**：封面 48pt+ / 页标题 32pt+ / 正文 18-20pt / 表格 14pt / 页脚 9pt(2026-05-23 调整,原 body 11-14pt 已废)
+- [ ] **字号层级清晰**：封面 48pt+ / 页标题 32pt+ / 正文 18-20pt / 表格 14pt / 页脚 9pt
 - [ ] **留白达标**：左右边距 ≥ 0.55"、底部 ≥ 0.5"，离页边无元素
 - [ ] **对齐网格**：同类元素左对齐 / 居中对齐一致；优先使用 12-col grid (`grid_columns`),无随机偏移
 - [ ] **表格无意外 banding**：无意外横纹，行高均匀
@@ -174,7 +174,7 @@ Claude 根据 `issue.suggested_fix` 决策如何修改 `deck_plan.json`：
 - [ ] **textbox margin 归零**：所有文本框已调用 `H.fix_textbox_margins()`
 - [ ] **引用图分辨率清晰**：`pic_text.image_path` / matplotlib chart 宽度 ≥ 1600px
 
-### 进阶(2026-05-23 新增 5 项)
+### 进阶（5 项）
 
 - [ ] **单页留白比例 ≥ 15%**:Read 渲染 PNG 估算"内容覆盖面积",白底面积应 ≥ 15%(空荡比塞满好。塞满 = "无信息层次")
 - [ ] **重要信息在左上热区**:F 型阅读路径下,最关键卡片 / 数据应在 slide 左 1/3 或顶部 1/3,不要放在右下(70% 读者忽视)
@@ -190,7 +190,7 @@ Claude 根据 `issue.suggested_fix` 决策如何修改 `deck_plan.json`：
 
 ---
 
-## 与 brief.yaml 的关系
+## 与 deck_plan.json / content.md 的关系
 
 vision QA 通过后，`review_needed` 清单附在最终交付旁，告知用户哪些页需人工审阅。用户选项：
 

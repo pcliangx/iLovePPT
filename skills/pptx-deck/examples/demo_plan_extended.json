@@ -1,9 +1,9 @@
 {
   "theme": "tech_blue",
-  "output": "./sample_output_v2.pptx",
+  "output": "./sample_output_extended.pptx",
   "footer_meta": {
     "classification": "INTERNAL",
-    "project": "iLovePPT v2 演示",
+    "project": "iLovePPT 示例 deck",
     "version": "v2.0"
   },
   "slides": [
@@ -49,7 +49,7 @@
      "next_steps": [
        {"action": "完成视觉 QA 抽检", "owner": "Alice", "due": "2026-05-30"},
        {"action": "撰写 changelog 推送团队", "owner": "Bob", "due": "2026-06-01"},
-       {"action": "评估 v3 路线(grid / 色盲 / 打印)", "owner": "Carol", "due": "2026-06-15"}
+       {"action": "评估下一阶段路线(grid / 色盲 / 打印)", "owner": "Carol", "due": "2026-06-15"}
      ]}
   ]
 }

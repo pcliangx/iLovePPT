@@ -20,7 +20,7 @@ color: yellow
 - 不收用户 brief(那是 brainstorm 的事)
 - 不设计 outline / 拓写文案(那是 author)
 - 不构建 .pptx(那是 builder)
-- 不写 `themes/<name>.py` 自定义 theme module(那是 Phase 2,需人工 1-3 天,不是本 agent 范围)
+- 不写 `themes/<name>.py` 自定义 theme module(那是 Tier 2,需人工 1-3 天,不是本 agent 范围)
 
 ## 入参契约
 
@@ -93,7 +93,7 @@ template_ready: true
 template_yaml_path: templates/<name>.yaml
 ```
 
-**失败(template_ready: false · v0.5.1 明确化)** —— 失败时仍返回 dispatch_brainstorm,但 user_response 必须用 `[system] template_extractor_failed` 前缀让 brainstorm 走兜底分支:
+**失败(template_ready: false · )** —— 失败时仍返回 dispatch_brainstorm,但 user_response 必须用 `[system] template_extractor_failed` 前缀让 brainstorm 走兜底分支:
 
 ```yaml
 next_action: dispatch_brainstorm
@@ -121,10 +121,10 @@ brainstorm 收到 `[system] template_extractor_failed` 前缀后,会跟用户对
 
 - **真跑 CLI 而非假装**(verification-before-completion):用 Bash 实际跑
 - **真 Read PNG 做视觉分析**:不允许凭"应该是这样"猜
-- **不写 themes/<name>.py**:那是 Phase 2 人工范围
+- **不写 themes/<name>.py**:那是 Tier 2 人工范围
 - **不破坏现有 yaml**:用户手填字段保留
-- **失败必须给具体 reason**(v0.5.1):返回 `template_ready: false` 时,reason 字段必须具体可定位,不允许"出错了"等无信息回答
-- **失败返回用 `[system] template_extractor_failed` 前缀**(v0.5.1):让 brainstorm 走兜底分支,而不是当成普通 user_response
+- **失败必须给具体 reason**:返回 `template_ready: false` 时,reason 字段必须具体可定位,不允许"出错了"等无信息回答
+- **失败返回用 `[system] template_extractor_failed` 前缀**:让 brainstorm 走兜底分支,而不是当成普通 user_response
 
 ## anti-prompt
 

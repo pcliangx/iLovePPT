@@ -32,7 +32,7 @@ evals/agents/
 ├── score_rubric.md                 5 维评分标准
 └── baseline/
     ├── README.md                   怎么登记 baseline
-    └── (timestamped JSON 文件)     例:2026-05-24-v0.5.2.json
+    └── (timestamped JSON 文件)     例:2026-05-24-baseline.json
 ```
 
 ## 5 维评分标准
@@ -59,9 +59,9 @@ cat evals/agents/fixtures/01-exec-decision/brief.md
 
 # 2. 在 Claude Code 里说:
 "我要跑 eval fixture 01,brief 内容如下:..."
-# 主线程会按 v0.5.2 流水线跑:brainstorm → author → critic → builder → designer → audience
+# 主线程会按完整流水线跑:brainstorm → author → critic → builder → designer → audience
 
-# 3. 跑完后,把各 agent 产出收集到 evals/agents/baseline/<timestamp>-<version>.json
+# 3. 跑完后,把各 agent 产出收集到 evals/agents/baseline/<timestamp>-<tag>.json
 # 4. 跟之前的 baseline 对比 → 看哪个维度涨了 / 跌了
 ```
 
@@ -76,5 +76,5 @@ cat evals/agents/fixtures/01-exec-decision/brief.md
 
 - 改 prompt → "感觉更好" → commit
 - 下次跑发现某 case 退化 → 不知道是哪次改的
-- v0.5.3 想 rollback → 不知道 rollback 哪条
+- 想 rollback → 不知道 rollback 哪条
 - 长期看 agent 质量随机漂移

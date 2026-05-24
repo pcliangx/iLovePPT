@@ -58,7 +58,7 @@ def load_plan(path: str | Path) -> dict[str, Any]:
 # ----- load_theme -----
 
 def _extract_design_tokens(pptx_path: str) -> dict[str, Any]:
-    """从 .pptx 提取扩展 design token(2026-05-23 扩 v1: 加 accent2-6/字号阶梯).
+    """从 .pptx 提取扩展 design token(accent1-6 + 字号阶梯).
 
     返回字段(全 best-effort,缺则不在 dict 里):
     - font_header / font_body: master ea typeface
@@ -293,7 +293,7 @@ def build_deck(plan: dict[str, Any]) -> Path:
     - **footer_meta**(plan 顶层): classification / project / version,显示在 footer 左侧
     - **source**(slide 级): 数据 slide 的引文,渲染在 footer 上方
 
-    presentation_mode(v0.3.0):plan 顶层可设 "speaker"(默认)或 "handout",
+    presentation_mode:plan 顶层可设 "speaker"(默认)或 "handout",
     会 set helpers.PRESENTATION_MODE,theme layout 据此切字号 / box 高度 / padding。
     """
     # set presentation mode(影响 layout 字数 / 字号)

@@ -62,18 +62,29 @@ pdftoppm -jpeg -r 120 /tmp/ingest_<timestamp>/my_company_template.pdf /tmp/inges
 ### Step 6 · 用户审完 → 主线程:重建 vec DB
 
 ```bash
-python3 library/visual-patterns/_rag/embed_text.py
+# 用 venv 的 python(.venv 已建好)· text 入库
+library/visual-patterns/_rag/.venv/bin/python library/visual-patterns/_rag/embed_text.py
+
+# image 入库
+library/visual-patterns/_rag/.venv/bin/python library/visual-patterns/_rag/embed_image.py
 ```
 
 ### Step 7 · 主线程:更新 INDEX.md(自动生成)
 
 每个 pattern.yaml 的 1 行摘要进 INDEX.md。
 
-### Step 8 · 验证
+### Step 8 · 验证(3 mode 都试)
 
 ```bash
-python3 library/visual-patterns/search.py --query "PDCA 改进循环" --top-k 3
+# text(主用法):按 content intent 找
+library/visual-patterns/search.sh --query "PDCA 改进循环" --top-k 3 --format text
 # 期望 pdca-loop 排第 1
+
+# image(若 pattern 有视觉差异,可按风格描述找)
+library/visual-patterns/search.sh --query "现代极简 蓝白" --mode image --top-k 3
+
+# image-image(给参考图找相似 pattern)
+library/visual-patterns/search.sh --query-image /path/to/inspiration.png --mode image --top-k 3
 ```
 
 ---
@@ -94,7 +105,12 @@ python3 library/visual-patterns/search.py --query "PDCA 改进循环" --top-k 3
 用户:"page 3 这种我没见过,加进库"
 
 - 用户提供单页 PNG
-- 主线程推断 → 写 pattern.yaml → `python3 _rag/embed_text.py --only <id>` 增量更新
+- 主线程推断 → 写 pattern.yaml + preview.png
+- 增量更新:
+  ```bash
+  library/visual-patterns/_rag/.venv/bin/python library/visual-patterns/_rag/embed_text.py --only <id>
+  library/visual-patterns/_rag/.venv/bin/python library/visual-patterns/_rag/embed_image.py --only <id>
+  ```
 
 ---
 
@@ -116,6 +132,9 @@ python3 library/visual-patterns/search.py --query "PDCA 改进循环" --top-k 3
 
 ## 维护
 
-- 改 pattern.yaml 后必须重跑 `_rag/embed_text.py --only <id>`(否则 vec DB 不同步)
-- 删 pattern 后跑 `_rag/embed_text.py`(全量重建会清掉孤儿)
-- 新 pattern 加进 patterns/ 后跑 `_rag/embed_text.py --only <id>`(增量)
+记得加上 `_rag/.venv/bin/python` 前缀,以下命令简化省略:
+
+- **改 pattern.yaml 后**:`embed_text.py --only <id>`(text emb 同步;若 preview.png 也改了,加跑 `embed_image.py --only <id>`)
+- **替换 preview.png**:`embed_image.py --only <id>`
+- **删 pattern**:`embed_text.py + embed_image.py`(全量重建会清掉孤儿)
+- **新加 pattern**:跑两个 `--only <id>` 增量更新

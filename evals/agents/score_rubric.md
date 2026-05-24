@@ -38,7 +38,7 @@
 **重点 check**:
 - 章节标题串读能否讲完整故事(ghost deck test)?
 - 顶端论点是否在 cover.subtitle 出现(BLUF)?
-- 是否有 footer_meta 默认填好(v0.5.1)?
+- 是否有 footer_meta 默认填好?
 
 ---
 

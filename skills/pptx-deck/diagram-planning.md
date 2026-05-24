@@ -21,7 +21,7 @@
 
 ## 输入与输出
 
-**输入**：用户的 brief（自由描述或 brief.yaml）—— Claude 读取后得到的章节大纲（`outline`）与关键要点（`key_points`）。
+**输入**：author Stage C 产出的 outline.md(章节大纲 + 关键要点)。
 
 **输出**：`diagram_plan` —— 一个 list，每项标记一个建议配图的章节：
 

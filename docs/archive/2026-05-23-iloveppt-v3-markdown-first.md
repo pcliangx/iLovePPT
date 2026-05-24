@@ -1,8 +1,9 @@
 # iLovePPT v3 设计:对话引导 + Markdown-first
 
-> 状态:**采纳 (2026-05-23) · 决策 1 已订正(1a → 1c)**
-> 上一版:[v2 agent 设计](2026-05-23-iloveppt-agent-design.md)
-> 实施跟踪:本文档下方"实施计划"小节
+> 📜 **设计史档**(2026-05-23 采纳) · 本文记录 markdown-first 接缝 + 多 agent 拆分的 rationale 与决策过程。
+> 现状协议见 [`.claude/pipeline-protocol.md`](../../../.claude/pipeline-protocol.md);现状工作原理见 [`docs/agent-internals.zh.md`](../../agent-internals.zh.md)。
+>
+> 决策 1 已订正(1a → 1c) · 上一版:[v2 agent 设计](2026-05-23-iloveppt-agent-design.md)
 >
 > **2026-05-23 订正记录(同日):**
 > 决策 1 原选 1a("Stage A 对话在主线程"),后发现错误归因——

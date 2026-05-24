@@ -1,6 +1,6 @@
 """iLovePPT pptx-deck — 内置科技蓝主题。
 
-调用 [[pptx]]/helpers.py 作为底层。11 个 layout 函数对应 spec §3.4。
+调用 [[pptx]]/helpers.py 作为底层。13 个 layout 函数对应 spec §3.4。
 默认字体 Microsoft YaHei（用户决策）。
 """
 import sys, warnings
@@ -512,7 +512,7 @@ def make_bullet_list(
     bullet_size = 14 if H.is_handout() else 18
     line_factor = 1.6 if H.is_handout() else 1.45
 
-    # 条数少(≤ 6)→ 拉大字号并按内容区均分,避免上半大量留白(v0.5.0 fix audience #14)
+    # 条数少(≤ 6)→ 拉大字号并按内容区均分,避免上半大量留白
     if len(items) <= 6:
         bullet_size = max(bullet_size, 22 if H.is_handout() else 26)
         line_factor = 1.8
@@ -595,8 +595,7 @@ def make_summary(
 ) -> Slide:
     """总结 N 条结论。每条 = 紧凑数字方块 + 等高文字行,整体居中,不再均分留白。
 
-    v0.5.0 fix:audience round 2 #24 — 原 L.rows 均分让 number box 过高,
-    短结论文字撑不满,视觉失衡。改为按内容算单元高度 + 整体垂直居中。
+    按内容算单元高度 + 整体垂直居中,避免 number box 过高 / 短结论文字撑不满的视觉失衡。
     """
     s = _blank_slide(prs)
     _add_title(s, title, size=36, color=PRIMARY_DEEP)

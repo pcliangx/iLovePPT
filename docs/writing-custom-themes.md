@@ -1,8 +1,8 @@
-# 写自定义 theme module(Phase 2 · L3 复刻模板)
+# 写自定义 theme module(Tier 2 · L3 复刻模板)
 
-> 当你需要 PPT 视觉**完全跟着模板走**(封面 hero 图、章节扉页特殊布局、卡片精致圆角阴影、品牌装饰元素)—— Phase 1 的"提取色 + 字 + 素材"不够,你需要写 `themes/<your_template>.py`。
+> 当你需要 PPT 视觉**完全跟着模板走**(封面 hero 图、章节扉页特殊布局、卡片精致圆角阴影、品牌装饰元素)—— Tier 1 的"提取色 + 字 + 素材"不够,你需要写 `themes/<your_template>.py`。
 
-⚠️ **这是 1-3 天人工投入**。先看 Phase 1 [`template-extraction.md`](template-extraction.md) 够不够,真不够再走 Phase 2。
+⚠️ **这是 1-3 天人工投入**。先看 Tier 1 [`template-extraction.md`](template-extraction.md) 够不够,真不够再走 Tier 2。
 
 ## 工作量预估
 
@@ -27,13 +27,13 @@ cp skills/pptx-deck/themes/_skeleton.py skills/pptx-deck/themes/company_a.py
 
 然后在 brief 里 `theme: company_a` 就走你的自定义 theme。
 
-## 改造路线(11 个 make_* 函数)
+## 改造路线(13 个 make_* 函数)
 
 按"视觉冲击力"从大到小排,优先改前几个:
 
 | layout | 模板里通常对应 | 改造重点 |
 |---|---|---|
-| `make_cover` | 第 1 页 | 加 hero 图(用 Phase 1 提取的 cover_hero.png)/ 装饰元素 / logo |
+| `make_cover` | 第 1 页 | 加 hero 图(用 Tier 1 提取的 cover_hero.png)/ 装饰元素 / logo |
 | `make_section_divider` | 全屏色块 + 大数字 | 跟着模板的章节扉页布局,可能要加品牌带 / 副标 |
 | `make_closing` | 谢谢页 | 加联系方式块 / 公司 logo 装饰 |
 | `make_toc` | 目录页 | 跟模板的圆点 / 编号 / 装饰条样式 |
@@ -66,7 +66,7 @@ tf.margin_left = 0  # 别这样,用 H.fix_textbox_margins
 ### 2. 主题级常量在文件顶部
 
 ```python
-# 你的模板的 5 个核心常量(从 Phase 1 enriched yaml 抄)
+# 你的模板的 5 个核心常量(从 Tier 1 enriched yaml 抄)
 PRIMARY_DEEP = RGBColor(0x0B, 0x2A, 0x4A)
 PRIMARY      = RGBColor(0x0B, 0x5B, 0xCC)
 PRIMARY_TINT = RGBColor(0xE6, 0xF0, 0xFC)
@@ -90,7 +90,7 @@ cards = L.columns(row, 3)
 
 ### 4. 嵌入模板素材
 
-Phase 1 已经把模板的 PNG 解压到 `<working_dir>/_assets/template_<name>/`。你的 `make_cover` 直接用:
+Tier 1 已经把模板的 PNG 解压到 `<working_dir>/_assets/template_<name>/`。你的 `make_cover` 直接用:
 
 ```python
 def make_cover(prs, title, subtitle, *, prepared_by="", date="", ...):
@@ -107,7 +107,7 @@ def make_cover(prs, title, subtitle, *, prepared_by="", date="", ...):
     # ... 标题副标在左侧
 ```
 
-⚠️ **路径处理**:Phase 1 提取到的 _assets/ 在 user 的 working_dir,不在 iLovePPT repo。需要从 deck_plan.json 的 `_plan_dir` 推导,或在 brief 里显式传 working_dir。建议在 theme module 顶部加 helper:
+⚠️ **路径处理**:Tier 1 提取到的 _assets/ 在 user 的 working_dir,不在 iLovePPT repo。需要从 deck_plan.json 的 `_plan_dir` 推导,或在 brief 里显式传 working_dir。建议在 theme module 顶部加 helper:
 
 ```python
 def _asset_path(rel: str) -> Path:
@@ -154,7 +154,7 @@ def test_make_cards_uses_template_icons():
 
 参考 `tests/pptx_deck/test_tech_blue.py` 写法。
 
-## 何时停止 Phase 2
+## 何时停止 Tier 2
 
 如果你发现自己:
 
@@ -167,7 +167,7 @@ def test_make_cards_uses_template_icons():
 **agent 能做的**:
 - 看你模板的示例 slide PNG,给你描述"应该改 make_cover 的哪几行"
 - 改完一版后跑 probe,给视觉对比反馈
-- 帮你 generate 字段 + 常量的初始值(从 Phase 1 enriched yaml 抄过来)
+- 帮你 generate 字段 + 常量的初始值(从 Tier 1 enriched yaml 抄过来)
 
 **agent 做不好的**:
 - 直接写完整 800 行 Python(出错率 > 30%)

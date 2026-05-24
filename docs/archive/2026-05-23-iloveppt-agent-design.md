@@ -1,8 +1,10 @@
 # iLovePPT Agent 设计文档
 
+> 📜 **设计史档**(2026-05-23) · 本文记录从 skill 库到 Claude Code agent 的拆分 rationale。
+> 现状协议见 [`.claude/pipeline-protocol.md`](../../../.claude/pipeline-protocol.md);现状工作原理见 [`docs/agent-internals.zh.md`](../../agent-internals.zh.md)。
+
 **日期**:2026-05-23
-**状态**:待实现
-**动因**:v2 把 iLovePPT 做成了 Claude Code skill 库——能用,但"agent 性"靠主线程 Claude 读 skill 文档驱动。要做成真正的 **Claude Code agent**(独立上下文、可显式派发、自主跑完循环),并加一个**大纲 checkpoint** 减少"理解跑偏白做一整份"的风险。
+**动因**:把 iLovePPT 做成真正的 **Claude Code agent**(独立上下文、可显式派发、自主跑完循环),并加一个**大纲 checkpoint** 减少"理解跑偏白做一整份"的风险。
 
 ---
 

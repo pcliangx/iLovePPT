@@ -2,7 +2,7 @@
   "theme": "tech_blue",
   "output": "./sample_output.pptx",
   "slides": [
-    {"layout": "cover", "title": "iLovePPT v2 演示", "subtitle": "deck_plan 驱动的机械构建"},
+    {"layout": "cover", "title": "iLovePPT 示例 deck", "subtitle": "deck_plan 驱动的机械构建"},
     {"layout": "toc", "sections": ["背景", "方案", "效果"]},
     {"layout": "section_divider", "num": 1, "title": "背景"},
     {"layout": "bullet_list", "title": "三个痛点", "items": ["文字墙", "留白多", "改动散"]},

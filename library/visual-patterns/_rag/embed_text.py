@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""扫 library/visual-patterns/patterns/ 全部 pattern.yaml,调 Qwen3-VL embedding API
-生成文本 embedding 写入 patterns.sqlite 的 text_emb 表。
+"""扫 library/visual-patterns/patterns/ 全部 pattern.yaml,调阿里云 DashScope
+多模态 embedding API(默认 tongyi-embedding-vision-plus-2026-03-06)生成文本
+embedding 写入 patterns.sqlite 的 text_emb 表(FLOAT[EMBED_DIM=1152])。
 
 用法:
     cd library/visual-patterns/_rag
@@ -8,11 +9,13 @@
     .venv/bin/python embed_text.py --only <id>  # 只更新某 1 个 pattern
 
 依赖:
-    requirements.txt(sqlite-vec + pyyaml,不再需要 sentence-transformers / torch)
+    requirements.txt(sqlite-vec + pyyaml · 不需要 sentence-transformers / torch)
 API key:
     DASHSCOPE_API_KEY env var,或 _rag/.env 文件(gitignored)
+模型:
+    .env 里 DASHSCOPE_EMBED_MODEL 配置(默认 tongyi-embedding-vision-plus-2026-03-06)
 
-embed 的 document(给 Qwen3-VL 看的文本)= name + category + content_intent
+embed 的 document(给多模态 embedding API 的文本)= name + category + content_intent
 + when_to_use + keywords 拼成一行。
 """
 
@@ -53,7 +56,7 @@ def load_pattern(yaml_path: Path) -> dict | None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="(Re)build TEXT embeddings via Qwen3-VL API")
+    parser = argparse.ArgumentParser(description="(Re)build TEXT embeddings via DashScope multimodal embedding API")
     parser.add_argument("--only", help="只更新某 1 个 pattern id(增量)")
     args = parser.parse_args()
 

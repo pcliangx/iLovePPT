@@ -1,7 +1,7 @@
 # Visual Patterns 索引
 
 > **给 author / designer 用** —— Read 全文 + 按 content intent 选 pattern → Read 对应 pattern.yaml 看细节。
-> **库小时(< 30 pattern)**直接读这份 INDEX 选;**库大时**用 `python3 search.py --query "..."` RAG 检索。
+> **库小时(< 30 pattern)**直接读这份 INDEX 选;**库大时**用 `search.sh --query "..."` RAG 检索(多模态:text / image / hybrid 3 mode)。
 >
 > 维护:加新 pattern 后,本文件 + `_rag/embed_text.py` 一起更新。
 
@@ -11,7 +11,7 @@
 
 库已清空,等待用户提供新素材后重新入库。
 
-按 `ingest_workflow.md` 流程入库:用户给 .pptx 或 PNG → 主线程推断 pattern.yaml 草稿 → 用户审 → 入 `patterns/<id>/` → 跑 `_rag/.venv/bin/python _rag/embed_text.py` → 同步更新本 INDEX.md。
+按 `ingest_workflow.md` 流程入库:用户给 .pptx 或 PNG → 主线程推断 pattern.yaml 草稿 → 用户审 → 入 `patterns/<id>/`(pattern.yaml + preview.png)→ 跑 `_rag/.venv/bin/python _rag/embed_text.py` + `embed_image.py`(双向多模态)→ 同步更新本 INDEX.md。
 
 ---
 
@@ -78,7 +78,7 @@
 
 ---
 
-## 当前 infrastructure(已就绪 · v0.5.4 多模态)
+## 当前 infrastructure(已就绪 · 多模态)
 
 ✅ Python 3.11 venv:`_rag/.venv/`(sqlite-vec + pyyaml,精简版 < 10MB · 不再要 torch)
 ✅ Embedding 模型:**阿里云 DashScope · tongyi-embedding-vision-plus-2026-03-06**(dim 1152 · 文本图像同 API)

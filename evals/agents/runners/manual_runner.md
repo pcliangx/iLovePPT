@@ -87,7 +87,7 @@ STATUS.md
 ```json
 {
   "fixture_id": "01-exec-decision",
-  "iloveppt_version": "v0.5.2",
+  "iloveppt_version": "<git-tag-or-sha>",
   "git_sha": "855db62",
   "ran_at": "2026-05-24T10:00:00",
   "scorer": "manual" | "llm-claude-sonnet",

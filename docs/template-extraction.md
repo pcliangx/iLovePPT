@@ -1,4 +1,4 @@
-# 模板摄入完整指南(Stage T · Phase 1)
+# 模板摄入完整指南(Stage T · Tier 1)
 
 > 当用户在 brief 里要"按某个 .pptx 模板出稿"时,**iLovePPT 自动跑 Stage T**(模板摄入):L1 媒体提取 + L2 扩展 token + probe 渲染 + agent 视觉分析。结果写进 `templates/<name>.yaml`,供后续 author 拓写时利用。
 
@@ -44,7 +44,7 @@ python3 skills/pptx-deck/extract_template.py templates/company_a.pptx --no-probe
 │ → 同时给 recommended_usage(hero/icons/decorative_bg)     │
 └──────────────────────────────────────────────────────────┘
 
-(Phase 2 · L3 复刻 layout,需人工 1-3 天,见 writing-custom-themes.md)
+(Tier 2 · L3 复刻 layout,需人工 1-3 天,见 writing-custom-themes.md)
 ```
 
 ## enriched `<name>.yaml` 结构
@@ -120,9 +120,9 @@ probe:
 
 无论哪种失败,extractor agent **都返回 dispatch_brainstorm**,带 `template_ready: true/partial/false` 标志,主线程展示给用户决定是否继续。
 
-## 与 Phase 2 的边界
+## 与 Tier 2 的边界
 
-| 维度 | Phase 1(本文档) | Phase 2(`writing-custom-themes.md`) |
+| 维度 | Tier 1(本文档) | Tier 2(`writing-custom-themes.md`) |
 |---|---|---|
 | 目标 | 让 agent "看到"模板,合理利用模板素材 | "复刻"模板视觉,layout 真按模板样式 |
 | 工作量 | 全自动,~1min/模板 | 手工 1-3 天 / 模板 |
@@ -130,4 +130,4 @@ probe:
 | 成品视觉 | tech_blue layout + 模板色字 + 模板素材点缀 | 完全模板风(封面 layout / 章节扉页 / 卡片样式 跟着模板) |
 | 适用 | 简洁 / 中等视觉模板 | 重视觉 / 长期项目模板 |
 
-**99% 用例 Phase 1 够用**。只有"模板视觉极重 + 长期复用"才走 Phase 2。
+**99% 用例 Tier 1 够用**。只有"模板视觉极重 + 长期复用"才走 Tier 2。

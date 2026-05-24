@@ -1,9 +1,10 @@
 # iLovePPT v2 设计文档 —— 诚实 skill 重构
 
-**日期**：2026-05-22
-**作者**：brainstorm 协作产出
-**状态**：待实现
-**动因**：v1 回顾发现根本问题——项目卡在"skill"与"应用"两种形态之间,`workflow.py` 的占位骨架（`generate_outline`/`vision_check`/`fix_slide`）让它"能跑但名不副实"。v2 把"机械"与"智能"用清晰的文件接缝隔开。
+> 📜 **设计史档**(2026-05-22) · 本文记录从骑墙形态到诚实 skill 的重构 rationale,建立"机械 = build.py / 智能 = Claude 照文档跑"的接缝。
+> 现状协议见 [`.claude/pipeline-protocol.md`](../../../.claude/pipeline-protocol.md)。
+
+**日期**:2026-05-22
+**动因**:把"机械"与"智能"用清晰的文件接缝隔开 —— 机械部分 = `build.py`(`deck_plan.json → .pptx`),智能部分 = Claude 照文档流程做,二者通过 `deck_plan.json` 解耦。
 
 ---
 
