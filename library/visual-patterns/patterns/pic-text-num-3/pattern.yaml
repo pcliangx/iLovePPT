@@ -1,0 +1,45 @@
+id: pic-text-num-3
+name: 单图 + 3 编号项
+category: process
+
+content_intent:
+  - 左侧一张场景图配右侧 3 条编号要点
+  - 案例分享:场景配图 + 三个关键点
+  - 产品介绍:实拍图 + 3 大特性
+
+visual_structure:
+  n_items: 3
+  has_image: true
+  image_position: left
+  number_badge_style: square_filled
+  number_color: primary
+  text_position: right_column
+
+when_to_use:
+  - 内容有清晰的视觉锚点(产品图 / 场景照)+ 3 条要点
+  - 配图能加强说服力(人物 / 场景 / 实物)
+  - 要点为顺序性 1-2-3
+
+when_not_to_use:
+  - 没有合适的配图 → num-col-3-line
+  - 要点超过 4 条 → 用 bullet_list 或 cards
+  - 要点是对比关系 → vs-bilateral-5 / compare
+
+keywords:
+  - 配图
+  - 图文
+  - photo
+  - hero image
+  - case study
+  - 案例
+  - 编号列表
+  - numbered list
+
+matches_iloveppt_layout: pic_text
+matches_notes: pic_text 是 1 图 + 1 标题 + 1 段落;本 pattern 是 1 图 + 3 编号项,扩展用法
+
+fallback_rendering:
+  method: manual
+  notes: |
+    布局:左 40% 配图(放 Unsplash 或用户图),右 60% 三个编号块竖排;
+    每编号块 = 方形数字徽章(深蓝填充白字) + 标题 + 灰色描述。

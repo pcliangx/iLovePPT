@@ -1,0 +1,48 @@
+id: org-tree-multilevel
+name: 多级组织架构树
+category: hierarchy
+
+content_intent:
+  - 顶级 → 部门 → 总监 → 子部门 4 级树
+  - 公司 / 集团组织架构图
+  - 项目团队层级图
+
+visual_structure:
+  topology: tree_top_down
+  levels: 4
+  level1_style: filled_pill_color
+  level2_style: filled_pill_color
+  level3_style: outlined_pill_white
+  level4_style: outlined_pill_white_smaller
+  has_horizontal_branches: true
+  decorative: light_color_circle_background
+
+when_to_use:
+  - 真实组织架构(部门 / 角色 / 汇报关系)
+  - 多级层级 ≥ 3 级
+  - 强调上下汇报关系
+
+when_not_to_use:
+  - 只 2 级 → 用 cards 或 hierarchy 简化
+  - 是 mind map(无上下) → 用 diagram skill
+  - 节点 > 30 → 拆 2 张
+
+keywords:
+  - 组织架构
+  - org chart
+  - 组织图
+  - 架构图
+  - hierarchy
+  - 公司结构
+  - 部门
+  - 汇报关系
+  - 团队结构
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: drawio
+  notes: |
+    用 draw.io 画(节点数和层级灵活,iLovePPT 的 diagram skill 首选);
+    顶层填充色块(董事长/总经理),二级部门填色,三级总监白底彩边,四级子部门白底窄边;
+    背景可加大圆装饰增加层次。

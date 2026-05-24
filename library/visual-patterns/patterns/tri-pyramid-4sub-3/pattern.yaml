@@ -1,0 +1,45 @@
+id: tri-pyramid-4sub-3
+name: 三角金字塔(4 子三角)
+category: hierarchy
+
+content_intent:
+  - 大三角拆 4 子三角(中间倒置)+ 3 编号说明在外围
+  - 三元素的层级关系(质量 / 成本 / 进度铁三角)
+  - 项目铁三角 / 战略三角
+
+visual_structure:
+  n_items: 3
+  central_shape: large_triangle_4_subtriangles
+  inner_center: inverted_light_triangle
+  has_outer_border: true
+  outer_color: light_blue_tint
+  label_position: three_corners_with_number
+
+when_to_use:
+  - 三要素的不可分割性 / 铁三角
+  - 想用极简几何(单色三角)做视觉
+  - 偏理工 / 框架类内容
+
+when_not_to_use:
+  - 项数 ≠ 3 → cycle / cards
+  - 多层级树状 → org-tree-multilevel
+  - 不强调"角"语义 → cycle-tri-fan-3
+
+keywords:
+  - 金字塔
+  - pyramid
+  - 三角
+  - triangle
+  - 铁三角
+  - iron triangle
+  - 三要素
+  - 层级
+  - 战略三角
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    画一个大等边三角形(浅蓝边框 + 蓝填充),内部切成 4 个子三角,
+    中间那个倒置三角填浅色(突出"洞");三角外围左下、右下、右侧放 1./2./3. 编号 + 标题 + 描述。

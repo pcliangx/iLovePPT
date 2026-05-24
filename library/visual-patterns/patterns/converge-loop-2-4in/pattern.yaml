@@ -1,0 +1,46 @@
+id: converge-loop-2-4in
+name: 汇聚 2 节点 + 4 输入
+category: relationship
+
+content_intent:
+  - 大循环箭头框 + 中央 icon + 左右 2 节点 + 各 4 输入
+  - 双流汇聚到一个中心(团队 / 系统)
+  - 两路数据 / 两组用户 / 两阶段成果汇入中心
+
+visual_structure:
+  outer_motif: rounded_rectangle_loop_arrows
+  central_icon: filled_circle_with_icon
+  side_nodes: 2_circles_with_number
+  inputs_per_side: 4
+  input_style: rounded_pill_outlined
+  arrow_direction: converging_to_center
+
+when_to_use:
+  - 两组输入 / 两个角色汇聚到一个中心
+  - 想表达"多源汇流 + 闭环"语义
+  - 中心是产出 / 决策枢纽
+
+when_not_to_use:
+  - 单一线性流 → arrow-chain
+  - 3+ 节点汇聚 → 用 diagram skill 自由画
+  - 不需要循环边框 → 简化为 cards + 箭头
+
+keywords:
+  - 汇聚
+  - converge
+  - 多源
+  - multi-source
+  - 中央枢纽
+  - 闭环
+  - 4 输入
+  - 双源
+  - 工作流汇聚
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    外层大圆角矩形 + 上下两条粗向相反的弧形箭头(形成循环);
+    内部中央一个大蓝色圆 + 人物 icon;左右各一个圆数字节点(1/2);
+    最左和最右各竖排 4 个浅蓝边白底胶囊文本,胶囊指向 1 / 2 节点。

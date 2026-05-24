@@ -1,0 +1,43 @@
+id: arrow-chain-5-zigzag
+name: 5 阶段箭头链
+category: process
+
+content_intent:
+  - 横向 5 个同色箭头串联,上下交错引线 + 描述
+  - 项目 5 阶段路线图(年份或里程碑)
+  - 长流程的总览页
+
+visual_structure:
+  n_items: 5
+  arrow_style: single_color_blue
+  arrow_chain: continuous_horizontal
+  label_position: zigzag_above_below
+  has_connector_lines: true
+
+when_to_use:
+  - 5 阶段长流程,需要紧凑展示
+  - 阶段同等重要(用单色避免抢戏)
+  - 阶段标题短(20XX 或 1-2 词)
+
+when_not_to_use:
+  - 阶段数 ≠ 5 → 找 arrow-chain-3 或 -7 变体
+  - 需要强调阶段差异 → step-arrow-multicolor-5-icon
+  - 是循环 → 用 cycle 类
+
+keywords:
+  - 箭头链
+  - arrow chain
+  - 路线图
+  - roadmap
+  - 5 阶段
+  - milestone
+  - 项目历程
+  - 时间线
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    用 draw.io 画 5 个相同样式的右向箭头链(深-浅渐变蓝),
+    箭头之间紧贴;上下交错放说明文字,通过细引线指向各箭头中心。

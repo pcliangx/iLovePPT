@@ -1,0 +1,44 @@
+id: process-pill-3-arrow
+name: 3 圆球箭头流程
+category: process
+
+content_intent:
+  - 3 步流程,顶部圆球编号 + 横向箭头 + 下方对应标题卡
+  - 经验总结的"起承转合"3 段(成功 / 反思 / 改进)
+  - 项目流程的 3 个阶段
+
+visual_structure:
+  n_items: 3
+  top_row: pill_circles_with_arrow_between
+  bottom_row: title_cards
+  color_progression: [primary_blue, accent_orange, accent_green]
+  has_horizontal_arrows: true
+  bottom_card_style: rounded_white_color_header
+
+when_to_use:
+  - 3 步流程 + 每步要展开 1-2 行说明
+  - 顶部数字标号 + 底部完整内容卡片的双层结构
+  - 3 步用色区分(蓝 / 橙 / 绿)能强化语义
+
+when_not_to_use:
+  - 步骤数 > 3 → 用 arrow-chain-5 系列
+  - 不需要双层(数字 + 卡)结构 → num-col-3-line
+  - 是循环非线性 → cycle-donut-3-icon
+
+keywords:
+  - 圆球
+  - pill
+  - 流程
+  - process
+  - 三步法
+  - 起承转合
+  - 经验总结
+  - 改进路径
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    上排:3 个大彩色圆(蓝/橙/绿)+ 圆间细箭头,圆内白色数字编号;
+    下排:3 张白底圆角卡片,卡顶部有彩色色块横条放标题,卡身放描述。

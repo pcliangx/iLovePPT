@@ -1,0 +1,46 @@
+id: num-col-3-line
+name: 3 列编号(圆 + 立线)
+category: process
+
+content_intent:
+  - 横排 3 个编号步骤,平等并列
+  - 三步法 / 三原则 / 三阶段
+  - 流程总览,无强递进感
+
+visual_structure:
+  n_items: 3
+  layout: three_column
+  number_badge_style: circle_filled
+  number_color: primary
+  divider: vertical_thin_line_below_each
+  text_align: left
+
+when_to_use:
+  - 3 项内容平等并列(三步法、三大特性)
+  - 想要轻量极简的视觉,不要复杂图形
+  - 每项描述 1-2 行短文本
+
+when_not_to_use:
+  - 项目数 ≠ 3 → 用更通用的 cards
+  - 强调顺序递进 → 用箭头链(arrow-chain-5-zigzag)
+  - 内容是对比 → compare / vs-bilateral-5
+
+keywords:
+  - 三列
+  - 3 列
+  - 三步
+  - three steps
+  - 并列
+  - 极简
+  - minimalist
+  - 编号
+  - numbered
+
+matches_iloveppt_layout: cards
+matches_notes: 跟 cards 视觉相近;若你要"轻量纯文本三列",cards 已够用
+
+fallback_rendering:
+  method: manual
+  notes: |
+    3 列等宽布局,每列顶部一个深蓝实心圆带白字编号(1/2/3),
+    下方紧贴标题,再下方灰色描述,描述下方有一条垂直细灰线。

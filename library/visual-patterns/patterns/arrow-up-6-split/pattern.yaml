@@ -1,0 +1,44 @@
+id: arrow-up-6-split
+name: 上行箭头 6 项分述
+category: process
+
+content_intent:
+  - 中央向上大箭头(分 3 层)+ 两侧各 3 编号说明
+  - 递进式 step1 / step2 / step3 + 每层细分 2 子项
+  - 强调向上的发展、增长、提升路径
+
+visual_structure:
+  n_items: 6
+  central_shape: upward_arrow_3_segments
+  layout: arrow_center_text_two_sides
+  labels_per_side: 3
+  color_progression: [primary_blue, accent_orange, accent_green]
+
+when_to_use:
+  - 内容是"层层递进 + 每层多点"(类似金字塔但视觉更动感)
+  - 想表达"上升 / 增长 / 提升"的方向感
+  - 6 个要点,自然分 3 组每组 2 项
+
+when_not_to_use:
+  - 内容是平铺并列 → cards / num-col-3-line
+  - 不需要方向感 → cycle / hierarchy
+  - 项数不能整除 → 改用 arrow-chain-5-zigzag
+
+keywords:
+  - 向上箭头
+  - upward arrow
+  - 增长
+  - growth
+  - 提升
+  - elevation
+  - 进阶
+  - level up
+  - 6 项
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    中央一个大白色透明向上箭头(分 3 横切片,色 step1/step2/step3);
+    箭头两侧各竖排 3 个编号圆 + 标题 + 描述。

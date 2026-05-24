@@ -1,0 +1,47 @@
+id: central-bidir-6
+name: 中央枢纽双向 6 项
+category: relationship
+
+content_intent:
+  - 中央大圆主题 + 左右双向箭头 + 各 3 编号说明
+  - 一个中心议题分解为左右两组对照(经验 vs 改进)
+  - 总分结构双向对比(中心 + 左右延伸)
+
+visual_structure:
+  n_items: 6
+  central_shape: large_circle_with_title
+  left_arrow: bidirectional_blue
+  right_arrow: bidirectional_orange
+  cards_per_side: 3
+  left_color: blue_family
+  right_color: orange_family
+
+when_to_use:
+  - 中心议题 + 左右两组对照(总 3+3 = 6 条)
+  - 想强调中心枢纽 + 两侧延伸的结构
+  - 复盘类内容(经验 + 教训)
+
+when_not_to_use:
+  - 单侧延伸 → arrow-up-6-split
+  - 不需要中心 → vs-bilateral-5
+  - 项数不能 3+3 平分 → 用 matrix_2x2
+
+keywords:
+  - 中央枢纽
+  - hub
+  - 双向
+  - 中心议题
+  - bilateral
+  - 6 项
+  - 经验教训
+  - 总分结构
+  - 反思
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    中央一个大蓝色圆放主题字;左右各画一个粗箭头朝中央(色:蓝 / 橙);
+    左侧 3 张蓝色边卡 + 编号 1/2/3,右侧 3 张橙色边卡 + 编号 4/5/6;
+    背景可加浅色弧装饰。

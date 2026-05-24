@@ -1,0 +1,45 @@
+id: step-arrow-multicolor-5-icon
+name: 多彩 5 步箭头(带 icon)
+category: process
+
+content_intent:
+  - 5 个彩色箭头 + 每步配 icon,上下交错 zigzag 描述
+  - 业务流程 5 步,每步性质不同需要色彩区分
+  - 客户旅程:发现 / 评估 / 决策 / 体验 / 复购
+
+visual_structure:
+  n_items: 5
+  arrow_style: multicolor_with_icon
+  arrow_chain: zigzag_diagonal
+  colors: [blue, orange, green, blue, orange]
+  has_icons: true
+  label_position: above_below_zigzag
+
+when_to_use:
+  - 5 步流程,每步是质变不是同一性质的进度
+  - 想用 icon 加快读者识别
+  - 需要视觉活泼,有节奏感
+
+when_not_to_use:
+  - 步骤是同质递进 → arrow-chain-5-zigzag
+  - 不需要 icon → 改 arrow-chain
+  - 步数 ≠ 5 → 调整为 arrow-chain-N
+
+keywords:
+  - 多彩箭头
+  - multicolor arrow
+  - 5 步
+  - 5 steps
+  - 图标
+  - icon
+  - 业务流程
+  - 客户旅程
+  - 工作流
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    5 个右向箭头横排,呈轻微 zigzag 上下错位;每箭头不同主色 + 内嵌 icon(iconify);
+    每箭头连一条细引线指向上方或下方的"标题 + 描述"。

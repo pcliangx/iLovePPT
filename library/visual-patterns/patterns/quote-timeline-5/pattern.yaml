@@ -1,0 +1,46 @@
+id: quote-timeline-5
+name: 引言 + 5 段时间轴
+category: process
+
+content_intent:
+  - 顶部大引号引言 + 下方 5 个 20XX 年份节点(zigzag dot)
+  - 公司发展历程 / 行业演进史
+  - 名人名言 + 历史案例时间线
+
+visual_structure:
+  n_items: 5
+  has_quote_block: true
+  quote_position: top_left
+  has_decorative_quote_marks: true
+  timeline_node_style: dot_with_vertical_line
+  label_position: alternating_above_below
+
+when_to_use:
+  - 内容是"权威发声 + 历史佐证"(引言 + 历程)
+  - 公司/产品的发展时间线(里程碑年份明确)
+  - 大背景叙述,需要文学性引入
+
+when_not_to_use:
+  - 没有引言可放 → timeline-band-3 或 arrow-chain
+  - 节点数 ≠ 5 → 调整变体
+  - 内容偏数据 → 用图表
+
+keywords:
+  - 引言
+  - quote
+  - 名言
+  - 时间轴
+  - timeline
+  - 发展历程
+  - history
+  - 里程碑
+  - milestone
+  - 5 段
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    左上角小引号 icon + 大字引言段落,右上角浅灰大引号装饰;
+    下方水平基线上 5 个圆点,每点向上或向下垂线 + 年份 + 短描述(zigzag)。

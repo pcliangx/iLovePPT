@@ -1,0 +1,46 @@
+id: cards-flag-3
+name: 3 张旗帜卡
+category: comparison
+
+content_intent:
+  - 3 张顶部撕角的旗帜风格卡片
+  - 三选项并列对比(成功 / 失败 / 改进)
+  - 三种产品 / 方案的特性卡
+
+visual_structure:
+  n_items: 3
+  card_style: flag_torn_corner_top
+  has_top_icon_circle: true
+  colors: [blue, orange, green]
+  icon_position: top_center_card
+  title_position: middle_card
+
+when_to_use:
+  - 3 张并列对比卡 + 顶部有装饰 icon
+  - 想用色块区分三选项的性质
+  - 偏现代设计感的 deck
+
+when_not_to_use:
+  - 项数超过 3 → cards 通用 layout
+  - 强对决而非并列 → vs-bilateral-5
+  - 不需要装饰 icon → num-col-3-line
+
+keywords:
+  - 旗帜
+  - flag
+  - 卡片
+  - card
+  - 三选项
+  - 三方案
+  - 对比
+  - 经验教训
+  - 撕角
+
+matches_iloveppt_layout: cards
+matches_notes: cards layout 是通用三卡;cards-flag-3 是带撕角折叠和顶部 icon 圆的装饰变体
+
+fallback_rendering:
+  method: manual
+  notes: |
+    画 3 张矩形卡(色:浅蓝/浅橙/浅绿渐变背景),卡顶右角撕角折叠效果;
+    卡顶中央放彩色圆 + icon;圆下方放粗体标题 + 短下划线,再下方灰色描述。

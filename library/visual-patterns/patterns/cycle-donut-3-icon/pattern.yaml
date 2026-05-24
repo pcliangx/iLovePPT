@@ -1,0 +1,46 @@
+id: cycle-donut-3-icon
+name: 3 段环形循环(中央 icon)
+category: cycle
+
+content_intent:
+  - 环形 3 段循环 + 中央 icon 表示主题
+  - 三段闭环流程(像 PDCA 简版)
+  - 三角色 / 三阶段持续循环
+
+visual_structure:
+  n_items: 3
+  shape: donut_with_arrows
+  colors: [primary_blue, accent_orange, accent_green]
+  has_center_icon: true
+  has_segment_numbers: true
+  numbers_inside_donut: true
+  text_position: side_callouts
+
+when_to_use:
+  - 3 段循环流程,有 icon 能强化主题
+  - 强调闭环 / 持续迭代
+  - 经典视觉,适合正式 deck
+
+when_not_to_use:
+  - 4 段循环 → donut-quad-4-icon
+  - 多次迭代展开 → pdca-iterations
+  - 线性流程非闭环 → arrow-chain / process-pill-3-arrow
+
+keywords:
+  - 环形
+  - donut
+  - 循环
+  - cycle
+  - loop
+  - 闭环
+  - 3 段
+  - PDCA
+  - 持续改进
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    画 3 段等长的环形扇区(色:蓝-橙-绿),每段带圆弧箭头指向下一段;
+    环中央放 icon(iconify svg)+ 圆底色;环周边放 01/02/03 编号 + 两侧描述卡。

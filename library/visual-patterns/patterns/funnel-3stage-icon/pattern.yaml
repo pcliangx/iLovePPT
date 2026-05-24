@@ -1,0 +1,45 @@
+id: funnel-3stage-icon
+name: 3 阶图标漏斗
+category: process
+
+content_intent:
+  - 漏斗式 3 阶筛选 / 转化(从宽到窄)
+  - 销售或用户旅程:潜客 → 意向 → 成交
+  - 数据漏斗:浏览 → 加购 → 下单
+
+visual_structure:
+  n_items: 3
+  has_icons: true
+  shape: trapezoid_stack
+  colors: [primary, accent_orange, accent_green]
+  label_position: both_sides
+  has_side_callout_bars: true
+
+when_to_use:
+  - 转化 / 筛选场景(强调"从多到少"逐层收敛)
+  - 阶段顺序有明确递减语义
+  - 阶段数恰为 3-4
+
+when_not_to_use:
+  - 阶段是平行而非递减 → cards / num-col-3-line
+  - 强调循环 → cycle-donut-3-icon
+  - 超过 5 阶 → 用 arrow chain
+
+keywords:
+  - 漏斗
+  - funnel
+  - conversion
+  - 转化率
+  - 筛选
+  - 销售漏斗
+  - 用户旅程
+  - AARRR
+  - 营销漏斗
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    用 diagram skill(matplotlib 或 draw.io)画 3 段梯形堆叠漏斗;
+    左侧 3 个浅底色块标题,右侧 3 个白底描述带彩色右竖条,中心放 icon。

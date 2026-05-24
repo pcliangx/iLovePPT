@@ -1,0 +1,45 @@
+id: cycle-tri-fan-3
+name: 3 扇三角负空间循环
+category: cycle
+
+content_intent:
+  - 圆切 3 等份扇形 + 中央三角负空间
+  - 三元素的相互依存关系(铁三角:质量 / 成本 / 时间)
+  - 三方协作 / 三要素平衡
+
+visual_structure:
+  n_items: 3
+  shape: pie_3_slices_with_negative_triangle
+  colors: [primary_blue, accent_orange, accent_green]
+  has_segment_numbers: true
+  number_position: center_of_slice
+  text_position: side_callouts
+
+when_to_use:
+  - 强调"三元素必须平衡或互依"
+  - 三要素无明显流转顺序,但有内在关联
+  - 想用几何负空间(三角)做视觉记忆点
+
+when_not_to_use:
+  - 有明确顺序流转 → cycle-donut-3-icon
+  - 4 元素 → donut-quad-4-icon
+  - 是层级关系 → tri-pyramid-4sub-3
+
+keywords:
+  - 三角
+  - triangle
+  - 铁三角
+  - 三要素
+  - three pillars
+  - balance
+  - 平衡
+  - 三方
+  - 负空间
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    画一个大圆,切 3 等份扇形(120° 每片,色:蓝-橙-绿);
+    每扇内放 01/02/03 大编号;圆中心一个三角形与圆同色背景(负空间感)。

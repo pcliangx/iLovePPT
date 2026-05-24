@@ -1,0 +1,45 @@
+id: pdca-iterations
+name: PDCA 多次迭代横列
+category: cycle
+
+content_intent:
+  - 多个 PDCA 循环并列(01 → 01 → ... → n)展示反复迭代
+  - 强调"问题解决需要多次循环逼近"
+  - 持续改进的具象化呈现
+
+visual_structure:
+  n_items: variable_typically_4
+  motif: pdca_donut_repeated
+  color_progression: dark_to_light_blue
+  labels: [PLAN, DO, CHECK, ACT]
+  has_iteration_label: true
+  has_bottom_caption: true
+
+when_to_use:
+  - 内容明确是 PDCA / Kaizen / 敏捷迭代
+  - 想强调"一次不够,要反复"的语义
+  - 跟"持续改进 / 复盘"主题强相关
+
+when_not_to_use:
+  - 只想表示一次 PDCA → cycle-donut-3-icon
+  - 不是 PDCA 框架 → 用通用 cycle
+  - 内容不是迭代 → 用 process
+
+keywords:
+  - PDCA
+  - 戴明环
+  - kaizen
+  - 持续改进
+  - 迭代
+  - iteration
+  - 反复优化
+  - plan do check act
+  - 闭环
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    横排 4 个 PDCA 环(色由深蓝渐浅至虚线),每环 4 块带 PLAN/DO/CHECK/ACT 标签,
+    环中央放 01/01/.../n;底部一条虚线框,内放说明"多次迭代直到问题解决"。

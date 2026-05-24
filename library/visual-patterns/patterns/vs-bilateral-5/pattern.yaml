@@ -1,0 +1,46 @@
+id: vs-bilateral-5
+name: VS 双侧 5 vs 5 对比
+category: comparison
+
+content_intent:
+  - 中央 VS 圆 + 左灰(劣势)右蓝(优势)各 5 条
+  - 线上 vs 线下、新方案 vs 旧方案、Pros vs Cons
+  - 强烈的二元对立对比
+
+visual_structure:
+  n_items_per_side: 5
+  central_motif: vs_circle
+  left_color: gray_subdued
+  right_color: blue_active
+  has_inline_callout_keywords: true
+  bullets_per_side: 5
+
+when_to_use:
+  - 两个方案 / 选项强对比,每侧 4-6 条理由
+  - 要明显偏向一侧(灰 vs 高饱和色)
+  - 营销 / 提案场景突出优势
+
+when_not_to_use:
+  - 三方对比 → compare 3-col
+  - 中立比较 → matrix_2x2 / compare_pk
+  - 每侧只 1-2 条 → compare
+
+keywords:
+  - VS
+  - 对比
+  - versus
+  - pros and cons
+  - 优劣
+  - 二元对比
+  - 5 条
+  - 线上线下
+  - 新旧对比
+
+matches_iloveppt_layout: compare_pk
+matches_notes: compare_pk 是 iLovePPT 内置左右对比;vs-bilateral-5 是 5 vs 5 多条变体
+
+fallback_rendering:
+  method: manual
+  notes: |
+    左右两个白底大圆角卡,左卡顶灰色标题块(劣势),右卡顶蓝色标题块(优势);
+    每卡内 5 条带圆点的描述;中央叠加一个蓝色大圆+白色"VS"字。

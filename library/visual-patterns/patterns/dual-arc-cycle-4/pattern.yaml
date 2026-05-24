@@ -1,0 +1,46 @@
+id: dual-arc-cycle-4
+name: 双弧循环 A↔B + 4 卡
+category: relationship
+
+content_intent:
+  - 中央双向弧形循环(A↔B)+ 四角描述卡
+  - 双方持续互动 / 反馈环
+  - 两实体的双向影响关系(用户 ↔ 产品)
+
+visual_structure:
+  central_motif: two_arrows_curved_opposite
+  n_outer_cards: 4
+  arc_color: primary_blue
+  ghost_circles: light_gray_decorative
+  has_AB_labels: true
+  card_position: four_corners
+  card_color: light_gray_fill
+
+when_to_use:
+  - 双方互动 / 反馈,4 条具体表现分布两侧
+  - 想表达"持续双向流动"
+  - A 和 B 是两个角色 / 系统 / 阶段
+
+when_not_to_use:
+  - 单向流程 → arrow-chain
+  - 三方关系 → 用 cycle-tri-fan-3
+  - 没有"双向"语义 → cards / matrix_2x2
+
+keywords:
+  - 双向
+  - bidirectional
+  - 双弧
+  - dual arc
+  - 反馈
+  - feedback loop
+  - A B 互动
+  - 互动
+  - 双向流动
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    中央两个 C 形弧线箭头组成 ∞ 状双向循环(深蓝主弧 + 浅灰幽灵弧);
+    弧线交点处放 A / B 大圆字母;四角 4 张浅灰圆角卡 + 标题 + 描述,卡用细线连到 A/B。

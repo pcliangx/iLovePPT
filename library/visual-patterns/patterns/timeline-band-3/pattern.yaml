@@ -1,0 +1,44 @@
+id: timeline-band-3
+name: 3 段色块时间轴
+category: process
+
+content_intent:
+  - 3 个时间段的阶段对比,带时段标签
+  - 项目分 3 个时期讲历程(过去 / 现在 / 未来 或 三段里程碑)
+  - 短期演进概览,每段配一句话描述
+
+visual_structure:
+  n_items: 3
+  has_date_labels: true
+  band_orientation: horizontal
+  colors: [primary, neutral, primary]
+  text_position: above_and_below_band
+
+when_to_use:
+  - 3 个时段对照(像季度回顾、阶段汇报)
+  - 时段差异需要醒目色块强调
+  - 描述短(1-2 行)
+
+when_not_to_use:
+  - 时段超过 5 段 → 用 quote-timeline-5 或 arrow-chain-5-zigzag
+  - 没有时间维度 → 用 cards 或 num-col-3-line
+  - 时段间有强递进关系 → 用 arrow chain
+
+keywords:
+  - 时间轴
+  - 时间段
+  - timeline
+  - phase
+  - milestone
+  - 阶段对比
+  - 里程碑
+  - 历程
+  - period
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    用 diagram skill 画;3 个等宽矩形色块横排(蓝-灰-蓝交替),
+    每块下方居中放时段(20XX.XX-20XX.XX),色块上方/下方交错放标题+描述。

@@ -1,0 +1,44 @@
+id: wave-step-3
+name: 波浪 3 节点流程
+category: process
+
+content_intent:
+  - 3 步流程沿 S 形波浪曲线推进,有起伏感
+  - 用户旅程的 3 个关键 touchpoint
+  - 阶段间有上下情绪 / 状态变化
+
+visual_structure:
+  n_items: 3
+  curve: s_wave_horizontal
+  has_arrow_end: true
+  node_style: circle_filled_primary
+  text_position: zigzag_above_below
+
+when_to_use:
+  - 3 步流程,想避免直线箭头的呆板
+  - 想表达"起 / 转 / 合"或"低 / 高 / 平"的节奏感
+  - PPT 整体偏现代风,需要灵动视觉
+
+when_not_to_use:
+  - 严肃 / 正式场景(传统行业) → 用 arrow-chain-5-zigzag
+  - 节点数超过 5 → 波浪会太挤
+  - 步骤等重要性 → 用 num-col-3-line
+
+keywords:
+  - 波浪
+  - wave
+  - curve
+  - 曲线
+  - 旅程
+  - journey
+  - 3 步
+  - touchpoint
+  - 流程图
+
+matches_iloveppt_layout: null
+
+fallback_rendering:
+  method: manual
+  notes: |
+    用 draw.io 或 SVG 画 S 形波浪曲线(末端带箭头),曲线上 3 个圆形编号节点,
+    节点位置自然交错(上-下-上),每节点上下方放标题+描述。

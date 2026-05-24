@@ -1,0 +1,46 @@
+id: donut-quad-4-icon
+name: 4 段环形(中央人物)
+category: cycle
+
+content_intent:
+  - 环形 4 段 + 中央人物 / 主题 icon
+  - 角色的 4 维能力(沟通 / 执行 / 创新 / 学习)
+  - 模型 / 框架的 4 象限围绕中心主题
+
+visual_structure:
+  n_items: 4
+  shape: donut_4_slices
+  colors: [light_blue, blue, light_blue, gray]
+  has_center_icon: true
+  center_icon_style: large_person_silhouette
+  text_position: four_corners_with_number
+
+when_to_use:
+  - 4 维度围绕一个中心(人物 / 主题 / 模型)
+  - 4 项无强顺序 → 用环形而非箭头
+  - 想用 icon 表达"主体"
+
+when_not_to_use:
+  - 3 或 5 维度 → 找对应数量变体
+  - 强调流转顺序 → cycle-donut-3-icon
+  - 4 维有强对比 → vs-bilateral 或 matrix_2x2
+
+keywords:
+  - 4 维
+  - 4 quadrants
+  - 环形
+  - donut
+  - 中心人物
+  - persona
+  - 能力模型
+  - 4 维能力
+  - 框架
+
+matches_iloveppt_layout: matrix_2x2
+matches_notes: 视觉差异大;若你要静态 4 象限,matrix_2x2 是 iLovePPT 内置;若要"圆形围绕"用本 pattern
+
+fallback_rendering:
+  method: manual
+  notes: |
+    画 4 段环形(色:浅蓝-蓝-浅蓝-灰),环中央放大号人物 icon(iconify);
+    四角放小圆编号 01/02/03/04 + Text here 标题 + 浅灰描述。
