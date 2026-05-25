@@ -1,15 +1,17 @@
 """extract_template.py — 从 .pptx 模板提取媒体 + 扩展 token + 跑 probe deck
 
-用法:
-    python3 .claude/skills/pptx-deck/extract_template.py templates/company_a.pptx
-    python3 .claude/skills/pptx-deck/extract_template.py templates/company_a.pptx --no-probe
+注:新的 library/pptx-templates/ ingest workflow 通过 iloveppt-template-extractor
+agent + library/_rag/render_pages.py 完成。这个老脚本保留作为 token 提取的低级工具
+(被 agent 内部调用),不再是用户直接使用的入口。
 
-输出:
+用法:
+    python3 .claude/skills/pptx-deck/extract_template.py library/pptx-templates/_source/company_a.pptx
+    python3 .claude/skills/pptx-deck/extract_template.py <abs-path>/company_a.pptx --no-probe
+
+输出(老格式,新 ingest 不用):
     extractor/template_company_a/    ← L1:解压 ppt/media/* 到这(在 deck working_dir 下)
-    templates/company_a.yaml         ← L2:enriched 元数据 + extracted tokens
+    <pptx 同目录>/company_a.yaml     ← L2:enriched 元数据 + extracted tokens
     /tmp/probe_company_a/page-*.jpg  ← probe deck 渲染图(若 --probe)
-                                       agent 读这些 PNG 做视觉分析,
-                                       结果写进 yaml.visual_observations
 """
 from __future__ import annotations
 

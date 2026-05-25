@@ -179,8 +179,8 @@ def test_make_cards_uses_template_icons():
 ## 完工后
 
 1. `themes/your_template.py` 提交 git(此为代码,不是模板文件,可入库)
-2. `${CLAUDE_PROJECT_DIR}/templates/your_template.pptx` 仍 .gitignore(模板本体保密)
-3. `${CLAUDE_PROJECT_DIR}/templates/your_template.yaml` 也 .gitignore(可能含 owner 邮箱)
+2. `${CLAUDE_PROJECT_DIR}/library/pptx-templates/_source/your_template.pptx` 仍 .gitignore(模板本体保密)
+3. `${CLAUDE_PROJECT_DIR}/library/pptx-templates/items/your_template/{meta.yaml, pages/}` 进 git(产品资产)
 4. 文档:在仓库 `themes/` 加个 README 列已有 themes(若团队多人写)
 
 至此你拥有"放进去就跟模板长一样"的能力 —— 但是这一个特定模板。

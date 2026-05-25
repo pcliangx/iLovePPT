@@ -213,11 +213,11 @@ bash ${CLAUDE_PROJECT_DIR}/library/visual-patterns/search.sh \
 
 **用途**:存第三方 .pptx 模板(企业自带 brand template),让 iLovePPT 输出贴合**视觉风格**(不是默认 tech_blue)。
 
-**当前内容**:
-- `templates/template_training.pptx`(975 KB,内置培训风模板)
-- `templates/template_training.yaml`(10 KB,extractor 跑过的 4 级 token + visual_observations)
-- `templates/example.yaml`(template yaml schema 示例)
-- `templates/README.md`
+**当前内容**(新结构 · `library/pptx-templates/`):
+- `library/pptx-templates/_source/<name>.pptx`(模板源 · gitignored)
+- `library/pptx-templates/items/<name>/meta.yaml`(模板级 metadata · 入 git)
+- `library/pptx-templates/items/<name>/pages/<NN-slug>/{meta.yaml, preview.png}`(每页拆出来的资产 · 入 git)
+- `library/pptx-templates/{README.md, INDEX.md, ingest_workflow.md}`
 
 **4 级 token 定义**(extractor 抽取):
 - L1 媒体:cover_hero.png / icon_*.png 等(解压自 .pptx)
@@ -229,10 +229,10 @@ bash ${CLAUDE_PROJECT_DIR}/library/visual-patterns/search.sh \
 
 | agent | 调用时机 | 干什么 | 写还是读 |
 |---|---|---|---|
-| **brainstorm** | Stage B 问 theme 时 | 用户选"用模板":Glob `templates/*.pptx` 列清单 → Read 各 `<name>.yaml` 展示 desc / visual_observations → 用户挑;用户给新 .pptx 路径 → dispatch_extractor | 读 |
-| **template-extractor**(旁路) | Stage T(用户给模板时) | 跑 `extract_template.py` 抽 4 级 token + Read probe 8 PNG 视觉分析 → **Edit / Write** `templates/<name>.yaml`(唯一写者) | **写** |
-| **author Stage D** | Step 1C(若 theme ≠ tech_blue)| Read `templates/<theme>.yaml` 取 visual_observations / recommended_usage 指导拓写(字号建议 / hero 图路径 / 推荐 layout)| 读 |
-| **iloveppt** | Step 2 build 时(through build.py:228-230)| 解析 theme 字段:tech_blue → 内置主题;短名 → 两路查 `<plan_dir>/templates/<name>.pptx` → `<repo>/templates/<name>.pptx` 作 base PPT | 读 |
+| **brainstorm** | Stage A 问 theme 时 | 用户选"用模板":`library/search.sh --kb pptx-templates --type template --query <主题>` 按主题相关性排候选 → 用户挑;用户给新 .pptx 路径 → dispatch_extractor 走完整 ingest | 读 |
+| **template-extractor**(旁路) | Stage T(用户给模板时) | 复制 .pptx → `library/pptx-templates/_source/<name>.pptx` → 跑 `library/_rag/render_pages.py` 渲染每页 → LLM 起草 `items/<name>/{meta.yaml, pages/.../meta.yaml}.draft` 让用户审 → 主线程跑 embed 入库 | **写** |
+| **author Stage D** | Step 1C(若 theme ≠ tech_blue)| Read `library/pptx-templates/items/<theme>/meta.yaml`(visual_signature / visual_tokens)指导拓写 + 调 `library/search.sh --preferred-template <theme> --type page` 选页 → content.md 嵌 `<!-- pattern: tpl:<theme>__<NN-slug> -->` | 读 |
+| **iloveppt** | Step 2 build 时(through build.py:_repo_templates_dir)| 解析 theme 字段:tech_blue → 内置主题;短名 → 两路查 `<plan_dir>/templates/<name>.pptx`(deck 本地)→ `<repo>/library/pptx-templates/_source/<name>.pptx`(全局)作 base PPT | 读 |
 | critic / audience | **不用** | — | — |
 
 **触发条件**:**仅当用户在 brainstorm 阶段选 "用模板"**(非默认 tech_blue)才走全链路。本次 hybrid + visual-patterns 5-agent 改造 Phase 4 都跑 tech_blue → templates / extractor 都没触发。
