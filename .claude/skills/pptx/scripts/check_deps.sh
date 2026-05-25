@@ -12,6 +12,15 @@ check_py() {
     fi
 }
 
+check_py_optional() {
+    # 可选依赖未装时输出 ⚠️ 而非 ❌(不影响主流程)
+    if python3 -c "import $1" 2>/dev/null; then
+        echo "  ✅ python -m $1"
+    else
+        echo "  ⚠️  python -m $1 未装(可选 · $3)  → pip3 install $2"
+    fi
+}
+
 check_bin() {
     if command -v "$1" >/dev/null 2>&1; then
         echo "  ✅ $1"
@@ -22,7 +31,7 @@ check_bin() {
 
 check_py pptx python-pptx
 check_py lxml lxml
-check_py markitdown "'markitdown[pptx]'"
+check_py_optional markitdown "'markitdown[pptx]'" "仅 .pptx → markdown 读取路径用,agent team 主流程不需要"
 check_py PIL Pillow
 
 check_bin soffice "brew install --cask libreoffice"
