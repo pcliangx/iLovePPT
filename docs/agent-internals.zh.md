@@ -1163,72 +1163,88 @@ summary: |
 
 ### 5.1 一次典型调用 timeline(fixture 01-exec-decision, hybrid + visual-patterns 5-agent 后)
 
-```
-T+0:00   用户:"做一份给 CTO 看的 AI 4A 评审办法提案,15 分钟,要落地。
-         有 Q4 评审数据 CSV + 现有架构图。"
+```mermaid
+sequenceDiagram
+    actor U as 用户
+    participant M as 主线程
+    participant B as brainstorm<br/>(Phase A · team)
+    participant A as author
+    participant C as critic
+    participant I as iloveppt
+    participant AU as audience
 
-T+0:01   主线程:TeamCreate(brainstorm) + SendMessage(user_intent)
+    rect rgb(240, 249, 255)
+        Note over U,AU: Phase A · brainstorm team(T+0:00 → T+4:31)
+        U->>M: T+0:00 "做 PPT" 模糊意图
+        M->>+B: T+0:01 TeamCreate + SendMessage(user_intent)
 
-T+0:30 ── brainstorm Round 1 ──► ask_user(top_recommendation + audience)
-T+1:00   用户答:executive + 完整推荐句
+        B-->>M: T+0:30 ask_user(top_recommendation + audience)
+        M->>U: 转发
+        U->>M: T+1:00 答 executive + 完整推荐句
 
-T+1:30 ── brainstorm Round 2 ──► ask_user(theme + presentation_mode + output)
-T+2:00   用户答:tech_blue + speaker + 默认
+        B-->>M: T+1:30 ask_user(theme + mode + output)
+        M->>U: 转发
+        U->>M: T+2:00 答 tech_blue + speaker
 
-T+2:30   brainstorm:Write brief.md
-T+3:00 ── brainstorm Round 3 ──► ask_user(brief.md gate)
-T+3:30   用户答:OK
+        Note over B: T+2:30 Write brief.md
+        B-->>M: T+3:00 ask_user(brief.md gate)
+        M->>U: 转发
+        U->>M: T+3:30 OK
 
-T+4:00   brainstorm Step 3.5(2026-05-25 新增):
-         search.sh "AI 4A 5 阶段 评审 流程" hybrid top-5
-         → pattern_hints_for_author: [process, comparison, hierarchy]
+        Note over B: T+4:00 Step 3.5 RAG 预选<br/>→ pattern_hints_for_author<br/>[process, comparison, hierarchy]
+        B-->>-M: T+4:30 dispatch_author
+        Note over M,B: T+4:31 主线程关闭 brainstorm team<br/>Phase A → Phase B 切换
+    end
 
-T+4:30 ── brainstorm Round 4 ──► dispatch_author(brief + assets + pattern_hints)
-T+4:31   主线程关闭 brainstorm team(Phase A → Phase B 切换)
+    rect rgb(254, 252, 232)
+        Note over U,AU: Phase B · subagent 流水线(T+5:00 → T+30:00 deck 出炉)
 
-T+5:00   主线程 Task(author, stage=C)
-T+5:30   author:设计 outline(5 章 MECE)+ Pyramid 7 项 + Step 1A.5 RAG 5 次(每章一次)
-T+6:30 ── author Stage C 完 ──► ask_user_for_outline_approval
-T+7:00   用户答:批准
+        M->>+A: T+5:00 Task(stage=C, brief_md_path)
+        Note over A: outline 5 章 MECE + Pyramid 7 项<br/>+ Step 1A.5 RAG ×5(每章一次)
+        A-->>-M: T+6:30 ask_user_for_outline_approval
+        M->>U: 转发
+        U->>M: T+7:00 批准
 
-T+7:30   主线程 Task(critic, stage=C)
-T+8:00   critic Stage C 评 14 + 5 维度(含维度 5 pattern 适配性)
-T+9:00 ── critic C 完 ──► pass_with_notes(2 med + 2 low,无 alternative)
-T+9:30   用户答:接受 notes 进 Stage D
+        M->>+C: T+7:30 Task(stage=C)
+        Note over C: 14 checklist + 5 维度判断
+        C-->>-M: T+9:00 pass_with_notes(2 med + 2 low)
+        M->>U: 展示 notes
+        U->>M: T+9:30 接受 notes 进 Stage D
 
-T+10:00  主线程 Task(author, stage=D)
-T+11:30  author:拓写 15 页 content + 配 2 图(matplotlib + draw.io)+ 嵌 <!-- pattern -->
-T+13:00 ── author Stage D 完 ──► ask_user_for_content_approval
-T+13:30  用户答:批准
+        M->>+A: T+10:00 Task(stage=D)
+        Note over A: 15 页 content + 2 chart<br/>(matplotlib + draw.io)<br/>+ 嵌 `<!-- pattern -->` 注释
+        A-->>-M: T+13:00 ask_user_for_content_approval
+        M->>U: 转发
+        U->>M: T+13:30 批准
 
-T+14:00  主线程 Task(critic, stage=D)
-T+15:30  critic Stage D 评 14 + 5 维度
-T+18:00 ── critic D 完 ──► needs_revision(1 high: Ch3 算术不一致 + B7 字数 fail)
-T+18:30  用户答:只改 must-fix 2 条,其他不动
+        M->>+C: T+14:00 Task(stage=D)
+        C-->>-M: T+18:00 needs_revision<br/>(Ch3 算术 high + B7 字数 fail)
+        M->>U: 展示 report
+        U->>M: T+18:30 只改 must-fix 2 条,其他不动
 
-T+19:00  主线程 Task(author, stage=D, mode=rework)
-T+20:00  author 改 Ch3 title + 4 处字数压缩 + draw.io 重生成 PNG
-T+20:30 ── author rework 完 ──► ask_user_for_content_approval
-T+21:00  用户答:批准
+        M->>+A: T+19:00 Task(stage=D · rework)
+        Note over A: 改 Ch3 title + 4 处字数<br/>+ draw.io 重生成 PNG
+        A-->>-M: T+20:30 ask_user_for_content_approval
+        M->>U: 转发
+        U->>M: T+21:00 批准
 
-T+21:30  主线程 Task(critic, stage=D)
-T+22:30 ── critic D r2 完 ──► pass_with_notes(must-fix 已清)
-T+22:31  主线程 Task(iloveppt)
+        M->>+C: T+21:30 Task(stage=D · r2)
+        C-->>-M: T+22:30 pass_with_notes(must-fix 已清)
 
-T+23:00  iloveppt Step 0 critic gate + Pyramid 自检
-T+24:00  Step 1 md→JSON + Step 2 build.py(14 slides)
-T+25:00  Step 3 视觉 QA 17×14=238 项 ≤ 3 轮
-T+25:30  Step 4 三路降级(全 disable)+ Step 4.2.5 RAG 第 4 路(嵌 1 张 preview 作 hero)
-T+26:00 ── iloveppt 完 ──► dispatch_audience
+        M->>+I: T+22:31 Task(iloveppt)
+        Note over I: T+23 Step 0 critic gate + Pyramid<br/>T+24 Step 1 md→JSON + Step 2 build.py<br/>T+25 Step 3 视觉 QA 238 项<br/>T+25:30 Step 4 三路降级 + 第 4 路 RAG fallback
+        I-->>-M: T+26:00 dispatch_audience
 
-T+26:30  主线程 Task(audience, audience=executive)
-T+28:00  audience 逐页评 14 页 + Step 3.5 RAG 每个 needs_visual_redo 页找 alternative
-T+29:30 ── audience 完 ──► needs_visual_redo + suggested_alternative_pattern
+        M->>+AU: T+26:30 Task(audience=executive)
+        Note over AU: 逐页 14 页 × 4 维度<br/>+ Step 3.5 RAG 每个 needs_visual_redo 页找 alternative
+        AU-->>-M: T+29:30 needs_visual_redo<br/>+ suggested_alternative_pattern
 
-T+30:00  主线程 cherry-pick gate:展示 alternative → 用户决定
-         (后续 visual_redo / author rework 循环略)
+        Note over M,U: T+30:00 cherry-pick gate · 展示 alternative<br/>(后续 visual_redo / author rework 循环略)
+    end
 
-T+45:00  最终 overall ≥ 9 → delivered → 用户最终确认 → 交付 .pptx
+    rect rgb(220, 252, 231)
+        Note over U,AU: T+45:00 overall ≥ 9 → delivered → 用户最终确认 → 交付 .pptx
+    end
 ```
 
 **关键观察**:Phase A 共 5 个 ask_user 来回(brainstorm 4 + brief gate 1);Phase B 共 ≥ 5 个 ask_user(outline 1 + critic C 1 + content 1 + critic D 1 + audience cherry-pick N)+ 5 个 subagent Task 调用。
