@@ -94,7 +94,24 @@ pdftoppm -jpeg -r 120 /tmp/<file>.pdf /tmp/slide
 
 👉 **agent 工作原理(给人看,系统怎么跑)**:[`${CLAUDE_PROJECT_DIR}/docs/agent-internals.zh.md`](${CLAUDE_PROJECT_DIR}/docs/agent-internals.zh.md)
 
-👉 **Visual Patterns 知识库**:[`${CLAUDE_PROJECT_DIR}/library/visual-patterns/README.md`](${CLAUDE_PROJECT_DIR}/library/visual-patterns/README.md) —— hosted multimodal RAG(阿里云 tongyi-embedding-vision-plus,dim 1152,文本+图像同 API)+ INDEX.md 双路检索 + 3 search mode(text/image/hybrid)。agent 拓写 / 加视觉时可查 library 找最匹配 pattern
+👉 **Library / 知识库(RAG)**:[`${CLAUDE_PROJECT_DIR}/library/`](${CLAUDE_PROJECT_DIR}/library/) —— 双知识库 + 单 DB + 顶层 router:
+
+| kb | 单位 | 调用场景 |
+|---|---|---|
+| `library/visual-patterns/` | 跨模板视觉模式(timeline / pdca / funnel / ...) | author 拓写 / iloveppt Step 4 加视觉 |
+| `library/pptx-templates/` | 用户预置 .pptx 模板 + 拆出的每页 | brainstorm 列模板 / author 选页 / iloveppt 渲染参考 |
+
+**唯一检索入口** `library/search.sh`(自动 `--preferred-template` 优先 + visual-patterns fallback,hosted multimodal embedding 阿里云 tongyi-embedding-vision-plus dim 1152)。
+
+```bash
+# 按主题相关性排模板
+library/search.sh --kb pptx-templates --type template --query "<主题>" --top-k 5
+
+# 拓写每页 · 模板优先 fallback 通用 pattern
+library/search.sh --query "<本页意图>" --preferred-template <brief.theme> --type page
+```
+
+资产管理:`items/<id>/{meta.yaml, preview.png}` 入 git;`_rag/db.sqlite` / `_rag/.venv/` / `_rag/.env` / `*/_source/*.pptx` 不入。
 
 ### 主线程派发规则(一句话总结)
 
