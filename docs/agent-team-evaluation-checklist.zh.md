@@ -192,4 +192,4 @@
 - **第一次用**:对照清单逐项标 PASS / GAP / N/A,统计 GAP 数与所在维度。
 - **复盘节奏**:每次 agent 流水线大改动后跑一次;每季度跑一次全量审计。
 - **优先级**:L1-L3 母法则违反 > MAST 类 1/2/3 失败 > 反模式(H 区)> 可观测性补齐(G 区)。
-- **本仓库专用应用**:iLovePPT 当前 pipeline(brainstorm → author → critic → iloveppt → designer → audience + extractor 旁路)逐项审计的报告,见 `docs/archive/`(每次审计时新增日期戳文件)。
+- **本仓库专用应用**:iLovePPT 当前 pipeline(brainstorm → author → critic → iloveppt → audience + extractor 旁路)逐项审计后留下的报告,可存在 `decks/<slug>/` 或新建 `audits/` 目录。

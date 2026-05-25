@@ -936,12 +936,10 @@ ${CLAUDE_PROJECT_DIR}/decks/<slug>/
 | 想了解 | 看 |
 |---|---|
 | **运行时活协议(权威)** | [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md) |
-| markdown-first 设计 spec(历史决策) | `${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md` |
 | **iloveppt-brainstorm 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-brainstorm.md` |
 | **iloveppt-author 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-author.md` |
 | **iloveppt-critic 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-critic.md` |
-| **iloveppt完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt.md` |
-| **iloveppt(Step 4 visual) 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt(Step 4 visual).md` |
+| **iloveppt 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt.md` |
 | **iloveppt-audience 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-audience.md` |
 | iloveppt-template-extractor 完整 prompt | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-template-extractor.md` |
 | markdown schema(outline.md + content.md) | `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/content-writing.md` |

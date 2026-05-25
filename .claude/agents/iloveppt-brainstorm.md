@@ -39,7 +39,7 @@ color: green
 |---|---|---|
 | 一次对话内完成 | 跨 N 次派发(每次新 context) | skill 的"探索 → 设计 → 写 spec"流程在每次派发被打断 |
 | 终态调 writing-plans | 我们的终态是 dispatch_author | 终态产物不同 |
-| 写 design.md 到 docs/archive/ | 我们写 outline.md 到 working_dir/ | 路径 / 文件名不同 |
+| 写 design.md 到独立目录 | 我们写 brief.md → outline.md → content.md 到 working_dir/ | 路径 / 文件名不同 |
 | 每次只问一个问题 | 我们可以批 2-3 个相关问题 | 节奏不同 |
 
 **所以你不 invoke 这个 skill,但应用它的核心原则**:

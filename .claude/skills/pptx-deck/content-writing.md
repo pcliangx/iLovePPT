@@ -13,8 +13,6 @@
 | **author agent**(Stage C-D) | 设计 outline + 拓写 content | 按 13 layout 文案规则写;按 Pyramid 5 件套设计 outline;按 markdown schema 输出 .md |
 | **iloveppt agent**(Stage E build) | 拿到 content.md → md→JSON | 反向应用规则:验证 md 合规、推断 layout、转 JSON |
 
-接缝设计 rationale 见 [设计史档](${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md)。
-
 ---
 
 ## 13 layout 文案规则

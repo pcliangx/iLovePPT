@@ -25,7 +25,6 @@ iLovePPT 仓库布局(可能在 cwd 或符号链接到 `${CLAUDE_PROJECT_DIR}/.c
 - `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/content-writing.md` —— **markdown schema(outline.md + content.md)** + 13 layout 字数规则 + Pyramid 5 件套定义
 - `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/visual-qa.md` —— 17 项视觉 checklist
 - `${CLAUDE_PROJECT_DIR}/.claude/skills/diagram/matplotlib_rc.py` —— matplotlib 风格 SSOT
-- `${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md` —— 设计 spec(供溯源,权威协议见 pipeline-protocol.md)
 - `[[diagram]]` skill / `[[pptx]]` skill —— 出图与底层操作
 
 ## 团队模式通信(必读)

@@ -1,11 +1,11 @@
-# pptx-deck 主流程(6 agent + 1 旁路 + markdown-first)
+# pptx-deck 主流程(5 agent + 1 旁路 + markdown-first)
 
-端到端:用户一句话 → 主线程 dispatcher 调度 6 agent + 1 旁路 → 用户审 markdown → 交付 .pptx。
-**"智能"全部放进 6 个 agent**(brainstorm / author / critic / iloveppt / designer / audience + template-extractor 旁路),主线程退化为 router。
+端到端:用户一句话 → 主线程 dispatcher 调度 5 agent + 1 旁路 → 用户审 markdown → 交付 .pptx。
+**"智能"全部放进 5 个 agent**(brainstorm / author / critic / iloveppt / audience + template-extractor 旁路),主线程退化为 router。
 
-权威活协议见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md);markdown-first 接缝设计 rationale 见 [设计史档](${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md)。
+权威活协议见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)。
 
-## 5 阶段 / 6 agent + 1 旁路 全景
+## 5 阶段 / 5 agent + 1 旁路 全景
 
 ```
 [主线程 = pure dispatcher]              [6 agents · 独立上下文]

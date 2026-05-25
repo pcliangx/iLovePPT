@@ -83,11 +83,7 @@ pdftoppm -jpeg -r 120 /tmp/<file>.pdf /tmp/slide
 | `iloveppt-audience` | 模拟目标受众读 deck 评分(9 分硬阈值);反馈三类分流(needs_author_rewrite / needs_visual_redo / needs_theme_fix) | sonnet |
 | `iloveppt-template-extractor` | 旁路:用户给 .pptx 模板时摄入 4 级 token | haiku |
 
-👉 **运行时流水线协议(派发顺序 / handoff / gate / 退出条件)** —— AI 运行时活协议,放 `${CLAUDE_PROJECT_DIR}/.claude/`:[`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)
-
-👉 **agent 设计 rationale(给人看,为什么这么拆)**:[`${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-agent-design.md`](${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-agent-design.md)
-
-👉 **markdown-first 设计(brief.md / outline.md / content.md schema)**:[`${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md`](${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md)
+👉 **运行时流水线协议(派发顺序 / handoff / gate / 退出条件)** —— AI 运行时活协议:[`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)
 
 👉 **agent 工作原理(给人看,系统怎么跑)**:[`${CLAUDE_PROJECT_DIR}/docs/agent-internals.zh.md`](${CLAUDE_PROJECT_DIR}/docs/agent-internals.zh.md)
 
@@ -157,4 +153,4 @@ diagram    ── 图表生成;也可独立使用
 - **路径表示**:文档里的 `${CLAUDE_PROJECT_DIR}/...` 是 [Claude Code 标准环境变量](https://code.claude.com/docs/en/hooks.md),指 **iLovePPT 仓库根**(也是你的 cwd —— agent team 在仓库内跑,无双场景之分)。文档当字面用即可。
 - Commit message 用 conventional commits + scope:`feat(pptx-deck):` / `fix(pptx):` / `docs(diagram):` / `refactor:` / `test(pptx):` / `chore:`。
 - `pyproject.toml` 设了 `pythonpath = [".claude/skills/pptx", ".claude/skills/pptx-deck"]`,测试直接 import `helpers` / `layout` / `themes.tech_blue` / `build`,**无需** `sys.path` hack。非 test 模块保留幂等的 `sys.path.insert`,方便脚本直接跑。
-- 历史设计 spec / 实施计划归档在 `${CLAUDE_PROJECT_DIR}/docs/archive/`。流水线协议 spec(上方链接)是 agent 派发 / handoff 行为的权威。
+- 流水线协议(`.claude/pipeline-protocol.md`)是 agent 派发 / handoff 行为的权威。
