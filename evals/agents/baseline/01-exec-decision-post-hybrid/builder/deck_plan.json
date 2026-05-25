@@ -1,0 +1,136 @@
+{
+  "theme": "tech_blue",
+  "output": "/Users/pc2026/Documents/DevTools/iLovePPT/decks/eval-20260525-1351-01-exec-decision/builder/deck_v1.pptx",
+  "presentation_mode": "speaker",
+  "footer_meta": {
+    "classification": "INTERNAL",
+    "project": "eval-20260525-1351-01-exec-decision",
+    "version": "v1.0"
+  },
+  "slides": [
+    {
+      "layout": "cover",
+      "title": "AI 4A 评审办法落地提案",
+      "subtitle": "本季度落地 AI 4A,5 阶段 ≤ 3 天,降 60% 人力",
+      "prepared_by": "技术部",
+      "date": "2026-05-25",
+      "version": "v1.0",
+      "classification": "INTERNAL"
+    },
+    {
+      "layout": "toc",
+      "sections": [
+        "评审周期恶化 37%,人工模式已到瓶颈",
+        "4A 覆盖全闭环:应用/架构/认证/授权无盲区",
+        "5 阶段串行,全程 ≤ 8 天(含整改回路)",
+        "AI 预审替代人工初筛,评审人力降 60%",
+        "Q3 试点 2 业务线,Q4 全公司落地"
+      ]
+    },
+    {
+      "layout": "section_divider",
+      "num": 1,
+      "title": "现状诊断"
+    },
+    {
+      "layout": "pic_text",
+      "title": "评审周期恶化 37%,人工模式已到瓶颈",
+      "image_path": "/Users/pc2026/Documents/DevTools/iLovePPT/decks/eval-20260525-1351-01-exec-decision/author/charts/review_trend.png",
+      "points": [
+        {"title": "周期", "body": "Q4 均值 8.2→11.3 天,3 个月恶化 37%"},
+        {"title": "通过率", "body": "初审通过率 42%→31%,下滑 11pp"},
+        {"title": "人力", "body": "评审员投入 156-194h/月,峰值触顶"},
+        {"title": "拐点", "body": "三月无改善信号,趋势线仍向下"}
+      ],
+      "source": "_assets/raw/q4_reviews.csv(Q4 2025-10 至 12 内部数据)"
+    },
+    {
+      "layout": "section_divider",
+      "num": 2,
+      "title": "方案范围"
+    },
+    {
+      "layout": "cards",
+      "title": "4A 覆盖全闭环:应用/架构/认证/授权无盲区",
+      "cards": [
+        {"title": "Application", "body": "API 边界扫描,缺失致漏洞扩大"},
+        {"title": "Architecture", "body": "拓扑与单点,缺失致扩容崩溃"},
+        {"title": "Authentication", "body": "Token 机制,缺失致未授权访问"},
+        {"title": "Authorization", "body": "最小权限,缺失致越权合规险"}
+      ],
+      "source": "4A 维度定义参照 NIST SP 800-207(零信任架构标准)[示意映射]"
+    },
+    {
+      "layout": "section_divider",
+      "num": 3,
+      "title": "执行流程"
+    },
+    {
+      "layout": "pic_text",
+      "title": "5 阶段串行,全程 ≤ 8 天(含整改回路)",
+      "image_path": "/Users/pc2026/Documents/DevTools/iLovePPT/decks/eval-20260525-1351-01-exec-decision/author/charts/review_flow_5stage.png",
+      "points": [
+        {"title": "① AI 预审", "body": "自动扫描提交件,≤ 1 天"},
+        {"title": "② 委员会预审", "body": "AI 报告人工核校,≤ 2 天"},
+        {"title": "③ 4A 全维评审", "body": "App/Arch/AuthN/AuthZ,≤ 3 天"},
+        {"title": "④ 决议裁定", "body": "通过/整改/驳回,≤ 1 天"},
+        {"title": "⑤ 归档反馈", "body": "结论入库供 AI 持续学习,≤ 1 天"}
+      ],
+      "source": "流程 SLA 参照内部试运行推算;Q3 试点将实测验证"
+    },
+    {
+      "layout": "section_divider",
+      "num": 4,
+      "title": "人力保障"
+    },
+    {
+      "layout": "compare_pk",
+      "title": "AI 预审替代人工初筛,评审人力降 60%",
+      "left": {
+        "title": "现状(人工主导)",
+        "body": "194h/月评审员投入;初审由人工逐一核查;通过率 31%,返工占 69%;无法并行处理多件"
+      },
+      "right": {
+        "title": "目标(AI 预审)",
+        "body": "<80h/月人力目标;AI 预筛通过件直送委员会;初审通过率目标 70%+(推算)"
+      },
+      "source": "现状数据来自 _assets/raw/q4_reviews.csv;目标 <80h/月 基于 60% 降幅推算;初审 70%+ 参照业内 AI 辅助评审基准[示意],Q3 试点将实测"
+    },
+    {
+      "layout": "section_divider",
+      "num": 5,
+      "title": "落地节奏"
+    },
+    {
+      "layout": "bullet_list",
+      "title": "Q3 试点 2 业务线,Q4 全公司落地",
+      "items": [
+        "Q3 M1:工具部署 + 培训",
+        "Q3 M2-3:A/B 试点各 4 件",
+        "Q3 末:通过率 ≥ 65% 成功",
+        "Q4 M1:全公司正式切换",
+        "Q4 持续:月度指标复盘"
+      ],
+      "source": "里程碑节点由内部项目组规划[示意],CTO 本次需确认 Q3 启动授权"
+    },
+    {
+      "layout": "summary",
+      "title": "核心结论",
+      "conclusions": [
+        "周期恶化 37%、通过率跌 11pp",
+        "4A 4 维各防一类典型风险",
+        "5 阶段 ≤ 8 天,人力降 60%",
+        "Q3 试点,Q4 全公司落地"
+      ]
+    },
+    {
+      "layout": "closing",
+      "subtitle": "请 CTO 批准 Q3 试点授权,技术部本周内完成工具部署启动",
+      "next_steps": [
+        {"action": "批准 Q3 试点(业务线 A/B)", "owner": "CTO", "due": "2026-05-30"},
+        {"action": "完成工具部署 + 委员会培训", "owner": "技术部", "due": "2026-06-30"},
+        {"action": "提交试点阶段性报告", "owner": "技术部", "due": "2026-09-30"}
+      ]
+    }
+  ]
+}
