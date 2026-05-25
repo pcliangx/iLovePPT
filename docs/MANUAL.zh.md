@@ -175,25 +175,38 @@ brainstorm: 好的。你这边有素材吗?
 
 ```
 ${CLAUDE_PROJECT_DIR}/decks/<slug>/
-├── brief.md                       # brainstorm Stage B 产出,等你 OK
-├── deck_v1_outline.md             # author Stage C 产出,等你审
-├── deck_v1_content.md             # author Stage D 产出,等你审(SSOT)
-├── deck_v1_content.postbuild.md   # builder Step 3.4 自动调整版本(可选)
-├── critic_report_C.md             # critic Stage C 评审报告
-├── critic_report_D.md             # critic Stage D 评审报告
-├── designer_report.md             # designer 视觉优化报告
-├── audience_review.md             # audience 评分报告
-├── deck_plan.json                 # builder 产出的机械接缝,可手改重 build
-├── deck_v1.pptx                   # 最终产物
-├── deck_v1_render/                # 渲染图(QA 用,可删)
-├── STATUS.md                      # 主线程交付摘要
-└── _assets/
-    ├── raw/                       # 你提供的原始素材(csv/png/pdf)
-    ├── charts/                    # author 用 matplotlib / draw.io 生成的图
-    ├── icons/                     # designer 从 iconify 下载的 icon
-    ├── hero/                      # designer 从 Unsplash 下载的 hero 图
-    ├── brand/                     # 你自带的 brand assets(可选,designer 优先用)
-    └── refs/                      # 你直接给的参考图
+├── STATUS.md                            # 主线程交付摘要
+├── brainstorm/
+│   ├── state.json                         (brainstorm 轮次记忆)
+│   └── brief.md                           (Stage B 产出,等你 OK)
+├── author/
+│   ├── state.json                         (author iteration / approval)
+│   ├── deck_v1_outline.md                 (Stage C 产出,等你审)
+│   ├── deck_v1_content.md                 (Stage D 产出,等你审,SSOT)
+│   └── charts/                            (matplotlib / draw.io 生成的图)
+├── critic/                              ← 多轮迭代 _r{N} 全保留
+│   ├── critic_report_C_r1.md
+│   ├── critic_report_C_r2.md              (若 r1 needs_revision)
+│   ├── critic_report_D_r1.md
+│   └── critic_report_D_r2.md
+├── builder/
+│   ├── deck_plan.json                     (机械接缝,可手改重 build)
+│   ├── deck_v1.pptx                       (最终产物)
+│   ├── deck_v1_content.postbuild.md       (builder 自动调整版,原文不动)
+│   └── deck_v1_render/                    (渲染图,QA 用,可删)
+├── designer/                            ← 多轮迭代 _r{N} 全保留
+│   ├── designer_report_r1.md
+│   ├── designer_report_r2.md              (若 audience 反馈 needs_designer_revision)
+│   ├── icons/                             (iconify 下载)
+│   └── hero/                              (Unsplash 下载)
+├── audience/                            ← 多轮迭代 _r{N} 全保留(5 轮 cap)
+│   ├── audience_review_r1.md
+│   ├── audience_review_r2.md              (若 r1 < 9)
+│   └── audience_review_r{N}.md
+└── _assets/                             ← 你提供的素材,跨 agent 共享
+    ├── raw/                               (原始素材 csv/png/pdf)
+    ├── brand/                             (品牌 assets,可选,designer 优先用)
+    └── refs/                              (参考图)
 ```
 
 ---

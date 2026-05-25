@@ -180,7 +180,7 @@ flowchart TB
 
 **md 文件是 SSOT,state 只记 approval**:author 不维护 md 的 hash/mtime,每次派发都 `Read deck_v{N}_outline.md / content.md` 当唯一真相源。用户在 md 里直接改了 → 下次派发 Read md 自然加载新内容,询问"批准当前版本?"。
 
-**接收 critic / audience 反馈**:主线程把**用户筛过**的反馈作为 `user_response` 自然语言指令传给 author。author **不读** `critic_report_{C,D}.md` / `audience_review.md` 原文(避免被未筛建议干扰)。
+**接收 critic / audience 反馈**:主线程把**用户筛过**的反馈作为 `user_response` 自然语言指令传给 author。author **不读** `critic/critic_report_{C,D}_r{N}.md` / `audience/audience_review_r{N}.md` 原文(避免被未筛建议干扰)。
 
 ```mermaid
 flowchart TB
@@ -279,7 +279,7 @@ flowchart TB
 **职责**:接 author 和 critic 双 pass 的 `content.md`,机械构建 `.pptx`。**单次派发完成,内部含 ≤ 3 轮视觉 QA 循环**(限机械项)。
 
 **Step 0 强前置 gate**:
-- `Read critic_report_D.md` → verdict ∈ {`pass`, `pass_with_notes`}
+- `Read 入参 critic_d_report_path`(主线程传具体 `critic_report_D_r{N}.md`)→ verdict ∈ {`pass`, `pass_with_notes`}
 - 缺失 / `needs_revision` 立即 **hard stop**,返回 `error: critic_d_missing/not_passed`
 - **不允许跳过 critic gate**
 
@@ -292,7 +292,7 @@ flowchart TB
 ```mermaid
 flowchart TB
     I([content_md_path + output_pptx + theme + working_dir]) --> S00
-    S00["<b>Step 0.0</b> · 强前置 gate<br/>Read critic_report_D.md<br/>验 verdict ∈ {pass, pass_with_notes}"]
+    S00["<b>Step 0.0</b> · 强前置 gate<br/>Read 入参 critic_d_report_path<br/>(主线程传 critic_report_D_r{N}.md)<br/>验 verdict ∈ {pass, pass_with_notes}"]
     S00 -->|缺失 / needs_revision| HS0["<b>hard stop</b><br/>error: critic_d_missing/not_passed"]
     S00 -->|pass| S01
     S01["<b>Step 0.1</b> · Read 文件<br/>content.md(含 frontmatter footer_meta)<br/>author/state.json"] --> S02
@@ -355,7 +355,7 @@ flowchart TB
     S2["Step 2 · 主动加视觉<br/>iconify / Unsplash / brand 三路降级<br/>改 deck_plan.json 加字段"] --> S3
     S3["Step 3 · 重 build<br/>build.py → 新 pptx + PNG"] --> S4
     S4["Step 4 · 自检 fresh Read<br/>改了变好留下;变糟回滚"] --> S5
-    S5["Step 5 · 写 designer_report.md<br/>ready_for_audience: true"]
+    S5["Step 5 · 写 designer_report_r{N}.md<br/>ready_for_audience: true"]
 
     classDef io fill:#FFF,stroke:#333
     classDef step fill:#F5F5F5,stroke:#555
@@ -400,7 +400,7 @@ flowchart TB
     S1["Step 1 · 全 deck 浏览<br/>Read 每张 page-*.jpg<br/>感受节奏 / 视觉变化 / 叙事弧线"] --> S2
     S2["Step 2 · 逐页 4 维度打分<br/>按 audience profile 调整基准"] --> S3
     S3["Step 3 · top 3 必改页<br/>severity + 引用观察 + suggestion"] --> S4
-    S4["Step 4 · 写 audience_review.md"] --> S5
+    S4["Step 4 · 写 audience_review_r{N}.md"] --> S5
     S5{overall_score?}
     S5 -->|≥ 9 + 无 needs_major| RD["ready_for_delivery: true"]
     S5 -->|< 9 或 有 needs_major| NR["ready_for_delivery: false<br/>三类反馈分流"]
@@ -832,7 +832,7 @@ T+10m    返回 dispatch_critic(stage=D)
 T+11m    verdict: pass
 
 === Stage E · builder 派发 ===
-T+11.1m  Step 0.0: Read critic_report_D.md → verdict=pass ✓
+T+11.1m  Step 0.0: Read 入参 critic_d_report_path (critic_report_D_r1.md) → verdict=pass ✓
 T+11.5m  Step 0.2: Pyramid 自检 → 全过
 T+13m    跑 build.py → .pptx + 20 PNG
 T+14m    Step 3 视觉 QA 第 1 轮:发现 page 7 字号偏小
@@ -848,7 +848,7 @@ T+19m    Step 5: ready_for_audience: true
 
 === Stage F · audience 派发 ===
 T+19.5m  按 technical profile 读 20 PNG 评分
-T+21m    overall_score=9.1 · 写 audience_review.md
+T+21m    overall_score=9.1 · 写 audience_review_r1.md
          (有了 icon 后 visual_appeal 大幅提升)
          ≥ 9 ✓,主线程展示给用户做最终确认
 
@@ -964,22 +964,25 @@ ${CLAUDE_PROJECT_DIR}/decks/<slug>/
 │   ├── deck_v1_outline.md
 │   ├── deck_v1_content.md               (用户批准版,SSOT)
 │   └── charts/                          (matplotlib / draw.io 出图)
-├── critic/                            ← Stage C/D 双 gate
-│   ├── critic_report_C.md
-│   └── critic_report_D.md
+├── critic/                            ← Stage C/D 双 gate · 多轮 _r{N} 累积
+│   ├── critic_report_C_r1.md            (Stage C 第 1 轮)
+│   ├── critic_report_C_r2.md            (若 r1 needs_revision)
+│   ├── critic_report_D_r1.md
+│   └── critic_report_D_r2.md
 ├── builder/                           ← Stage E
 │   ├── deck_v1_content.postbuild.md     (builder 自动调整版,原文不动)
 │   ├── deck_plan.json                   (机械接缝,可手改重 build)
 │   ├── deck_v1.pptx                     (最终产物)
 │   └── deck_v1_render/                  (QA 用 PNG)
-├── designer/                          ← Stage E.5
-│   ├── designer_report.md
+├── designer/                          ← Stage E.5 · 多轮 _r{N} 累积
+│   ├── designer_report_r1.md
+│   ├── designer_report_r2.md            (若 audience 反馈 needs_designer_revision)
 │   ├── icons/                           (iconify 下载)
 │   └── hero/                            (Unsplash 下载)
-├── audience/                          ← Stage F
-│   ├── audience_review.md               (r1)
-│   ├── audience_review_r2.md            (多轮迭代)
-│   └── audience_review_rN.md
+├── audience/                          ← Stage F · 多轮 _r{N} 累积
+│   ├── audience_review_r1.md            (第 1 轮)
+│   ├── audience_review_r2.md            (若 r1 overall_score < 9)
+│   └── audience_review_r{N}.md          (5 轮 cap)
 ├── extractor/                         ← 旁路(用户给模板时才有)
 │   └── template_<name>/                 (extractor 提取的媒体)
 └── _assets/                           ← 用户提供,跨 agent 共享

@@ -89,7 +89,7 @@ critic Stage C 第 2 轮发现 A6 横向逻辑不齐(章节 2 是 because 句式
 2) page 5 加 Q3 试点数据 + 客户案例数字
 ```
 
-你按指令 Edit md,不需要也不允许 Read `critic_report_C.md` / `critic_report_D.md` / `audience_review.md` 原文(用户筛过的才是有效指令)。
+你按指令 Edit md,不需要也不允许 Read `critic/critic_report_{C,D}_r{N}.md` / `audience/audience_review_r{N}.md` 原文(用户筛过的才是有效指令)。
 
 ## 流程
 
@@ -380,7 +380,7 @@ dispatch:
 - 不要图出错就静默 fallback(matplotlib 失败 → ask_user "图工具不可用,要降级用 bullet_list 还是先装 matplotlib?")
 - 不要忽略 state file —— 每次派发必须先 Read,最后必须 Write
 - 不要试图替 brainstorm 收新素材;若发现 brief 不够 → 返回 error 让主线程决定是否重派 brainstorm
-- 不要 Read `critic_report_C.md` / `critic_report_D.md` / `audience_review.md` 原文(主线程把用户筛过的指令作为 user_response 给你,Read 原报告会被未筛建议干扰)
+- 不要 Read `critic/critic_report_{C,D}_r{N}.md` / `audience/audience_review_r{N}.md` 原文(主线程把用户筛过的指令作为 user_response 给你,Read 原报告会被未筛建议干扰)
 - 不要 Stage C 批准后立即续 Stage D(必须返回主线程让其再派)
 - 不要接受用户"先放着"含糊回答 Pyramid 失败项(必须显式豁免附理由 / 改)
 

@@ -179,7 +179,13 @@ top_3_must_fix:
 
 ### Step 4 · 写报告
 
-`Write` `<working_dir>/audience/audience_review.md`(若 `audience/` 不存在,mkdir;多轮迭代时 r2/r3/r4 后缀文件也写在 `audience/` 下):
+`Write` `<working_dir>/audience/audience_review_r{N}.md`(若 `audience/` 不存在,mkdir)。
+
+**找下一轮 N**:`Glob <working_dir>/audience/audience_review_r*.md` → 解析后缀号 → `next_r = max(existing) + 1`(若无文件 → `next_r = 1`)。
+
+例:第 1 次跑 → 写 `audience/audience_review_r1.md`;overall_score < 9 → 主线程派 author/designer 改 → 重派 audience → 写 `audience_review_r2.md`(r1 保留)。
+
+报告 schema:
 
 ```markdown
 # Audience Review · {audience} 视角
@@ -218,7 +224,7 @@ top_3_must_fix:
 
 ```yaml
 next_action: report_complete
-review_path: <working_dir>/audience/audience_review.md
+review_path: <working_dir>/audience/audience_review_r{N}.md   # 本轮实际写入的具体路径(含 _r{N})
 overall_score: 9.2
 verdict: excellent | good | needs_minor_revision | needs_major_revision
 top_3_must_fix: [...]

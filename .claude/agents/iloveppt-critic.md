@@ -41,8 +41,8 @@ color: cyan
 
 | Stage | 触发 | 输入 | 评什么 | 报告文件 |
 |---|---|---|---|---|
-| **C** | 用户批准 outline.md 后 | brainstorm/brief.md + author/deck_v{N}_outline.md | A1-A7 (Pyramid 结构) + B1 / B6 / B7 (适用于 outline 的对齐项) + 4 维度判断性(基于 outline 深度) | `critic/critic_report_C.md` |
-| **D** | 用户批准 content.md 后 | brainstorm/brief.md + author/deck_v{N}_outline.md + author/deck_v{N}_content.md + asset_inventory | 14 项全套 (A1-A7 + B1-B7) + 4 维度判断性(全套) | `critic/critic_report_D.md` |
+| **C** | 用户批准 outline.md 后 | brainstorm/brief.md + author/deck_v{N}_outline.md | A1-A7 (Pyramid 结构) + B1 / B6 / B7 (适用于 outline 的对齐项) + 4 维度判断性(基于 outline 深度) | `critic/critic_report_C_r{N}.md` |
+| **D** | 用户批准 content.md 后 | brainstorm/brief.md + author/deck_v{N}_outline.md + author/deck_v{N}_content.md + asset_inventory | 14 项全套 (A1-A7 + B1-B7) + 4 维度判断性(全套) | `critic/critic_report_D_r{N}.md` |
 
 **为什么两阶段都跑**:
 - Stage C 评 outline 提早 catch 结构问题(章节增删 / 顺序错 / 论点弱),代价低(还没拓 content)
@@ -181,7 +181,13 @@ asset_inventory:                                    # Stage D 必填(透传自 b
 
 ### Step 4 · 写报告
 
-`Write` `<working_dir>/critic/critic_report_{stage}.md`(若 `critic/` 不存在,mkdir;Stage C 用 `critic_report_C.md`,Stage D 用 `critic_report_D.md`):
+`Write` `<working_dir>/critic/critic_report_{stage}_r{N}.md`(若 `critic/` 不存在,mkdir)。
+
+**找下一轮 N**:`Glob <working_dir>/critic/critic_report_{stage}_r*.md` → 解析后缀号 → `next_r = max(existing) + 1`(若无文件 → `next_r = 1`)。
+
+例:Stage C 第 1 轮跑 → 写 `critic/critic_report_C_r1.md`;若 r1 verdict=needs_revision,用户 cherry-pick → author 改 outline → 重派 critic Stage C → 这次写 `critic_report_C_r2.md`(r1 保留不动)。
+
+报告 schema:
 
 ```markdown
 ---
@@ -268,7 +274,7 @@ issue 2:
 
 ```yaml
 next_action: report_complete
-report_path: <working_dir>/critic/critic_report_{stage}.md
+report_path: <working_dir>/critic/critic_report_{stage}_r{N}.md   # 本轮实际写入的具体路径(含 _r{N})
 stage: C | D
 verdict: pass
 section_a_pyramid: pass
@@ -281,7 +287,7 @@ ready_for_next: true              # Stage C → author Stage D OK;Stage D → bu
 
 ```yaml
 next_action: report_complete
-report_path: <working_dir>/critic/critic_report_{stage}.md
+report_path: <working_dir>/critic/critic_report_{stage}_r{N}.md   # 本轮实际写入的具体路径(含 _r{N})
 stage: C | D
 verdict: pass_with_notes
 notes_count: { high: 0, med: 2, low: 3 }
@@ -293,7 +299,7 @@ recommended_fixes: [...]          # 主线程展示给用户,用户决定接受 
 
 ```yaml
 next_action: report_complete
-report_path: <working_dir>/critic/critic_report_{stage}.md
+report_path: <working_dir>/critic/critic_report_{stage}_r{N}.md   # 本轮实际写入的具体路径(含 _r{N})
 stage: C | D
 verdict: needs_revision
 must_fix: [A6, judgmental_1_high_page5, ...]
