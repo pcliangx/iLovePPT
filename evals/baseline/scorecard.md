@@ -10,7 +10,7 @@
 
 - page 2（toc）— **D10** FAIL：目录三条目集中在上方，条目之间及下方大片空白，内容未均布
 - page 4（bullet_list）— **D10** FAIL：三条 bullet 集中在页面中偏下区域，标题与内容区之间大片空白
-- page 5（numbered_list）— **D10** FAIL：三个蓝色数字方块各自仅一行文字在方块顶部，方块下半段大片空白（短内容留白已知限制）
+- page 5（summary,3 个 numbered 方块视觉）— **D10** FAIL：三个蓝色数字方块各自仅一行文字在方块顶部，方块下半段大片空白（短内容留白已知限制)
 - page 1（cover）— 通过
 - page 3（section_divider）— 通过（数字方块与标题垂直居中）
 - page 6（closing）— 通过
@@ -20,7 +20,7 @@
 - page-04（bullet_list 3条）— **D10** FAIL：内容集中在中偏下，标题与内容区之间大片空白
 - page-07（bullet_list 3条）— **D10** FAIL：同上
 - page-20（cards 3张）— **D10** FAIL：每张卡片内容（一行正文）集中在顶部，卡片下方约 60% 为空白
-- page-27（numbered_list 4项）— **D10** FAIL：四个蓝色方块各仅一行文字，方块内下方大片空白
+- page-27（summary,4 个 numbered 方块视觉）— **D10** FAIL：四个蓝色方块各仅一行文字，方块内下方大片空白
 - page-01（cover）— 通过
 - page-02（toc）— 通过
 - page-10（bullet_list）— **D10** FAIL：三条 bullet 内容聚集在页面下半段，大片空白

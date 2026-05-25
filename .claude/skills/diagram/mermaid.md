@@ -62,13 +62,13 @@ Mermaid 默认 subgraph 背景是棕色——**必须**在文件头部注入 the
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {
-  'primaryColor': '#1E6FE0',
+  'primaryColor': '#0A52BF',
   'primaryTextColor': '#FFFFFF',
   'primaryBorderColor': '#0B2A4A',
   'lineColor': '#0B2A4A',
   'secondaryColor': '#E6F0FC',
   'clusterBkg': '#E6F0FC',
-  'clusterBorder': '#1E6FE0',
+  'clusterBorder': '#0A52BF',
   'fontFamily': 'Microsoft YaHei, sans-serif',
   'fontSize': '16px'
 }}}%%
@@ -78,7 +78,7 @@ Mermaid 默认 subgraph 背景是棕色——**必须**在文件头部注入 the
 
 | themeVariables 字段 | 对应 design-system 色 | 值 |
 |---|---|---|
-| `primaryColor` | BRAND_PRIMARY | `#1E6FE0` |
+| `primaryColor` | BRAND_PRIMARY | `#0A52BF` |
 | `primaryBorderColor` | BRAND_DARK | `#0B2A4A` |
 | `secondaryColor` / `clusterBkg` | BRAND_TINT | `#E6F0FC` |
 | `lineColor` | BRAND_DARK | `#0B2A4A` |
@@ -94,9 +94,9 @@ Mermaid 默认 subgraph 背景是棕色——**必须**在文件头部注入 the
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {
-  'primaryColor': '#1E6FE0', 'primaryTextColor': '#FFFFFF',
+  'primaryColor': '#0A52BF', 'primaryTextColor': '#FFFFFF',
   'primaryBorderColor': '#0B2A4A', 'lineColor': '#0B2A4A',
-  'clusterBkg': '#E6F0FC', 'clusterBorder': '#1E6FE0',
+  'clusterBkg': '#E6F0FC', 'clusterBorder': '#0A52BF',
   'fontFamily': 'Microsoft YaHei, sans-serif'
 }}}%%
 flowchart LR
@@ -131,7 +131,7 @@ flowchart LR
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {
-  'primaryColor': '#1E6FE0', 'primaryTextColor': '#FFFFFF',
+  'primaryColor': '#0A52BF', 'primaryTextColor': '#FFFFFF',
   'primaryBorderColor': '#0B2A4A', 'lineColor': '#0B2A4A',
   'fontFamily': 'Microsoft YaHei, sans-serif'
 }}}%%
@@ -164,7 +164,7 @@ sequenceDiagram
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {
-  'primaryColor': '#1E6FE0', 'primaryTextColor': '#FFFFFF',
+  'primaryColor': '#0A52BF', 'primaryTextColor': '#FFFFFF',
   'primaryBorderColor': '#0B2A4A', 'lineColor': '#0B2A4A',
   'fontFamily': 'Microsoft YaHei, sans-serif'
 }}}%%
@@ -196,7 +196,7 @@ classDiagram
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {
-  'primaryColor': '#1E6FE0', 'primaryTextColor': '#FFFFFF',
+  'primaryColor': '#0A52BF', 'primaryTextColor': '#FFFFFF',
   'primaryBorderColor': '#0B2A4A', 'lineColor': '#0B2A4A',
   'fontFamily': 'Microsoft YaHei, sans-serif'
 }}}%%

@@ -5,7 +5,7 @@
 [![Release](https://img.shields.io/github/v/release/pcliangx/iLovePPT)](https://github.com/pcliangx/iLovePPT/releases/latest)
 [![Stars](https://img.shields.io/github/stars/pcliangx/iLovePPT?style=flat&logo=github)](https://github.com/pcliangx/iLovePPT/stargazers)
 [![Last Commit](https://img.shields.io/github/last-commit/pcliangx/iLovePPT)](https://github.com/pcliangx/iLovePPT/commits/main)
-[![Tests](https://img.shields.io/badge/tests-72%20passed-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-75%20passed-brightgreen)](#)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -13,7 +13,7 @@
 [![Content: Pyramid Principle](https://img.shields.io/badge/content-Pyramid%20Principle-0A52BF)](https://en.wikipedia.org/wiki/Pyramid_principle)
 [![Visual Patterns: Multimodal RAG](https://img.shields.io/badge/RAG-multimodal%20(text%2Fimage)-FBCFE8)](library/visual-patterns/README.md)
 
-让 LLM 一次性出完整 .pptx,通常是"看着像但读起来空、视觉糙、论据弱"。**iLovePPT 把"写 PPT"拆成 5 专业 agent + 1 旁路接力流水线**:brainstorm 收需求 → author 出稿 → critic 评审 → iloveppt 构建 + 加视觉 → audience 评分,四重 markdown 接缝 + 双闸门质量门(critic 14 项 + audience 9 分硬阈值),内容遵循麦肯锡金字塔原理,视觉对标 BCG/McKinsey。
+让 LLM 一次性出完整 .pptx,通常是"看着像但读起来空、视觉糙、论据弱"。**iLovePPT 把"写 PPT"拆成 5 专业 agent + 1 旁路接力流水线**:brainstorm 收需求 → author 出稿 → critic 评审 → iloveppt-builder 构建 + 加视觉 → audience 评分,四重 markdown 接缝 + 双闸门质量门(critic 14 项 + audience 9 分硬阈值),内容遵循麦肯锡金字塔原理,视觉对标 BCG/McKinsey。
 
 ---
 
@@ -46,8 +46,8 @@ python3 .claude/skills/pptx-deck/build.py .claude/skills/pptx-deck/examples/demo
 flowchart TB
     U([用户 · 一句话需求]) --> BS["<b>1 · brainstorm</b><br/>多轮挖 brief"]
     BS --> AU["<b>2 · author</b><br/>出 outline + 拓 content"]
-    AU --> CR{{"<b>3 · critic</b><br/>Stage C/D 双 gate · 14 项 + 4 维度判断"}}
-    CR -->|pass| BD["<b>4 · iloveppt</b><br/>build.py + 17 项机械 QA<br/>+ Step 4 主动加视觉(iconify/Unsplash/brand)"]
+    AU --> CR{{"<b>3 · critic</b><br/>Stage C/D 双 gate · 14 项 + 5 维度判断"}}
+    CR -->|pass| BD["<b>4 · iloveppt-builder</b><br/>build.py + 17 项机械 QA<br/>+ Step 4 主动加视觉(iconify/Unsplash/brand)"]
     BD --> AD{{"<b>5 · audience</b><br/>9 分硬阈值"}}
     AD -->|≥ 9 + 用户 OK| OUT([.pptx 交付])
     AD -.->|< 9 反馈| AU
@@ -68,12 +68,40 @@ flowchart TB
 | 文档 | 给谁看 |
 |---|---|
 | [docs/MANUAL.zh.md](docs/MANUAL.zh.md) | **用户** — 怎么对话、审稿、收稿 |
-| [docs/agent-internals.zh.md](docs/agent-internals.zh.md) | **改造者** — 流水线架构(Hybrid:1 brainstorm team + 5 subagent + 1 旁路 subagent)+ agent 职责 + 4 协作机制 + 6 设计决策 |
+| [docs/agent-internals.zh.md](docs/agent-internals.zh.md) | **改造者** — 流水线架构(Hybrid:1 brainstorm team + 5 subagent · 含旁路 extractor)+ agent 职责 + 4 协作机制 + 6 设计决策 |
 | [docs/agent-team-evaluation-checklist.zh.md](docs/agent-team-evaluation-checklist.zh.md) | **评审者** — 8 维度(A-H)审计框架 + L1-L3 母法则,适用任何 multi-agent system |
 | [.claude/pipeline-protocol.md](.claude/pipeline-protocol.md) | **Claude Code 主线程 AI** — 派发顺序 / handoff / gate 权威活协议 |
 | [CLAUDE.md](CLAUDE.md) | **Claude Code** — 仓库导航 + 不变式 + 约定 |
 | [library/visual-patterns/README.md](library/visual-patterns/README.md) | Visual Patterns 知识库(跨模板视觉模式) |
 | [library/pptx-templates/README.md](library/pptx-templates/README.md) | PPTX Templates 知识库(用户预置模板 + 拆出的每页 · `load_theme()` 读 `_source/`) |
+
+## Development
+
+改造者 / 贡献者命令(`pyproject.toml` 已配 `pythonpath`,无需 `sys.path` hack):
+
+```bash
+# 跑全部测试
+python3 -m pytest tests/ -q                              # 应 75 passed, 4 skipped
+
+# 跑单测
+python3 -m pytest tests/pptx/test_helpers.py::test_set_font_writes_ea_typeface -v
+
+# skill 独立烟测(不走 agent)
+python3 .claude/skills/pptx/examples/minimal_deck.py     # → /tmp/iloveppt_minimal.pptx
+bash .claude/skills/diagram/examples/render.sh           # → diagram examples/minimal.png
+
+# 渲染 .pptx 视觉验证
+soffice --headless --convert-to pdf <file>.pptx --outdir /tmp/
+pdftoppm -jpeg -r 120 /tmp/<file>.pdf /tmp/slide
+
+# 检查外部依赖
+bash .claude/skills/pptx/scripts/check_deps.sh
+
+# 端到端绕过 agent(已有 deck_plan.json 时)
+python3 .claude/skills/pptx-deck/build.py <path> [--no-render]
+```
+
+无 build 步骤、无 linter 配置。
 
 ## License
 

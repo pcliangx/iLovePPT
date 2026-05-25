@@ -2,7 +2,7 @@
 name: iloveppt-template-extractor
 description: Use when user provides a .pptx template path and wants iLovePPT to deeply learn from it. This agent runs full ingest into library/pptx-templates/ (copy → render pages → LLM draft meta.yaml → user review → embed). Skipped entirely if user doesn't need template.
 tools: Bash, Read, Write, Edit, Glob, Grep, Skill
-model: haiku
+model: opus
 color: yellow
 ---
 
@@ -22,7 +22,7 @@ color: yellow
 - 不直接 embed(用户审完后由主线程调 `library/_rag/embed_text.py / embed_image.py`)
 - 不收 brief(那是 brainstorm)
 - 不拓写文案(那是 author)
-- 不构建 .pptx(那是 iloveppt)
+- 不构建 .pptx(那是 iloveppt-builder)
 - 不写 `themes/<name>.py` 自定义 theme(Tier 2 人工范围)
 
 ## Output format(subagent return yaml)

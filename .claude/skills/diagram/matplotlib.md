@@ -70,10 +70,10 @@ Tech Blue 默认色板（对应 [[pptx]] design-system.md）：
 
 ```python
 # Tech Blue 色板（默认）
-BRAND_PRIMARY = '#1E6FE0'  # 主色，柱形 / 雷达填充
+BRAND_PRIMARY = '#0A52BF'  # 主色，柱形 / 雷达填充
 BRAND_DARK    = '#0B2A4A'  # 深色，轴线 / 标注文字
 BRAND_TINT    = '#E6F0FC'  # 浅色，背景区域
-ACCENT        = '#00D1C1'  # 强调色，高亮柱 / 阈值线
+ACCENT        = '#007A6D'  # 强调色，高亮柱 / 阈值线
 GRAY_300      = '#D9D9D9'  # 灰色，网格线 / 辅助元素
 WHITE         = '#FFFFFF'  # 白色，图表背景
 ```
@@ -108,8 +108,8 @@ categories = ['方案 A', '方案 B', '方案 C', '方案 D', '方案 E']
 values = [85, 72, 93, 61, 78]
 highlight_idx = 2  # 高亮最优方案
 
-BRAND_PRIMARY = '#1E6FE0'
-ACCENT        = '#00D1C1'
+BRAND_PRIMARY = '#0A52BF'
+ACCENT        = '#007A6D'
 BRAND_DARK    = '#0B2A4A'
 GRAY_300      = '#D9D9D9'
 
@@ -163,7 +163,7 @@ data = {
     '方案 B': [70, 75, 85, 90, 80, 70],
 }
 
-colors = ['#1E6FE0', '#00D1C1']
+colors = ['#0A52BF', '#007A6D']
 BRAND_DARK = '#0B2A4A'
 BRAND_TINT = '#E6F0FC'
 
@@ -215,8 +215,8 @@ def draw_gauge(value: float, title: str, output: str,
     value: 当前值（0 ~ vmax）
     thresholds: (警告阈值, 良好阈值)
     """
-    BRAND_PRIMARY = '#1E6FE0'
-    ACCENT        = '#00D1C1'
+    BRAND_PRIMARY = '#0A52BF'
+    ACCENT        = '#007A6D'
     BRAND_DARK    = '#0B2A4A'
 
     fig, ax = plt.subplots(figsize=(6, 4), subplot_kw=dict(aspect='equal'))

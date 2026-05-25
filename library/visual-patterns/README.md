@@ -1,6 +1,6 @@
 # Visual Patterns Library
 
-跨模板复用的视觉模式知识库(timeline / pdca / funnel / cards / 等)。被 iloveppt-author / iloveppt(Step 4 加视觉)在拓写时调用。
+跨模板复用的视觉模式知识库(timeline / pdca / funnel / cards / 等)。被 iloveppt-author / iloveppt-builder(Step 4 加视觉)在拓写时调用。
 
 ## 目录结构
 

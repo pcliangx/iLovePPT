@@ -21,29 +21,32 @@
 cp .claude/skills/pptx-deck/themes/_skeleton.py .claude/skills/pptx-deck/themes/company_a.py
 
 # 在 build.py 的 THEMES 字典注册
-# 当前:THEMES = {"tech_blue": _tech_blue}
-# 改成:THEMES = {"tech_blue": _tech_blue, "company_a": _company_a}
+# 当前:THEMES = {"tech_blue": _tech_blue, "template_training": _template_training}
+# 加一行:THEMES = {..., "company_a": _company_a}
+# 同时在 build.py 顶部加:from themes import company_a as _company_a
 ```
 
 然后在 brief 里 `theme: company_a` 就走你的自定义 theme。
 
-## 改造路线(13 个 make_* 函数)
+## 改造路线(13 个 make_* 函数 · `_skeleton.py` 覆盖 11 个,2 个新 layout 需从 `tech_blue.py` 抄)
 
 按"视觉冲击力"从大到小排,优先改前几个:
 
-| layout | 模板里通常对应 | 改造重点 |
-|---|---|---|
-| `make_cover` | 第 1 页 | 加 hero 图(用 Tier 1 提取的 cover_hero.png)/ 装饰元素 / logo |
-| `make_section_divider` | 全屏色块 + 大数字 | 跟着模板的章节扉页布局,可能要加品牌带 / 副标 |
-| `make_closing` | 谢谢页 | 加联系方式块 / 公司 logo 装饰 |
-| `make_toc` | 目录页 | 跟模板的圆点 / 编号 / 装饰条样式 |
-| `make_cards` | 内容页常用 | 圆角 / 阴影 / icon 位 / 卡片间距 |
-| `make_pic_text` | 图文混排 | 图位置 / 比例 / 卡片样式 |
-| `make_compare` | 对比页 | 分隔条 / 标题对齐 |
-| `make_single_focus` | 大数字页 | 数字字体 / 解释字位置 |
-| `make_bullet_list` | 要点页 | bullet 样式 / 缩进 / 行距 |
-| `make_table` | 表格页 | header 色 / banding 风格 |
-| `make_summary` | 结论页 | 编号块 / 列表样式 |
+| layout | 在 `_skeleton.py` | 模板里通常对应 | 改造重点 |
+|---|---|---|---|
+| `make_cover` | ✓ | 第 1 页 | 加 hero 图(用 Tier 1 提取的 cover_hero.png)/ 装饰元素 / logo |
+| `make_section_divider` | ✓ | 全屏色块 + 大数字 | 跟着模板的章节扉页布局,可能要加品牌带 / 副标 |
+| `make_closing` | ✓ | 谢谢页 | 加联系方式块 / 公司 logo 装饰 |
+| `make_toc` | ✓ | 目录页 | 跟模板的圆点 / 编号 / 装饰条样式 |
+| `make_cards` | ✓ | 内容页常用 | 圆角 / 阴影 / icon 位 / 卡片间距 |
+| `make_pic_text` | ✓ | 图文混排 | 图位置 / 比例 / 卡片样式 |
+| `make_compare` | ✓ | 对比页 | 分隔条 / 标题对齐 |
+| **`make_compare_pk`** | ✗ 缺(从 tech_blue.py 抄) | 对决式两选一 | 中间 VS 圆样式 / 双栏对称布局 |
+| **`make_matrix_2x2`** | ✗ 缺(从 tech_blue.py 抄) | BCG 矩阵 | 轴标签 / 四象限 highlight 风格 |
+| `make_single_focus` | ✓ | 大数字页 | 数字字体 / 解释字位置 |
+| `make_bullet_list` | ✓ | 要点页 | bullet 样式 / 缩进 / 行距 |
+| `make_table` | ✓ | 表格页 | header 色 / banding 风格 |
+| `make_summary` | ✓ | 结论页 | 编号块 / 列表样式 |
 
 ## 关键工程实践
 

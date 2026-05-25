@@ -297,10 +297,10 @@ H.section_header(s, "阶段名称", 1, H.BRAND_PRIMARY)
 `helpers.py` 顶部定义了抽象 `BRAND_*` 变量，全 deck 只改这里，联动生效：
 
 ```python
-BRAND_PRIMARY = RGBColor(0x1E, 0x6F, 0xE0)  # 主色
+BRAND_PRIMARY = RGBColor(0x0A, 0x52, 0xBF)  # 主色 · AAA 7:1(旧 #1E6FE0 4.6:1 已废)
 BRAND_DARK    = RGBColor(0x0B, 0x2A, 0x4A)  # 深色（大色块）
 BRAND_TINT    = RGBColor(0xE6, 0xF0, 0xFC)  # 浅底（装饰数字）
-ACCENT        = RGBColor(0x00, 0xD1, 0xC1)  # 强调色（少量点睛）
+ACCENT        = RGBColor(0x00, 0x7A, 0x6D)  # 强调色 · AA 5.2:1(旧 #00D1C1 1.7:1 已废)
 ```
 
 默认 9 个色变量足够覆盖 90% 场景（4 BRAND + 5 灰阶 + WHITE）。极端情况不要超过 12 个。

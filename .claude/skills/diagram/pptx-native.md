@@ -52,10 +52,10 @@ from pptx.enum.shapes import MSO_CONNECTOR
 from pptx.enum.text import PP_ALIGN
 
 # 色板（Tech Blue，与 [[pptx]] design-system.md 一致）
-PRIMARY   = RGBColor(0x1E, 0x6F, 0xE0)  # #1E6FE0
+PRIMARY   = RGBColor(0x0A, 0x52, 0xBF)  # #0A52BF · AAA 7:1(旧 #1E6FE0 4.6:1 已废)
 DARK      = RGBColor(0x0B, 0x2A, 0x4A)  # #0B2A4A
 TINT      = RGBColor(0xE6, 0xF0, 0xFC)  # #E6F0FC
-ACCENT    = RGBColor(0x00, 0xD1, 0xC1)  # #00D1C1
+ACCENT    = RGBColor(0x00, 0x7A, 0x6D)  # #007A6D · AA 5.2:1(旧 #00D1C1 1.7:1 已废)
 WHITE     = RGBColor(0xFF, 0xFF, 0xFF)
 FONT_CN   = 'Microsoft YaHei'
 

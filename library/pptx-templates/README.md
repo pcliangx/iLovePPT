@@ -1,6 +1,6 @@
 # PPTX Templates Library
 
-用户预置的 .pptx 模板知识库(按模板名分类)。被 brainstorm(列模板)、author(选页)、iloveppt(Step 4 加视觉)调用。
+用户预置的 .pptx 模板知识库(按模板名分类)。被 brainstorm(列模板)、author(选页)、iloveppt-builder(Step 4 加视觉)调用。
 
 ## 目录结构
 

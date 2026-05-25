@@ -28,7 +28,7 @@ presentation_mode: speaker
 ## critic 应有
 
 - **维度 1 论据强度高分**(technical deck 数据多,论据应该 sharp)
-- 4 维度判断性 issue ≥ 4 个(可能有"措辞过度商务化"等)
+- 5 维度判断性 issue ≥ 4 个(可能有"措辞过度商务化"等)
 
 ## audience 应有
 

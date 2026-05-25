@@ -5,7 +5,7 @@
 | 集 | 测什么 | 谁评 |
 |---|---|---|
 | `${CLAUDE_PROJECT_DIR}/evals/plans/` | build.py 机械构建回归(固定 plan → .pptx) | 跟 `baseline/scorecard.md` diff |
-| **`${CLAUDE_PROJECT_DIR}/evals/agents/`(本目录)** | agent 输出质量(brainstorm/author/critic/iloveppt/audience 的产出是否好,5 agent + 1 旁路) | 人工 + audience LLM 评分 |
+| **`${CLAUDE_PROJECT_DIR}/evals/agents/`(本目录)** | agent 输出质量(brainstorm/author/critic/iloveppt-builder/audience 的产出是否好,5 agent + 1 旁路) | 人工 + audience LLM 评分 |
 
 ## 为什么需要这个 eval
 
@@ -59,7 +59,7 @@ cat evals/agents/fixtures/01-exec-decision/brief.md
 
 # 2. 在 Claude Code 里说:
 "我要跑 eval fixture 01,brief 内容如下:..."
-# 主线程会按完整流水线跑:brainstorm → author → critic(C) → author(D) → critic(D) → iloveppt(build+视觉) → audience
+# 主线程会按完整流水线跑:brainstorm → author → critic(C) → author(D) → critic(D) → iloveppt-builder(build+视觉) → audience
 
 # 3. 跑完后,把各 agent 产出收集到 evals/agents/baseline/<timestamp>-<tag>.json
 # 4. 跟之前的 baseline 对比 → 看哪个维度涨了 / 跌了

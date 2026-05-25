@@ -15,7 +15,7 @@
 
 | 主题 | BRAND_PRIMARY | BRAND_DARK | BRAND_TINT | ACCENT |
 |---|---|---|---|---|
-| **科技蓝**（默认） | `#1E6FE0` | `#0B2A4A` | `#E6F0FC` | `#00D1C1` |
+| **科技蓝**（默认） | `#0A52BF` | `#0B2A4A` | `#E6F0FC` | `#007A6D` |
 | **商务深蓝**（Midnight Executive） | `#1E2761` | `#0A1234` | `#CADCFC` | `#FFFFFF` |
 | **党政红**（严肃中式） | `#8B1F24` | `#5E0E14` | `#FBE5E7` | `#EC0A1E` |
 | **极简白**（高端 pitch） | `#212121` | `#000000` | `#F5F5F5` | `#FF6B35` |
@@ -31,11 +31,11 @@
 编辑 `helpers.py` 顶部的 4 个 `BRAND_*` 常量：
 
 ```python
-# 默认：科技蓝
-BRAND_PRIMARY = RGBColor(0x1E, 0x6F, 0xE0)
+# 默认:科技蓝(AAA · 白底 7:1 对比度)
+BRAND_PRIMARY = RGBColor(0x0A, 0x52, 0xBF)   # 7.00:1 AAA(旧 #1E6FE0 仅 4.62:1 已废)
 BRAND_DARK    = RGBColor(0x0B, 0x2A, 0x4A)
 BRAND_TINT    = RGBColor(0xE6, 0xF0, 0xFC)
-ACCENT        = RGBColor(0x00, 0xD1, 0xC1)
+ACCENT        = RGBColor(0x00, 0x7A, 0x6D)   # 5.2:1 AA(旧 #00D1C1 仅 1.7:1 已废)
 
 # 切换为商务深蓝：
 BRAND_PRIMARY = RGBColor(0x1E, 0x27, 0x61)

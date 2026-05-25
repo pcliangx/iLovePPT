@@ -70,7 +70,7 @@ draw.io 支持无 GUI 的命令行渲染，适合批量生产 PNG。
         <!-- 节点 A：深色主节点 -->
         <mxCell id="n1" value="节点 A" vertex="1" parent="1"
                 style="rounded=1;arcSize=10;
-                       fillColor=#1E6FE0;strokeColor=#0B2A4A;
+                       fillColor=#0A52BF;strokeColor=#0B2A4A;
                        fontColor=#FFFFFF;fontSize=20;
                        fontFamily=Microsoft YaHei;fontStyle=1;
                        strokeWidth=2;whiteSpace=wrap;">
@@ -80,7 +80,7 @@ draw.io 支持无 GUI 的命令行渲染，适合批量生产 PNG。
         <!-- 节点 B：浅色次节点 -->
         <mxCell id="n2" value="节点 B" vertex="1" parent="1"
                 style="rounded=1;arcSize=10;
-                       fillColor=#E6F0FC;strokeColor=#1E6FE0;
+                       fillColor=#E6F0FC;strokeColor=#0A52BF;
                        fontColor=#0B2A4A;fontSize=20;
                        fontFamily=Microsoft YaHei;fontStyle=0;
                        strokeWidth=1.5;whiteSpace=wrap;">
@@ -129,7 +129,7 @@ draw.io 支持无 GUI 的命令行渲染，适合批量生产 PNG。
 ```xml
 <mxCell id="box1" value="系统模块" vertex="1" parent="1"
         style="rounded=1;arcSize=10;
-               fillColor=#1E6FE0;strokeColor=#0B2A4A;
+               fillColor=#0A52BF;strokeColor=#0B2A4A;
                fontColor=#FFFFFF;fontSize=20;
                fontFamily=Microsoft YaHei;fontStyle=1;
                strokeWidth=2;whiteSpace=wrap;">
@@ -141,7 +141,7 @@ draw.io 支持无 GUI 的命令行渲染，适合批量生产 PNG。
 
 ```xml
 <mxCell id="d1" value="条件满足？" vertex="1" parent="1"
-        style="rhombus;fillColor=#00D1C1;strokeColor=#0B2A4A;
+        style="rhombus;fillColor=#007A6D;strokeColor=#0B2A4A;
                fontColor=#0B2A4A;fontSize=18;
                fontFamily=Microsoft YaHei;fontStyle=1;">
   <mxGeometry x="350" y="300" width="160" height="100" as="geometry" />
@@ -191,7 +191,7 @@ draw.io 支持无 GUI 的命令行渲染，适合批量生产 PNG。
 <!-- 容器（subgraph） -->
 <mxCell id="grp1" value="子系统层" vertex="1" parent="1"
         style="rounded=1;arcSize=5;
-               fillColor=#E6F0FC;strokeColor=#1E6FE0;
+               fillColor=#E6F0FC;strokeColor=#0A52BF;
                fontColor=#0B2A4A;fontSize=22;fontStyle=1;
                fontFamily=Microsoft YaHei;
                verticalAlign=top;strokeWidth=2;">
@@ -201,7 +201,7 @@ draw.io 支持无 GUI 的命令行渲染，适合批量生产 PNG。
 <!-- 容器内子节点：parent="grp1" -->
 <mxCell id="c1" value="子模块 A" vertex="1" parent="grp1"
         style="rounded=1;arcSize=10;
-               fillColor=#1E6FE0;strokeColor=#0B2A4A;
+               fillColor=#0A52BF;strokeColor=#0B2A4A;
                fontColor=#FFFFFF;fontSize=18;
                fontFamily=Microsoft YaHei;">
   <mxGeometry x="40" y="80" width="200" height="60" as="geometry" />
@@ -246,10 +246,10 @@ draw.io 支持无 GUI 的命令行渲染，适合批量生产 PNG。
 使用 [[pptx]] design-system.md 的 10 套色板，默认 Tech Blue：
 
 ```
-主色      #1E6FE0   深色 box / 主节点 / 标题栏
+主色      #0A52BF   深色 box / 主节点 / 标题栏
 深色      #0B2A4A   边框 / 文字 / 箭头颜色
 浅底      #E6F0FC   subgraph 背景 / 浅色节点填充
-强调      #00D1C1   高亮节点 / 警示 / 正向标记
+强调      #007A6D   高亮节点 / 警示 / 正向标记
 白色      #FFFFFF   深底节点文字颜色
 灰色文    #999999   次要文本 / 注解
 浅灰底    #F5F5F5   中性背景
@@ -501,7 +501,7 @@ done
 # Tech Blue 替换示例（换成商务深蓝 #1E2761）
 for f in *.drawio; do
     sed -i.bak \
-        -e 's/#1E6FE0/#1E2761/g' \
+        -e 's/#0A52BF/#1E2761/g' \
         -e 's/#0B2A4A/#0A1234/g' \
         -e 's/#E6F0FC/#CADCFC/g' \
         "$f"
@@ -556,7 +556,7 @@ H.embed_picture(slide, "right.png", Inches(7.00), Inches(1.9), height=Inches(4.5
 
         <!-- subgraph 容器 -->
         <mxCell id="g1" value="核心层" vertex="1" parent="1"
-                style="rounded=1;arcSize=5;fillColor=#E6F0FC;strokeColor=#1E6FE0;
+                style="rounded=1;arcSize=5;fillColor=#E6F0FC;strokeColor=#0A52BF;
                        fontColor=#0B2A4A;fontSize=22;fontStyle=1;
                        fontFamily=Microsoft YaHei;verticalAlign=top;strokeWidth=2;">
           <mxGeometry x="80" y="100" width="700" height="250" as="geometry" />
@@ -564,7 +564,7 @@ H.embed_picture(slide, "right.png", Inches(7.00), Inches(1.9), height=Inches(4.5
 
         <!-- 节点 1 -->
         <mxCell id="n1" value="输入层" vertex="1" parent="g1"
-                style="rounded=1;arcSize=10;fillColor=#1E6FE0;strokeColor=#0B2A4A;
+                style="rounded=1;arcSize=10;fillColor=#0A52BF;strokeColor=#0B2A4A;
                        fontColor=#FFFFFF;fontSize=20;fontStyle=1;
                        fontFamily=Microsoft YaHei;strokeWidth=2;whiteSpace=wrap;">
           <mxGeometry x="40" y="80" width="200" height="70" as="geometry" />
@@ -580,7 +580,7 @@ H.embed_picture(slide, "right.png", Inches(7.00), Inches(1.9), height=Inches(4.5
 
         <!-- 节点 3（容器外）-->
         <mxCell id="n3" value="输出层" vertex="1" parent="1"
-                style="rounded=1;arcSize=10;fillColor=#00D1C1;strokeColor=#0B2A4A;
+                style="rounded=1;arcSize=10;fillColor=#007A6D;strokeColor=#0B2A4A;
                        fontColor=#0B2A4A;fontSize=20;fontStyle=1;
                        fontFamily=Microsoft YaHei;strokeWidth=2;whiteSpace=wrap;">
           <mxGeometry x="900" y="280" width="200" height="70" as="geometry" />

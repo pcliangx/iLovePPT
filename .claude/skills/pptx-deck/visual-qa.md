@@ -1,21 +1,21 @@
 # 逐页视觉自检 prompt 与流程
 
-本文档定义逐页视觉自检的 prompt 模板 + fix 循环 + 17 项 deck checklist。被 [workflow.md](workflow.md) Step 5 引用,同时是 iloveppt agent Step 3 的 checklist。
+本文档定义逐页视觉自检的 prompt 模板 + fix 循环 + 17 项 deck checklist。是 iloveppt-builder agent Step 3(视觉 QA 循环 ≤ 3 轮)的 checklist,也被 [workflow.md](workflow.md) 在 Stage E 的"Step 3 视觉 QA"步骤引用。
 
 ## 严格分工 —— 本 checklist 只查机械视觉,不评认知接收
 
-本文档的 17 项 checklist 是 **iloveppt Step 3 的机械视觉检查表**:字号 / 对齐 / 颜色 / 文字溢出 / 留白 / footer / 表格 banding 等**可量化机械项**。
+本文档的 17 项 checklist 是 **iloveppt-builder Step 3 的机械视觉检查表**:字号 / 对齐 / 颜色 / 文字溢出 / 留白 / footer / 表格 banding 等**可量化机械项**。
 
 **认知接收**(论点清晰度 / 节奏感 / 记忆点 / 哪页让读者走神 / 5 秒能否抓到要点)**不在此 checklist 范围内**,由 `iloveppt-audience` agent 评分(见 `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-audience.md`,用自定义 4 维度评分)。
 
-| iloveppt Step 3(本文档) | audience(iloveppt-audience.md) |
+| iloveppt-builder Step 3(本文档) | audience(iloveppt-audience.md) |
 |---|---|
 | 字号失衡 / 对齐错位 / 颜色违规 | 论点清晰度 / 信息密度感受 |
 | 文字溢出 / shape 重叠 / footer 缺失 | 这页 5 秒能不能抓到要点 |
 | chart 渲染破损 / 字体 fallback | 章节节奏感 / 走神点 |
 | 自动可修(决策 8a 边界内) | 不自动修(回 author 大改) |
 
-若某项既机械又有认知含义(例如"留白比例 ≥ 15%"),归 iloveppt(可量化优先归机械)。
+若某项既机械又有认知含义(例如"留白比例 ≥ 15%"),归 iloveppt-builder(可量化优先归机械)。
 
 ---
 
@@ -131,7 +131,7 @@ Claude 根据 `issue.suggested_fix` 决策如何修改 `deck_plan.json`：
 
 ## 全 deck 复核（deck_review）
 
-[workflow.md](workflow.md) Step 5 在所有 slide 通过后执行：
+iloveppt-builder Step 3 在逐页 QA 全部通过后(进 Step 4 之前)对全 deck 做一次复核:
 
 ### 字体一致性
 
@@ -159,7 +159,7 @@ Claude 根据 `issue.suggested_fix` 决策如何修改 `deck_plan.json`：
 
 完成所有单页 check 后，对整个 deck 做最终核查：
 
-### 基础(原 12 项)
+### 基础
 
 - [ ] **无重叠**：所有元素 z-order 正常，无文字穿形状
 - [ ] **无截断**：所有文本框内容完整显示，无省略号或被裁剪

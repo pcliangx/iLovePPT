@@ -2,7 +2,7 @@
 
 > 调研来源:Claude Code 官方文档(code.claude.com/docs) + Anthropic 工程博客 + 学术 benchmark(MAST / MultiAgentBench)+ 生产可观测性标准(OpenTelemetry GenAI)。
 > 结构按**审计视角**组织 —— 每条都是 PASS / GAP 判定题,不是描述性最佳实践。
-> 适用范围:任何 multi-agent / subagent 流水线;本仓库的具体应用对象是 iLovePPT 6-agent + 1 旁路。
+> 适用范围:任何 multi-agent / subagent 流水线;本仓库的具体应用对象是 iLovePPT 5-agent + 1 旁路(brainstorm → author → critic → iloveppt-builder → audience + iloveppt-template-extractor 旁路)。
 
 ---
 
@@ -99,9 +99,9 @@
 
 ---
 
-## I. 量化指标速查表(v2 追加,2026-05-25 调研)
+## I. 量化指标速查表
 
-> v1 章节(A–H)是定性 PASS / GAP 审计;本节是**带阈值的数字指标**,用于做监控告警与回归测试。每条指标可直接落到 trace pipeline 上。
+> A–H 章节是定性 PASS / GAP 审计;本节是**带阈值的数字指标**,用于做监控告警与回归测试。每条指标可直接落到 trace pipeline 上。
 
 ### I.1 质量 Quality
 
@@ -148,9 +148,9 @@
 
 | MAST 项 | 在 iLovePPT 5-agent 流水线的体现 |
 |---|---|
-| FM-1.1 Disobey task spec | iloveppt 漏 layout / 渲染不按 deck_plan |
+| FM-1.1 Disobey task spec | iloveppt-builder 漏 layout / 渲染不按 deck_plan |
 | FM-1.2 Disobey role spec | author 越权改大纲 |
-| FM-1.3 Step repetition | iloveppt 反复改同一页 |
+| FM-1.3 Step repetition | iloveppt-builder 反复改同一页 |
 | FM-1.4 Loss of conversation history | brief.md 信息没传到 content.md |
 | FM-1.5 Unaware of termination | 视觉 QA 死循环 |
 | FM-2.1 Conversation reset | critic 反馈被新 author session 丢 |
@@ -165,7 +165,7 @@
 
 ---
 
-## J. 立刻该补的三件事(2026-05-25 调研建议优先级)
+## J. 立刻该补的三件事(优先级)
 
 1. **`pass^k` 回归套件** — 挑 10 个标准 brief,每个独立跑 5 次,pass^5 ≥ 0.8 才算发布就绪。当前我们只看 pass@1。
 2. **Critic 校准 baseline** — 挑 30 个历史 deck 让人工打分,算 critic verdict 与人评的 Kendall τ。τ < 0.6 → critic prompt 必须改。
@@ -173,7 +173,7 @@
 
 ---
 
-## v2 新增的一手参考(2026-05-25)
+## 一手参考
 
 - [τ-bench(arxiv 2406.12045)](https://arxiv.org/abs/2406.12045) — `pass^k` 可靠性指标
 - [AgentBench(arxiv 2308.03688)](https://arxiv.org/pdf/2308.03688) — 8 环境完成率/步数
@@ -192,4 +192,4 @@
 - **第一次用**:对照清单逐项标 PASS / GAP / N/A,统计 GAP 数与所在维度。
 - **复盘节奏**:每次 agent 流水线大改动后跑一次;每季度跑一次全量审计。
 - **优先级**:L1-L3 母法则违反 > MAST 类 1/2/3 失败 > 反模式(H 区)> 可观测性补齐(G 区)。
-- **本仓库专用应用**:iLovePPT 当前 pipeline(brainstorm → author → critic → iloveppt → audience + extractor 旁路)逐项审计后留下的报告,可存在 `decks/<slug>/` 或新建 `audits/` 目录。
+- **本仓库专用应用**:iLovePPT 当前 pipeline(brainstorm → author → critic → iloveppt-builder → audience + extractor 旁路)逐项审计后留下的报告,可存在 `decks/<slug>/` 或新建 `audits/` 目录。

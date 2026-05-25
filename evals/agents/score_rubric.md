@@ -67,14 +67,14 @@
 
 | 分 | 标准 |
 |---|---|
-| 10 | 14 项 checklist 全跑 + 4 维度判断性 ≥ 5 个 issue(高质量带三要素)+ verdict 合理(三档区分清) |
-| 8-9 | 14 项全跑 + 4 维度 3-4 个 issue + verdict 合理 |
-| 6-7 | 14 项跑了 + 4 维度只 1-2 个 issue / 部分 issue 没三要素 |
-| 4-5 | 14 项有遗漏 / 4 维度没跑 / issue 是空话 |
+| 10 | 14 项 checklist 全跑 + 5 维度判断性 ≥ 5 个 issue(高质量带三要素)+ verdict 合理(三档区分清) |
+| 8-9 | 14 项全跑 + 5 维度 3-4 个 issue + verdict 合理 |
+| 6-7 | 14 项跑了 + 5 维度只 1-2 个 issue / 部分 issue 没三要素 |
+| 4-5 | 14 项有遗漏 / 5 维度没跑 / issue 是空话 |
 | 1-3 | 只是 checklist 打勾 / verdict 直接 pass 没 evidence |
 
 **重点 check**:
-- 4 维度判断性 issue 是否带 evidence(具体引文 / 出处)?
+- 5 维度判断性 issue 是否带 evidence(具体引文 / 出处)?
 - 每个 issue 是否有 severity + impact + suggestion 三要素?
 - 三档 verdict 是否合理(不是非黑即白)?
 

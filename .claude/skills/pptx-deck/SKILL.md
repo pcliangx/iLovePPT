@@ -1,11 +1,11 @@
 ---
 name: pptx-deck
-description: pptx-deck 知识库 —— 13 个 layout 的主题(tech_blue)、build.py 机械构建器、文案/图层/视觉 QA/模板提取的参考文档。**主入口是 [[iloveppt]] agent**(@agent-iloveppt 派发,带大纲 checkpoint 自动跑完全程);本 SKILL.md 仅作 skill-mode 后备入口供主线程 Claude 直接读用。触发由 agent 的 description 接管;本 skill 不再做自动委派。
+description: pptx-deck 知识库 —— 13 个 layout 的主题(tech_blue)、build.py 机械构建器、文案/图层/视觉 QA/模板提取的参考文档。**主入口是 [[iloveppt-builder]] agent**(@agent-iloveppt-builder 派发,带大纲 checkpoint 自动跑完全程);本 SKILL.md 仅作 skill-mode 后备入口供主线程 Claude 直接读用。触发由 agent 的 description 接管;本 skill 不再做自动委派。
 ---
 
 # pptx-deck — 端到端 PPT 生成器
 
-> **主入口:`@agent-iloveppt`**(独立上下文跑 Stage C(出 outline 等批准)→ Stage D(拓写 content)→ Stage E(构建 .pptx + 机械视觉 QA + 主动加视觉)→ audience)。本 skill 仍可被主线程 Claude 直接读用作 skill-mode 后备入口;触发关键词已搬到 agent 的 description。
+> **主入口:`@agent-iloveppt-builder`**(独立上下文跑 Stage C(出 outline 等批准)→ Stage D(拓写 content)→ Stage E(构建 .pptx + 机械视觉 QA + 主动加视觉)→ audience)。本 skill 仍可被主线程 Claude 直接读用作 skill-mode 后备入口;触发关键词已搬到 agent 的 description。
 
 复制人类快速生成 PPT 的能力：用户给主题或参考模板,skill 自动产出含视觉自检的完整 .pptx。Claude 产出 `deck_plan.json`，`build.py` 机械地将其渲染为 `.pptx` + PNG。
 
@@ -30,14 +30,14 @@ description: pptx-deck 知识库 —— 13 个 layout 的主题(tech_blue)、bui
 ### 路 A：自由对话
 LLM 与用户对话补齐必填字段（title / outline / theme / output）。缺哪问哪,问完即开始生成。
 
-字段补齐 prompt 模板见 [workflow.md](workflow.md) Step 1。
+完整对话流程见 [workflow.md](workflow.md) Stage A · 需求挖掘。
 
 ### 路 B：brief.md(主用)/ brief.yaml(兼容)
 主流程由 iloveppt-brainstorm agent 多轮对话产出 `brief.md`(markdown-first);仍兼容用户直接给 `brief.yaml`,schema 见 [brief.example.yaml](brief.example.yaml),deck_plan demo 见 [examples/demo_plan.json](examples/demo_plan.json)。
 
 ## 主流程 7 步
 
-详见 [workflow.md](workflow.md)。构建步骤（mechanical iloveppt）：
+详见 [workflow.md](workflow.md)。构建步骤（mechanical iloveppt-builder）：
 
 ```bash
 python3 build.py deck_plan.json
@@ -66,7 +66,7 @@ bash ../pptx/scripts/check_deps.sh
 ## 共识 token
 
 - **字体**：默认 Microsoft YaHei（macOS 渲染前装雅黑,详见 [[pptx]] creating.md）
-- **色板**：内置 tech_blue（PRIMARY #1E6FE0 / DEEP #0B2A4A / TINT #E6F0FC / ACCENT #00D1C1）
+- **色板**：内置 tech_blue（PRIMARY #0A52BF / DEEP #0B2A4A / TINT #E6F0FC / ACCENT #007A6D · AAA 对比度,SSOT 在 `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/helpers.py`）
 - **其他色板**：见 [[pptx]] design-system.md 10 套预设
 - **字号体系**：与 [[pptx]] design-system.md 同源
 

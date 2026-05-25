@@ -13,21 +13,22 @@
 
 **brief.md ≠ brainstorm 产出的 brief.md**。这里的 brief.md 是**用户提需求的原话**(包含可能的歧义、未明确字段、模糊措辞),目的是测 brainstorm 能不能挖出 deck_slug / audience / top_recommendation 等关键字段。
 
-## 当前 fixtures(MVP 阶段)
+## 当前 fixtures
 
 | # | slug | audience | mode | duration | 测什么 |
 |---|---|---|---|---|---|
 | 01 | exec-decision | executive | speaker | 15 min | brainstorm 能否挖出隐含的 audience + brainstorm 是否替用户填 top_recommendation;**默认路径** |
+| 02 | tech-architecture | technical | speaker | 30 min | 架构图密度(≥ 3 张)+ 数据密集(info_density 9+);**技术受众路径** |
+| 03 | sales-pitch | sales | speaker | 20 min | compare_pk / matrix_2x2 + 客户证言 / logo wall;**sales 品牌感路径** |
+| 04 | general-training | general | speaker | 45 min | 长 deck + `bypass_pyramid: tutorial` 教学结构;**通用培训路径** |
 | 05 | handout-weekly | technical | handout | 阅读型 | handout 模式字数 3-4× 规则;无 duration 的阅读型 deck;**边界条件** |
-
-(README 设计的 02-04 待 P1 补齐:02-tech-architecture / 03-sales-pitch / 04-general-training)
 
 ## 怎么用
 
 详细步骤见 `${CLAUDE_PROJECT_DIR}/evals/agents/runners/manual_runner.md`。简版:
 
 1. 把 fixture 的 `brief.md` 内容当作用户的原话,在新会话里说"做个 PPT,需求是 ...(brief.md 内容)"
-2. 让主线程按完整流水线跑(brainstorm → author → critic → iloveppt → audience)
+2. 让主线程按完整流水线跑(brainstorm → author → critic → iloveppt-builder → audience)
 3. 跑完收集产物,按 `score_rubric.md` 5 维度打分,写到 `baseline/<YYYY-MM-DD>-<tag>.json`
 4. 跟历史 baseline 对比看回归 / 提升
 

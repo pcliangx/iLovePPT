@@ -7,10 +7,10 @@ iLovePPT 流水线需要 Claude Code agent infra 才能跑,**没有 fully automa
 1. 确认你在 iLovePPT 仓库根目录(`pwd` 应有 `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/build.py`)
 2. 确认 fixture 存在:`ls ${CLAUDE_PROJECT_DIR}/evals/agents/fixtures/<fixture-id>/brief.md`
 3. 确认环境干净:
-   - `python3 -c "import cairosvg"` ✓(iloveppt Step 4 加 icon 需要)
-   - `echo $UNSPLASH_ACCESS_KEY`(可选,iloveppt Step 4 找 hero 图)
-   - `soffice --version`(iloveppt Step 2 渲染)
-   - `which pdftoppm`(iloveppt Step 2 PNG 转换)
+   - `python3 -c "import cairosvg"` ✓(iloveppt-builder Step 4 加 icon 需要)
+   - `echo $UNSPLASH_ACCESS_KEY`(可选,iloveppt-builder Step 4 找 hero 图)
+   - `soffice --version`(iloveppt-builder Step 2 渲染)
+   - `which pdftoppm`(iloveppt-builder Step 2 PNG 转换)
 
 ## 步骤
 
@@ -58,27 +58,28 @@ brainstorm 问:audience 是 executive / technical / general / sales 哪个?
 
 ### Step 4 · author Stage C/D
 
-主线程派 author Stage C → outline.md → 你审(对照 fixture.expected.md 章节)→ 批准 → critic Stage C → 用户 cherry-pick(若需要)→ author Stage D → content.md → 审 → 批准 → critic Stage D → **iloveppt (mode=full)** → audience。
+主线程派 author Stage C → outline.md → 你审(对照 fixture.expected.md 章节)→ 批准 → critic Stage C → 用户 cherry-pick(若需要)→ author Stage D → content.md → 审 → 批准 → critic Stage D → **iloveppt-builder (mode=full)** → audience。
 
 **关键**:每个 checkpoint 你的回答应该是"标准回答",不要随心改。eval 是测 agent,不是测你的判断。
 
 ### Step 5 · 收集产出
 
-跑完后,工作目录里应该有(注:`_r{N}` 后缀全保留,见 pipeline-protocol §0.5):
+跑完后,工作目录里应该有(注:`_r{N}` 后缀全保留,见 pipeline-protocol §5):
 ```
 brainstorm/brief.md
 author/deck_v1_outline.md
 author/deck_v1_content.md
 critic/critic_report_C_r{N}.md
 critic/critic_report_D_r{N}.md
-builder/deck_v1_content.postbuild.md
 builder/deck_v1.pptx
 builder/deck_plan.json
-builder/visual_report_r{N}.md         ← iloveppt Step 4 输出
+builder/visual_report_r{N}.md         ← iloveppt-builder Step 4 输出
 builder/deck_v1_render/page-*.jpg
 audience/audience_review_r{N}.md
 STATUS.md
 ```
+
+> 注:author/content.md 是 SSOT,iloveppt-builder 全程不动它(不写 .postbuild.md 副本)。Step 3 自动修复落在 `builder/deck_plan.json`。
 
 ### Step 6 · 评分 + 记 baseline
 

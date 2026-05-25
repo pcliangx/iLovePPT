@@ -5,7 +5,7 @@
 | Date | 2026-05-25 |
 | Mode | Hybrid (brainstorm team + 5 subagent) |
 | Wall-clock(主要 agent 累计) | ~25 分钟 |
-| Total agents invoked | brainstorm × 4 rounds + author × 2 (Stage C / D / D-rework) + critic × 3 (C / D / D-r2) + iloveppt × 1 + audience × 1 |
+| Total agents invoked | brainstorm × 4 rounds + author × 2 (Stage C / D / D-rework) + critic × 3 (C / D / D-r2) + iloveppt-builder × 1 + audience × 1 |
 | Total token (estimated) | ~600k |
 | Final critic Stage D verdict | pass_with_notes (r2,r1 needs_revision) |
 | Final audience overall_score | 6.4 / 10 (needs_major) |
@@ -26,8 +26,8 @@
 | critic/critic_report_D_r1.md | Stage D r1 verdict=needs_revision (1 high + B7 fail) |
 | critic/critic_report_D_r2.md | Stage D r2 verdict=pass_with_notes (must-fix 已修) |
 | builder/deck_plan.json | md→JSON 转换产物 |
-| builder/visual_report_r1.md | iloveppt Step 0-4 详细报告 |
-| builder/deck_v1_content.postbuild.md | iloveppt 副本(auto_md_edits 留底) |
+| builder/visual_report_r1.md | iloveppt-builder Step 0-4 详细报告 |
+| builder/deck_v1_content.postbuild.md | (历史产物 · 当前架构已弃用 .postbuild 副本;iloveppt-builder 现只改 deck_plan.json,不复制 content.md)|
 | audience/audience_review_r1.md | executive 视角 14 页评分 + top_3_must_fix + triage |
 
 ## 验证维度
@@ -39,7 +39,7 @@
 | Phase A → Phase B 切换(shutdown_request) | ✓(approved + teammate_terminated) |
 | Task author Stage C / D / D-rework | ✓ |
 | Task critic Stage C / D / D-r2 | ✓ |
-| Task iloveppt Stage E(Step 0-4)| ✓ |
+| Task iloveppt-builder Stage E(Step 0-4)| ✓ |
 | Task audience(triage)| ✓ |
 | yaml schema 主要字段 parse(agent/status/next_action/artifacts/verdict)| ✓ |
 | yaml schema 细节字段 parse(per_page_scores / issues 等)| ⚠ schema 偏差(详见 postmortem) |

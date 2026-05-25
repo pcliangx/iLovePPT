@@ -22,14 +22,14 @@ presentation_mode: speaker
 - 总页数 20 × 1.5 = **30 页 ± 3**
 - **closing 必有 `next_steps` 结构化 CTA**(action + owner + due)
 - `compare` 表用得多(竞品对比),有 `recommended: true` 标主推列
-- brand assets 用上(iloveppt Step 4 应该把 logo.png 嵌进 cover 或独立 logo wall page)
+- brand assets 用上(iloveppt-builder Step 4 应该把 logo.png 嵌进 cover 或独立 logo wall page)
 
-## builder/visual_report_r1.md 应有(iloveppt Step 4 产出)
+## builder/visual_report_r1.md 应有(iloveppt-builder Step 4 产出)
 
-- **brand assets 优先级最高** —— iloveppt Step 4 三路降级(brand > iconify > Unsplash)应优先 `_assets/brand/logos.png`
+- **brand assets 优先级最高** —— iloveppt-builder Step 4 三路降级(brand > iconify > Unsplash)应优先 `_assets/brand/logos.png`
 - icon 统一 prefix(若有 cards 加 icon · lucide / phosphor / tabler / heroicons 选一)
 - visual_appeal 拉满优先(sales fixture 比 executive 更看重视觉冲击)
-- patterns_searched / patterns_matched 字段非空(library-first 协议,pipeline-protocol §13.6)
+- `visual_step4.capability.rag_patterns` 非 `0_available` 且 `rag_fallback_used[]` 出现 ≥ 1 项(library-first:三处强制走 `library/search.sh`,见 [pipeline-protocol.md §3.3](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md))
 
 ## audience 应有
 
