@@ -118,19 +118,16 @@ critic Stage C 第 2 轮发现 A6 横向逻辑不齐(章节 2 是 because 句式
 
 用户在 md 里直接改了 → 下次派发 Read md 自然加载新内容,问"批准当前版本?",不需要 hash 比对。
 4. **若 `brief.theme` 是模板(短名或 .pptx 路径)**:
-   - `Read` `<repo>/templates/<theme>.yaml`(或同目录的 `<name>.yaml`)
-   - 若有 enriched yaml(被 template-extractor 处理过),提取以下用于拓写:
-     - `notes` —— 模板使用约束(如"封面 subtitle ≤ 25 字")
-     - `probe.visual_observations` —— 模板视觉风格观察
-     - `extracted.recommended_usage.hero_image` —— hero 插图路径,**在 cover 后第 1 页用 pic_text 嵌入**
-     - `extracted.recommended_usage.icons` —— 图标列表,**在 cards / pic_text 拓写时主动引用**
-   - `ls <working_dir>/extractor/template_<name>/` 看媒体清单(extractor L1 提取的)
-   - 若无 enriched yaml,正常按 brief 拓写
+   - `Read` `<repo>/library/pptx-templates/items/<theme>/meta.yaml`(模板级 metadata)
+   - 提取以下用于拓写:
+     - `visual_signature` —— 模板辨识元素,拓写时遵循风格
+     - `visual_tokens` —— 颜色 / 字号
+     - `assets.cover_thumbnail` 等 —— 如有 cover/icon 素材路径,可在 pic_text 嵌入
+   - 也可 `ls library/pptx-templates/items/<theme>/pages/` 看模板有哪些页 layout(每个子目录的 meta.yaml 描述该页)
+   - 若没有模板 meta.yaml,正常按 brief 拓写
 5. **若有模板素材,Stage D 拓写时主动用**:
-   - hero 图 → 在 cover 后第 1 页用 `pic_text` layout 嵌入(`![hero](../extractor/template_<name>/cover_hero.png)`,content.md 在 author/ 下,相对引用 extractor/)
-   - icons → cards 标题前嵌(`![icon](../extractor/template_<name>/icon_X.png) **标题**: body`)
-   - decorative_bg → section_divider 备用(若模板有装饰元素)
-   - **不要硬塞**:若内容跟模板素材没关系(如纯文字论证),不用强行加图
+   - 在 content.md 嵌入 `<!-- pattern: tpl:<theme>__<NN-slug> -->` 注释,iloveppt 会按该页 fallback_rendering 渲染
+   - **不要硬塞**:若内容跟模板某页没关系,走 visual-patterns 通用 pattern
 
 ### Stage D 拓写按 mode 选字数(关键)
 
@@ -188,13 +185,16 @@ footer_meta:
 1. 读 `brief.pattern_hints_for_author.candidates`(brainstorm Step 3.5 RAG 预选给的 category 候选,可空数组)
 2. 对每章(`## N. <action title>`):
    ```bash
-   QUERY="<章节 action title + intent 关键词,可加 brainstorm category 限定>"
-   Bash: bash ${CLAUDE_PROJECT_DIR}/library/visual-patterns/search.sh \
+   QUERY="<章节 action title + intent 关键词>"
+   Bash: bash ${CLAUDE_PROJECT_DIR}/library/search.sh \
          --query "$QUERY" \
+         --preferred-template "<brief.theme · 若是模板>" \
+         --type page \
          --mode hybrid \
          --top-k 5 \
          --format json
    ```
+   返回结果含 `source` 字段:`preferred-template`(模板内的页)或 `visual-patterns`(通用 fallback)。
 3. parse JSON top-5(每个 entry 含 id / category / score / yaml_path / doc_preview)
 4. **LLM 从 top-5 选 1-2 个最贴合**:
    - 优先选 brainstorm candidates 命中的 category 中的 pattern
@@ -332,26 +332,43 @@ message_to_user: |
 **触发**:`state.stage == "D"`(或 stage="C" 但 approvals.outline=true 时自动转)。
 
 1. `Read` `<working_dir>/author/deck_v{N}_outline.md`(确认 frontmatter + 章节)
-2. **查 visual patterns library**(若存在):
-   - 检查 `${CLAUDE_PROJECT_DIR}/library/visual-patterns/INDEX.md` 是否存在
-   - 存在 → Read INDEX.md 全文(给 LLM 选用)
-   - 对每个内容章节,**先想清楚 content intent**(2-3 关键词),按 INDEX 找最匹配 pattern
-   - 库大(50+ pattern)走 RAG(用 wrapper,自动选 venv Python):`Bash: ${CLAUDE_PROJECT_DIR}/library/visual-patterns/search.sh --query "<intent>" --category <process|cycle|...> --top-k 5 --format json`
-   - 找到匹配 → Read 对应 `patterns/<id>/pattern.yaml` 看 fallback_rendering
-   - **在 content.md 章节 layout 注释后嵌入** `<!-- pattern: <id> -->`,iloveppt 看到会按 pattern 渲染:
+2. **查 library**(顶层 router · 自动带 fallback):
+   - 调用:
+     ```bash
+     library/search.sh \
+         --query "<本页核心意图>" \
+         --preferred-template "<brief.theme · 若是模板, 否则省>" \
+         --type page \
+         --top-k 5 \
+         --fallback-threshold 0.55 \
+         --format json
+     ```
+   - 结果按 `source` 字段区分:
+     - `source=preferred-template` → 模板内匹配页(优先选)
+     - `source=visual-patterns` → 通用 vp pattern fallback
+   - 找到匹配 → Read 对应 `meta_path` 看 `fallback_rendering`
+   - **在 content.md 章节 layout 注释后嵌入** `<!-- pattern: <full-id> -->`,iloveppt 看到会按 meta.yaml 渲染。**full-id 必须带前缀**(`vp:` 或 `tpl:`):
 
      ```markdown
      ## 3. PDCA 持续改进
      <!-- layout: cards -->
-     <!-- pattern: pdca-loop -->
+     <!-- pattern: vp:pdca-iterations -->         <!-- fallback to visual-patterns -->
 
      - **Plan**: 定 Q3 目标
-     - **Do**: 试点 2 业务线
-     - **Check**: 周度复盘指标
-     - **Act**: 修正 / Q4 全公司
+     - ...
      ```
 
-   - 若**没有合适 pattern** → 走原 13 layout(cards / compare / pic_text 等),**不要强行套**
+     或:
+
+     ```markdown
+     ## 4. 用户增长破亿
+     <!-- layout: single_focus -->
+     <!-- pattern: tpl:template_golden__04-single-focus -->     <!-- 模板内匹配 -->
+
+     87% 的 Q3 用户来自移动端...
+     ```
+
+   - 若**完全没匹配** → 走原 13 layout(cards / compare / pic_text 等),**不写 pattern 注释**
 3. **逐章拓写**(按 content-writing.md 13 layout 字数规则):
    - 每节 1-3 内容页
    - 节奏感:≥3 连续相同 layout 才警告
