@@ -58,7 +58,7 @@ brainstorm 问:audience 是 executive / technical / general / sales 哪个?
 
 ### Step 4 · author Stage C/D
 
-主线程派 author Stage C → outline.md → 你审(对照 fixture.expected.md 章节)→ 批准 → critic Stage C → 用户 cherry-pick(若需要)→ author Stage D → content.md → 审 → 批准 → critic Stage D → **iloveppt (mode=full · 合并了 builder+designer)** → audience。
+主线程派 author Stage C → outline.md → 你审(对照 fixture.expected.md 章节)→ 批准 → critic Stage C → 用户 cherry-pick(若需要)→ author Stage D → content.md → 审 → 批准 → critic Stage D → **iloveppt (mode=full)** → audience。
 
 **关键**:每个 checkpoint 你的回答应该是"标准回答",不要随心改。eval 是测 agent,不是测你的判断。
 
@@ -74,7 +74,7 @@ critic/critic_report_D_r{N}.md
 builder/deck_v1_content.postbuild.md
 builder/deck_v1.pptx
 builder/deck_plan.json
-builder/visual_report_r{N}.md         ← iloveppt Step 4 输出(原 designer_report)
+builder/visual_report_r{N}.md         ← iloveppt Step 4 输出
 builder/deck_v1_render/page-*.jpg
 audience/audience_review_r{N}.md
 STATUS.md
@@ -91,7 +91,7 @@ STATUS.md
   "fixture_id": "01-exec-decision",
   "iloveppt_version": "<git-tag-or-sha>",
   "git_sha": "855db62",
-  "ran_at": "2026-05-24T10:00:00",
+  "ran_at": "<ISO timestamp>",
   "scorer": "manual" | "llm-claude-sonnet",
   "scores": {
     "1_brief_accuracy": 9,

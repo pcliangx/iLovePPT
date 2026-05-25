@@ -72,14 +72,14 @@ pdftoppm -jpeg -r 120 /tmp/<file>.pdf /tmp/slide
 
 ### Agent 流水线(5 agent + 1 旁路)
 
-`${CLAUDE_PROJECT_DIR}/.claude/agents/` 是项目的运行时流水线。**模型分层**(2026-05-25 后):critic / iloveppt 用 opus(深度推理 / 多职责),author / brainstorm / audience 用 sonnet,template-extractor 用 haiku(成本优化,见 [pipeline protocol §0.6 model 选型](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md))。
+`${CLAUDE_PROJECT_DIR}/.claude/agents/` 是项目的运行时流水线。**模型分层**:critic / iloveppt 用 opus(深度推理 / 多职责),author / brainstorm / audience 用 sonnet,template-extractor 用 haiku。
 
 | agent | 角色 | model |
 |---|---|---|
 | `iloveppt-brainstorm` | Stage A-B:多轮对话收 brief + 素材,出 brief.md 让用户确认 | sonnet |
 | `iloveppt-author` | Stage C-D:出 outline.md(章节骨架)+ 拓写 content.md(全文) | sonnet |
 | `iloveppt-critic` | **partner 评审员**:14 项 checklist 底线 + 4 维度判断性评审(论据强度 / 节奏 / 措辞 / 平衡),Stage C(用户批准 outline 后)和 Stage D(用户批准 content 后)各跑一次 | opus |
-| `iloveppt` | Stage E:**机械构建 .pptx + 机械视觉 QA(Step 0-3)+ 主动加视觉(Step 4 · 原 designer 流程并入)**,iconify / Unsplash / brand 三路降级 | opus |
+| `iloveppt` | Stage E:**机械构建 .pptx + 机械视觉 QA(Step 0-3)+ 主动加视觉(Step 4)**,iconify / Unsplash / brand 三路降级 | opus |
 | `iloveppt-audience` | 模拟目标受众读 deck 评分(9 分硬阈值);反馈三类分流(needs_author_rewrite / needs_visual_redo / needs_theme_fix) | sonnet |
 | `iloveppt-template-extractor` | 旁路:用户给 .pptx 模板时摄入 4 级 token | haiku |
 

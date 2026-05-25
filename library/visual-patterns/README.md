@@ -2,7 +2,7 @@
 
 **iLovePPT 的视觉模式知识库 + RAG 检索系统**。
 
-让 `iloveppt-author` / `iloveppt-designer` 在拓写 / 加视觉时**先查这个 library 找最匹配的 pattern**,而不是凭空造或局限于 13 个内置 layout。
+让 `iloveppt-author` / `iloveppt`(Step 4 加视觉)在拓写 / 加视觉时**先查这个 library 找最匹配的 pattern**,而不是凭空造或局限于 13 个内置 layout。
 
 ---
 
@@ -56,7 +56,7 @@ library/visual-patterns/search.sh \
 - ...
 ```
 
-builder Step 1 看到 `pattern: pdca-loop` 注释 → Read pattern.yaml 看 `fallback_rendering` → 按指示渲染。
+iloveppt Step 1 看到 `pattern: pdca-loop` 注释 → Read pattern.yaml 看 `fallback_rendering` → 按指示渲染。
 
 ### 场景 2 · 用户给新模板 → 入库
 

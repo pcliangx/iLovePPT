@@ -1,7 +1,7 @@
 # pptx-deck 主流程(6 agent + 1 旁路 + markdown-first)
 
 端到端:用户一句话 → 主线程 dispatcher 调度 6 agent + 1 旁路 → 用户审 markdown → 交付 .pptx。
-**"智能"全部放进 6 个 agent**(brainstorm / author / critic / builder / designer / audience + template-extractor 旁路),主线程退化为 router。
+**"智能"全部放进 6 个 agent**(brainstorm / author / critic / iloveppt / designer / audience + template-extractor 旁路),主线程退化为 router。
 
 权威活协议见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md);markdown-first 接缝设计 rationale 见 [设计史档](${CLAUDE_PROJECT_DIR}/docs/archive/2026-05-23-iloveppt-v3-markdown-first.md)。
 
@@ -29,7 +29,7 @@
   ◄────────────────────────  ask_user 审 content
   │ 用户批准
   ▼
-派发 iloveppt(builder)    ◄────────►   Stage E 终稿构建
+派发 iloveppt    ◄────────►   Stage E 终稿构建
   单次派发(内含 ≤ 3 轮 QA)            Read content.md → Pyramid 自检 →
                                           md→JSON → build.py → 视觉 QA
   ◄────────────────────────  next_action: done + pptx_path + auto_md_edits
@@ -67,7 +67,7 @@ loop:
 
 **典型派发序列**(无模板):
 ```
-brainstorm × N → author × M → builder × 1 → done
+brainstorm × N → author × M → iloveppt × 1 → done
 ```
 
 **典型派发序列**(有模板,新模板首次用):
@@ -75,12 +75,12 @@ brainstorm × N → author × M → builder × 1 → done
 brainstorm(收到模板路径)
   → template_extractor × 1(Stage T 一次性提取)
   → brainstorm(继续收齐字段)
-  → author × M → builder × 1 → done
+  → author × M → iloveppt × 1 → done
 ```
 
 **典型派发序列**(有模板,模板已 enriched 过):
 ```
-brainstorm(直接用 enriched yaml)× N → author × M → builder × 1 → done
+brainstorm(直接用 enriched yaml)× N → author × M → iloveppt × 1 → done
 ```
 
 主线程**第一次入口**(用户扔一句话时):
@@ -130,7 +130,7 @@ agent 在对话中识别用户素材 → 引导提供 → `Read` 校验 → 落 
 
 产出 `deck_v1_content.md` → ask_user 审。
 
-## Stage E · 终稿构建(iloveppt builder)
+## Stage E · 终稿构建(iloveppt)
 
 详见 [iloveppt agent](${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt.md)。
 
@@ -144,7 +144,7 @@ theme: tech_blue
 footer_meta: { classification, project, version }
 ```
 
-builder 5 步:Pyramid 自检 → md→JSON → build.py → 视觉 QA(≤ 3 轮,自动改 md 重 build)→ 返回。
+iloveppt 5 步:Pyramid 自检 → md→JSON → build.py → 视觉 QA(≤ 3 轮,自动改 md 重 build)→ 返回。
 
 主线程展示成品 + `auto_md_edits` + `review_needed`。
 
@@ -171,7 +171,7 @@ cover / toc / section_divider / single_focus / compare / compare_pk / matrix_2x2
 ## Anti-prompt
 
 - 主线程不要把 PPT 业务逻辑写进自己的回复 —— 全部交给 6 agent
-- 主线程不要跳过 brainstorm 直接派 iloveppt builder —— builder 会 reject(缺 content.md)
+- 主线程不要跳过 brainstorm 直接派 iloveppt —— iloveppt 会 reject(缺 content.md)
 - 主线程不要在 dispatcher 角色之外做事(主线程**只**做 router + 转发 message)
 - 主线程不要混淆 6 个 agent 的角色;按 `next_action` 严格派发(参考 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md) §12 派发表)
 - iloveppt-brainstorm 不要做大纲设计 —— 那是 author 的事

@@ -19,7 +19,7 @@ color: yellow
 **不做**:
 - 不收用户 brief(那是 brainstorm 的事)
 - 不设计 outline / 拓写文案(那是 author)
-- 不构建 .pptx(那是 builder)
+- 不构建 .pptx(那是 iloveppt)
 - 不写 `themes/<name>.py` 自定义 theme module(那是 Tier 2,需人工 1-3 天,不是本 agent 范围)
 
 ## 团队模式通信(必读)

@@ -99,6 +99,94 @@
 
 ---
 
+## I. 量化指标速查表(v2 追加,2026-05-25 调研)
+
+> v1 章节(A–H)是定性 PASS / GAP 审计;本节是**带阈值的数字指标**,用于做监控告警与回归测试。每条指标可直接落到 trace pipeline 上。
+
+### I.1 质量 Quality
+
+| # | 指标 | 口径 | 参考阈值 | 来源 |
+|---|---|---|---|---|
+| Q1 | First-pass yield | critic 第一次 verdict = pass 的比例 | ≥ 70–80% | LangSmith 经验 |
+| Q2 | Rework rate | 触发 `needs_*_rewrite` / 用户提迭代的比例 | < 10% | Anthropic agent-design |
+| Q3 | Anthropic 5 维 rubric | factual / citation / completeness / source quality / tool efficiency,各 0.0–1.0 | 平均 ≥ 0.8 | [Multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system) |
+| Q4 | Critic 校准度 | critic 通过率与人工评分的 Kendall τ | ≥ 0.6 | τ-bench 改造 |
+| Q5 | Reasoning-action match | critic 声明的 checklist 项是否有结构化证据回填 | 100% | MAST FM-2.6 |
+
+### I.2 稳定性 Stability
+
+| # | 指标 | 口径 | 参考阈值 | 来源 |
+|---|---|---|---|---|
+| S1 | **`pass^k`(关键!)** | 同一 brief 独立跑 k 次**全部**成功的概率 | pass^5 ≥ 0.8 | [τ-bench](https://arxiv.org/abs/2406.12045) |
+| S2 | 构建失败率 | `.pptx` 异常(XML / 字体 / shape)比例 | < 2% | Managed Agents events |
+| S3 | 可复现性方差 | 同 brief N 次的 wall-clock / token / 视觉 hash 方差 | < 15% | — |
+| S4 | 僵死线程率 | `session.thread_status_terminated` 异常比例 | < 1% | Managed Agents events |
+| S5 | `max_tokens` 截断率 | `stop_reason = max_tokens` 占比 | < 10% | Anthropic events API |
+| S6 | Human assist 次数 | 单任务被人工接管的次数 | 趋零 | 业界通用 |
+
+### I.3 效率 Efficiency
+
+| # | 指标 | 口径 | 参考阈值 | 来源 |
+|---|---|---|---|---|
+| E1 | Token-per-task 预算 | 单 deck 的 in+out token 总和 | < 单轮 author × 30(基线 multi-agent ≈ 15× chat) | Anthropic multi-agent post |
+| E2 | Cost-of-pass | `total_tokens / success_rate` | ≤ single-agent baseline | [Efficient Agents](https://arxiv.org/pdf/2508.02694) |
+| E3 | Prompt cache 命中率 | `cached_input_tokens / input_tokens` | ≥ 40% | Anthropic usage API |
+| E4 | Trajectory 冗余度 | 可裁剪的中间步 token 占比 | 可降 ≤ 40% 视作有优化空间 | [AgentDiet](https://arxiv.org/pdf/2509.23586) |
+| E5 | Wall-clock E2E | brief 输入 → `.pptx` 落盘总时延 | 立 SLA(15min deck ≤ 8min) | LangSmith trace |
+| E6 | 模型选型成本比 | Opus 调用成本 / Sonnet 调用成本 | < 1.5× | Anthropic usage API |
+| E7 | Subagent 配比经验 | 简单 1 agent / 3–10 calls;比较 2–4 / 10–15;复杂 10+ | 越界告警 | Anthropic multi-agent post |
+
+### I.4 可观测性 Observability
+
+- **O1** 每个 agent 都有 trace tree(input / output / tool calls / latency / token)
+- **O2** Trajectory eval:实际 step 序列 vs 期望序列子序列匹配度
+- **O3** Single-step eval:critic 路由、author 章节决策等关键节点单独可评 — 参考 [LangChain Deep Agents](https://www.langchain.com/blog/evaluating-deep-agents-our-learnings)
+- **O4** Handoff message log:`agent.thread_message_received/sent` 全量留痕,可 diff 跨 agent 信息丢失
+- **O5** Token / latency 时序面板:P50 / P95 / P99 per-agent,按天聚合
+
+### I.5 MAST 14 项失败模式 — 我们流水线的最相关映射
+
+| MAST 项 | 在 iLovePPT 5-agent 流水线的体现 |
+|---|---|
+| FM-1.1 Disobey task spec | iloveppt 漏 layout / 渲染不按 deck_plan |
+| FM-1.2 Disobey role spec | author 越权改大纲 |
+| FM-1.3 Step repetition | iloveppt 反复改同一页 |
+| FM-1.4 Loss of conversation history | brief.md 信息没传到 content.md |
+| FM-1.5 Unaware of termination | 视觉 QA 死循环 |
+| FM-2.1 Conversation reset | critic 反馈被新 author session 丢 |
+| FM-2.2 Fail to ask for clarification | brainstorm 信息不全就交付 |
+| FM-2.3 Task derailment | author 写了 brief 没要求的章节 |
+| FM-2.4 Information withholding | critic 漏报 outline 硬伤 |
+| FM-2.5 Ignored other agent's input | audience 反馈被吞 |
+| **FM-2.6 Reasoning-action mismatch** | critic 声明"14 项 checklist 全过"实际只查了 8 项 — **最隐蔽** |
+| FM-3.1 Premature termination | audience 没读完就打分 |
+| FM-3.2 No / incomplete verification | 跳过视觉 QA |
+| FM-3.3 Incorrect verification | critic 通过了劣质 content |
+
+---
+
+## J. 立刻该补的三件事(2026-05-25 调研建议优先级)
+
+1. **`pass^k` 回归套件** — 挑 10 个标准 brief,每个独立跑 5 次,pass^5 ≥ 0.8 才算发布就绪。当前我们只看 pass@1。
+2. **Critic 校准 baseline** — 挑 30 个历史 deck 让人工打分,算 critic verdict 与人评的 Kendall τ。τ < 0.6 → critic prompt 必须改。
+3. **Token-per-deck 预算 + 越界告警** — 跑 10 个标准 brief 取中位数 × 1.5 作上限,超限触发 trace 审查。是 step-repetition / context-collapse 的早期信号。
+
+---
+
+## v2 新增的一手参考(2026-05-25)
+
+- [τ-bench(arxiv 2406.12045)](https://arxiv.org/abs/2406.12045) — `pass^k` 可靠性指标
+- [AgentBench(arxiv 2308.03688)](https://arxiv.org/pdf/2308.03688) — 8 环境完成率/步数
+- [MultiAgentBench(arxiv 2503.01935)](https://arxiv.org/pdf/2503.01935) — milestone KPI
+- [Beyond Accuracy / CLASSic(arxiv 2511.14136)](https://arxiv.org/html/2511.14136v1) — Cost/Latency/Accuracy/Stability/Security 五维
+- [Efficient Agents(arxiv 2508.02694)](https://arxiv.org/pdf/2508.02694) — cost-of-pass 公式
+- [AgentDiet(arxiv 2509.23586)](https://arxiv.org/pdf/2509.23586) — trajectory 剪枝实证
+- [LangSmith — Evaluate a complex agent](https://docs.langchain.com/langsmith/evaluate-complex-agent) — final / trajectory / single-step 三维
+- [Sierra blog — τ-bench shaping agent dev](https://sierra.ai/blog/tau-bench-shaping-development-evaluation-agents) — `pass^k` 实战
+- [Anthropic — Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) — 架构警告(latency/cost 换 performance)
+
+---
+
 ## 使用说明
 
 - **第一次用**:对照清单逐项标 PASS / GAP / N/A,统计 GAP 数与所在维度。
