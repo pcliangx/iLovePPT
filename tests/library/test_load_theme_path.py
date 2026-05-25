@@ -5,6 +5,13 @@ from pathlib import Path
 
 import pytest
 
+# 真实 import python-pptx 检测(find_spec 会被仓库 .claude/skills/pptx namespace
+# package 误判,所以直接试 import Presentation 才靠谱)
+try:
+    from pptx import Presentation as _P  # noqa: F401
+except ImportError:
+    pytest.skip("python-pptx 未装。用 system python3 跑", allow_module_level=True)
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / ".claude" / "skills" / "pptx-deck"))
 sys.path.insert(0, str(REPO_ROOT / ".claude" / "skills" / "pptx"))

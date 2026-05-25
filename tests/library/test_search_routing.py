@@ -1,10 +1,14 @@
 """验证 search.py router · preferred-template 优先 + fallback 行为。"""
 
+import importlib.util
 import struct
 import sys
 from pathlib import Path
 
 import pytest
+
+if importlib.util.find_spec("sqlite_vec") is None or importlib.util.find_spec("yaml") is None:
+    pytest.skip("sqlite-vec / pyyaml 未装。用 library/_rag/.venv/bin/python 跑", allow_module_level=True)
 
 LIB_DIR = Path(__file__).resolve().parent.parent.parent / "library"
 RAG_DIR = LIB_DIR / "_rag"

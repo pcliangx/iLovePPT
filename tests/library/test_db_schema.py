@@ -1,9 +1,13 @@
 """验证 library/_rag/db.sqlite 5 张表 + 2 张向量表结构。"""
 
+import importlib.util
 import sys
 from pathlib import Path
 
 import pytest
+
+if importlib.util.find_spec("sqlite_vec") is None or importlib.util.find_spec("yaml") is None:
+    pytest.skip("sqlite-vec / pyyaml 未装。用 library/_rag/.venv/bin/python 跑", allow_module_level=True)
 
 RAG_DIR = Path(__file__).resolve().parent.parent.parent / "library" / "_rag"
 sys.path.insert(0, str(RAG_DIR))

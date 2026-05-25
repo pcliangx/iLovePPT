@@ -217,9 +217,10 @@ def _extract_theme_from_pptx(pptx_path: str) -> ModuleType:
 
 
 def _repo_templates_dir() -> Path:
-    """iLovePPT 仓库根的 templates/ 目录(`<repo>/.claude/skills/pptx-deck/build.py`
-    → `<repo>/templates/`)。.resolve() 处理符号链接场景。"""
-    return Path(__file__).resolve().parent.parent.parent / "templates"
+    """仓库根的 library/pptx-templates/_source/ 目录(模板 .pptx 全局共享)。
+    build.py 位于 <repo>/.claude/skills/pptx-deck/build.py。"""
+    repo_root = Path(__file__).resolve().parents[3]  # build.py → pptx-deck → skills → .claude → repo
+    return repo_root / "library" / "pptx-templates" / "_source"
 
 
 def _find_template(name: str, plan_dir: str | None = None) -> Path | None:
@@ -275,11 +276,11 @@ def load_theme(theme_id: str, plan_dir: str | None = None) -> ModuleType:
         return _extract_theme_from_pptx(str(found))
     # 未找到 → 列可用的帮用户排错
     available = _list_available_templates()
-    available_str = ", ".join(available) if available else "(空,把 .pptx 放进 templates/)"
+    available_str = ", ".join(available) if available else "(空,把 .pptx 放进 library/pptx-templates/_source/)"
     raise ValueError(
         f"未知 theme: {theme_id!r}. "
         f"内置: tech_blue. "
-        f"templates/ 可用: {available_str}. "
+        f"library/pptx-templates/_source/ 可用: {available_str}. "
         f"或直接给 .pptx 绝对/相对路径。"
     )
 
