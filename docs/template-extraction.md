@@ -62,46 +62,82 @@ library/_rag/.venv/bin/python library/_rag/embed_image.py --kb pptx-templates --
 (Tier 2 · 复刻 layout,需人工 1-3 天,见 writing-custom-themes.md)
 ```
 
-## enriched 结构
+## enriched 结构(v2 schema · 权威见 [`library/pptx-templates/ingest_workflow.md`](${CLAUDE_PROJECT_DIR}/library/pptx-templates/ingest_workflow.md))
 
 ```yaml
 # library/pptx-templates/items/company_a/meta.yaml(模板级)
 
-# === 用户手填 / extractor 起草 ===
-name: 公司外部提案模板
-desc: 用于客户演示 / 销售提案 / 路演
-recommended_for: [executive, sales]
-owner: 销售部 (alice@example.com)
+# === Gate ===
+status: draft                                    # draft | approved | embedded
 
-# === extractor 自动填 ===
-visual_signature: |
-  封面深色背景 + 浅色标题(48pt 在 Source Han Sans CN 偏紧建议 ≤ 16 字),
-  整体冷色系蓝调,装饰元素少
+# === Provenance(防 silent failure)===
+provenance:
+  schema_version: v1
+  embedding_model: tongyi-embedding-vision-plus
+  embedding_dim: 1152
+  ingested_at: 2026-05-26T10:30:00Z
+  source_pptx_sha256: <64-hex>                   # shasum -a 256
+  source_pptx_size_bytes: 1810473
+
+# === Extraction summary(Step 2.5 + Step 3 聚合 · 用户审 gate 必看)===
+extraction:
+  declared_pages: 39                             # unzip <p:sldId 数
+  rendered_pages: 32                             # ls preview.png 数
+  discrepancy: 7                                 # 非 0 时用户审,可能是 iSlide 工具页 / 真渲染失败
+  discrepancy_resolution: pending                # pending | confirmed_tool_pages | confirmed_real_loss
+  low_confidence_pages: []
+  failed_pages: []
+
+# === 必填(进 embedding · build_text_doc_tpl_template 拿这些)===
+id: company_a
+name: 公司外部提案模板
+category: enterprise-modern                      # 自由 string,常用 enterprise-modern/training/marketing/sales
+content_intent: [客户演示 / 销售提案 / 路演]
+when_to_use: [面向客户决策者, 需冷色稳重视觉]
+keywords: [深蓝, 企业, 路演, 销售]
+recommended_for: [executive, sales]
+visual_signature:
+  - 封面深色蓝调 + 浅色标题(48pt Source Han Sans CN ≤ 16 字)
+  - 装饰元素少,整体冷色
+
+# === 辅助(不进 embedding)===
 visual_tokens:
-  accent1: "#0B5BCC"           # → BRAND_PRIMARY
-  accent2: "#FF6B35"
-  dk1: "#1A1A1A"
-  lt1: "#FFFFFF"
-  font_ea: Source Han Sans CN  # → FONT_CN
+  primary: '#0B5BCC'
+  accent: '#FF6B35'
+  font_ea: 'Microsoft YaHei'                     # 或 'Source Han Sans CN' 若模板内嵌
   title_size_pt: 44
   body_size_pt: 18
-recommended_usage:             # extractor agent 写,主动提示 author
-  hero_image: items/company_a/media/cover_hero.png
-  icons:
-    - items/company_a/media/icon_1.png
-    - items/company_a/media/icon_2.png
+assets:
+  source_pptx: ../../_source/company_a.pptx
+  total_pages: 32
+  cover_thumbnail: pages/01-cover/preview.png
+pages: [01-cover, 02-toc, 03-cards, ...]
 ```
 
 ```yaml
-# library/pptx-templates/items/company_a/pages/03-cards-process/meta.yaml(每页)
-layout_type: cards
-intent: 列举并列项(3-5 个)
-keywords: [并列, process, 步骤]
-visual_observations: |
-  卡片 4 列,每列 ≤ 14 字 body 保持平衡;
-  标题前留 24px icon 位
+# library/pptx-templates/items/company_a/pages/03-cards/meta.yaml(页级)
+status: draft
+confidence: 0.92                                 # 严格 0.0-1.0 数字(不许 high/medium/low 字符串)
+needs_manual_review: false                       # confidence < 0.6 必须 true
+
+# === 必填(进 embedding · build_text_doc_tpl_page 拿这些)===
+id: company_a__03-cards                          # <template_name>__<NN-slug> · __ 是 page id 分隔符
+name: "Cards · 4-Column Process Steps"
+layout_type: cards                               # ← 必须从 17 enum 选:cover/toc/section_divider/summary/closing/quote/single_focus/cards/bullet_list/data/timeline/pyramid/venn/radial/process_flow/quadrant/comparison + other 兜底
+content_intent: [列举并列项(3-5 个)]
+when_to_use: [process 步骤, 多卡片 grid]
+keywords: [并列, process, 步骤, cards]
+native_elements:
+  - 卡片 4 列,每列 ≤ 14 字 body 保持平衡
+  - 标题前留 24px icon 位
+
+# === 辅助(可选,不进 embedding)===
+layout_hint: null                                # layout_type=other 时必填
+variant: "4-cols"                                # cards 细分(如 "3-cols" / "4-icons" / "grid")
+page_number: 3
+template_name: company_a
 fallback_rendering:
-  method: native_pptx
+  method: native_pptx                            # native_pptx | diagram | manual
   matches_iloveppt_layout: cards
 ```
 
@@ -117,15 +153,18 @@ fallback_rendering:
    - 每页紧跟 `<!-- pattern: tpl:<theme>__<NN-slug> -->` 注释,iloveppt-builder Step 2 按 pattern 渲染
 4. 拓写每节文案时,尊重 `visual_observations` 里的字数 / 字号约束
 
-## 摄入失败处理
+## 摄入失败处理(v2 · error code 枚举)
 
-| 失败 | render_pages.py / extract_template.py 行为 | extractor agent 后续 |
+| code | 触发场景 | 主线程行为 |
 |---|---|---|
-| .pptx 损坏 / 不存在 | 退出 code 2 + stderr | 返回 `error` + `[system] template_extractor_failed` 前缀,主线程展示给用户 |
-| L1 unzip 失败 | 警告 + 继续 | 部分提取,标 `template_ready: partial` |
-| L2 XML 解析失败 | 静默退回 best-effort | `visual_tokens` 部分为空 |
-| L3 渲染失败(soffice 缺) | 报错 + 跳渲染 | 无 preview.png,标 `template_ready: false` |
-| L4 视觉分析失败 | — | meta.yaml.draft 无 `visual_observations` |
+| `NAME_INVALID_CHARS` | name 含 `__`(跟 page id 分隔符冲突) | 让用户改名重派 |
+| `PPTX_CORRUPTED` | unzip 失败,.pptx 损坏 | 让用户重新提供文件 |
+| `RENDER_CLI_NOT_FOUND` | soffice/pdftoppm 不在 PATH | 报环境问题(`bash .claude/skills/pptx/scripts/check_deps.sh`)|
+| `RENDER_TOTAL_FAILURE` | LibreOffice 渲染 0 页 | 报环境问题 |
+| `PAGE_READ_TIMEOUT` | 某页 Read PNG timeout | 可重派 |
+| `SCHEMA_VALIDATION_FAILED` | Step 3.3 self-check 失败(YAML 语法 / 必填字段缺 / enum 违规 / id 重复 / confidence 非数字) | 不放行,详见 errors[].message |
+
+**注意**:**Step 2.5 declared vs rendered mismatch 不再是 error**(advisory 设计 · v1 → v2 改动)。`declared != rendered` 时仍跑 Step 3,数字记进 `extraction.{declared_pages, rendered_pages, discrepancy, discrepancy_resolution: pending}`,**让用户审 gate 判断**是"iSlide 工具页(confirmed_tool_pages)"还是"真渲染失败(confirmed_real_loss)"。唯一 hard_stop 是 `rendered == 0`(`RENDER_TOTAL_FAILURE`)。
 
 失败时,extractor agent 通过 `[system] template_extractor_failed` 前缀的 SendMessage 回 brainstorm team,brainstorm 走兜底分支(用户三选一:装好依赖后重试 / 降级 tech_blue / 终止)。
 

@@ -8,13 +8,15 @@
 library/pptx-templates/
 ├── README.md  INDEX.md  ingest_workflow.md
 ├── items/<name>/
-│   ├── meta.yaml                      ← 模板级 metadata
-│   ├── preview.png                    ← cover 缩略图(入 git)
+│   ├── meta.yaml                      ← 模板级 metadata(入 git)
+│   ├── preview.png                    ← cover 缩略图(gitignored · `preview*.png` 规则)
 │   └── pages/<NN-slug>/
 │       ├── meta.yaml                  ← 页级 metadata(入 git)
-│       └── preview.png                ← 该页渲染 PNG(入 git, 单页 ~100-300KB)
+│       └── preview.png                ← 该页渲染 PNG(gitignored · 单页 ~100-300KB)
 └── _source/<name>.pptx                ← gitignored · build.py:load_theme() 读这里
 ```
+
+> **注**:`.gitignore` line 17 `preview*.png` 当前忽略全部 preview;line 55 的注释意图是"入 git"但跟当前规则不一致。若要让 items/*/preview.png 入 git,需在 `.gitignore` 加一条 `!library/*/items/**/preview.png` 例外。
 
 每个模板严格 1:1 对应一个 .pptx 源(放 `_source/<name>.pptx`)。
 

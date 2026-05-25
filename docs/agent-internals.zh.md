@@ -29,7 +29,7 @@
 | `iloveppt-critic` | Stage C/D 各跑一次:14 项 checklist + 5 维度判断性评审 + 三档 verdict | **Task**(subagent) | opus |
 | `iloveppt-builder` | Stage E:机械 build .pptx + Step 0-3 机械视觉 QA + Step 4 主动加视觉(iconify/Unsplash/brand/RAG 4 路降级) | **Task**(subagent) | opus |
 | `iloveppt-audience` | 模拟目标受众读 deck(9 分硬阈值),三类反馈分流(needs_author_rewrite / needs_visual_redo / needs_theme_fix) | **Task**(subagent) | opus |
-| `iloveppt-template-extractor` | 旁路 Stage T:用户提供 .pptx 模板时完整 ingest 到 `library/pptx-templates/items/<name>/`(复制 _source + render_pages.py 渲染每页 + LLM 起草双层 meta.yaml.draft → user_review_drafts gate → 主线程 embed) | **Task**(subagent) | opus |
+| `iloveppt-template-extractor` | 旁路 Stage T:用户提供 .pptx 模板时完整 ingest 到 `library/pptx-templates/items/<name>/`(复制 _source + render_pages.py 渲染每页 + Step 2.5 declared/rendered 对账 advisory + Step 3.1 LLM 起草双层 meta.yaml.draft(17 layout enum 严约束 + other 兜底 + confidence 数字 + 必填字段) + Step 3.3 self-check(YAML 语法 / 必填字段 / enum 合规 / id 唯一)→ user_review_drafts gate → 主线程 embed) | **Task**(subagent) | opus |
 
 **模型统一 rationale**:团队复杂度高、6 agent 横跨多轮对话 / 深度判断 / 视觉认知 / 模板摄入,任一环掉链都会传到下游;为保 team 一致质量,全用 opus。**Trade-off**:每条流水线 cost 较分层方案高 ~3-4x,可接受。
 
@@ -222,18 +222,23 @@ bash ${CLAUDE_PROJECT_DIR}/library/search.sh \
 - `items/<name>/pages/<NN-slug>/{meta.yaml, preview.png}`(每页拆出来的资产 · 入 git;`__` 开头页跳过 ingest,如 `__cover` / `__divider`)
 - `{README.md, INDEX.md, ingest_workflow.md}`
 
-**4 级 token 定义**(extractor 抽取):
-- L1 媒体:cover_hero.png / icon_*.png 等(解压自 .pptx)
-- L2 扩展 token:主色 / 字体 / layout 名 / shape 命名规范
-- L3 每页渲染(`library/_rag/render_pages.py <name>` → 全部页 preview.png)
-- L4 视觉观察(extractor LLM 写 `items/<name>/meta.yaml` + 每页 `pages/<NN-slug>/meta.yaml` 草稿,用户审后入库)
+**4 级 token 定义**(extractor 抽取 · v2 实际跑法):
+- L1 媒体:`extract_template.py` 解压 .pptx 媒体 → cover_hero.png / icon_*.png 等。**可选 · 当前默认跳过**(visual_tokens 由 L4 LLM 直接看 PNG 写出来)
+- L2 扩展 token:`extract_template.py` 抽 accent / dk / lt / 字号 / 背景。**可选 · 当前默认跳过**(同上)
+- L3 每页渲染(`library/_rag/render_pages.py <name> --dpi 120` · soffice → pdftoppm)→ `items/<name>/pages/NN-page/preview.png`(占位名,L4 后 rename)
+- L4 视觉分析 + 起草 + self-check(extractor LLM 必跑):
+  - **Step 2.5**:declared(unzip sldId 数)vs rendered(ls preview.png 数)如实记 advisory,**不许**用"hidden/master"幻觉解释 discrepancy
+  - **Step 3.0**:TodoWrite N+1 项强制(缓解 [#47936](https://github.com/anthropics/claude-code/issues/47936) async subagent 提前 return bug)
+  - **Step 3.1**:逐页 Read PNG → 从 17 layout enum 选 + `other` 兜底(`needs_manual_review:true` + `layout_hint`)+ confidence 严格 0.0-1.0 数字
+  - **Step 3.2**:写模板级 meta(必填 `provenance.{schema_version, embedding_model, embedding_dim, ingested_at, source_pptx_sha256}` + `extraction.{declared_pages, rendered_pages, discrepancy, discrepancy_resolution}`)
+  - **Step 3.3 self-check**(进 Step 4 前 hard gate):YAML 语法验证 + 必填字段 + enum 合规 + id 格式唯一性 + confidence 数字检查;任一项不通过 → `status: error` + `code: SCHEMA_VALIDATION_FAILED`
 
 **调用矩阵**:
 
 | agent | 调用时机 | 干什么 | 写还是读 |
 |---|---|---|---|
 | **brainstorm** | Stage A 问 theme 时 | 用户选"用模板":`library/search.sh --kb pptx-templates --type template --query <主题>` 按主题相关性排候选 → 用户挑;用户给新 .pptx 路径 → dispatch_template_extractor 走完整 ingest | 读 |
-| **template-extractor**(旁路) | Stage T(用户给模板时) | 复制 .pptx → `library/pptx-templates/_source/<name>.pptx` → 跑 `library/_rag/render_pages.py` 渲染每页 → LLM 起草 `items/<name>/{meta.yaml, pages/.../meta.yaml}.draft` 让用户审 → 主线程跑 embed 入库 | **写** |
+| **template-extractor**(旁路) | Stage T(用户给模板时) | 复制 .pptx → `library/pptx-templates/_source/<name>.pptx` → 跑 `library/_rag/render_pages.py` 渲染每页 → Step 2.5 advisory 对账 → Step 3.0 TodoWrite + Step 3.1 逐页 LLM(17 enum + confidence)→ Step 3.2 模板级 meta + extraction summary → Step 3.3 self-check → 起草 `items/<name>/{meta.yaml, pages/.../meta.yaml}.draft` 让用户审 → 主线程跑 embed 入库 | **写** |
 | **author Stage D** | Step 1C(若 theme ≠ tech_blue)| Read `library/pptx-templates/items/<theme>/meta.yaml`(visual_signature / visual_tokens)指导拓写 + 调 `library/search.sh --preferred-template <theme> --type page` 选页 → content.md 嵌 `<!-- pattern: tpl:<theme>__<NN-slug> -->` | 读 |
 | **iloveppt-builder** | Step 2 build 时(through build.py:_repo_templates_dir)| 解析 theme 字段:tech_blue → 内置主题;短名 → 两路查 `<plan_dir>/templates/<name>.pptx`(deck 本地)→ `<repo>/library/pptx-templates/_source/<name>.pptx`(全局)作 base PPT | 读 |
 | critic / audience | **不用** | — | — |

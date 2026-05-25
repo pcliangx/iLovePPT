@@ -350,13 +350,37 @@ artifacts:
   - path: <abs path to library/pptx-templates/items/<name>/preview.png>
     kind: cover_thumbnail
 template_ready: false                                   # happy 也是 false(还差用户审 + embed);完成入库后才 true
-drafts:                                                 # happy path 必填 — 让主线程展示 .draft 列表给用户审
+
+# === Step 2.5 advisory(declared/rendered 对账)===
+declared_pages: 39                                      # unzip -p .pptx ppt/presentation.xml | grep -oc '<p:sldId '
+rendered_pages: 32                                      # ls items/<name>/pages/*/preview.png | wc -l
+discrepancy: 7                                          # declared - rendered;非 0 时 summary 必提示用户审
+discrepancy_resolution: pending                         # pending | confirmed_tool_pages | confirmed_real_loss
+                                                        # 严禁 agent 自己解释为 "hidden/master/layout slides"(全是历史幻觉)
+
+# === Step 3 聚合 ===
+low_confidence_pages: [3, 7]                            # 页号数组(非整数);confidence < 0.6 的页
+failed_pages: []                                        # Read 失败的页号(非空时 status 应为 error 或 partial)
+
+drafts:                                                 # happy path 必填 — 主线程展示 .draft 列表给用户审
   - library/pptx-templates/items/<name>/meta.yaml.draft
   - library/pptx-templates/items/<name>/pages/<NN-slug>/meta.yaml.draft
+
 summary: |
-  <一段给 brainstorm 看的模板摘要:有什么 layout / 媒体数 / 主色调>
+  <name> 渲染 K/N 页(若 discrepancy 非 0 必提示),起草 1 个 template-level + K 个 per-page meta.yaml.draft
+  ⚠️ 低置信度页:第 03 / 07 页,请优先审
   失败时 summary 用 [system] template_extractor_failed 前缀,主线程整段转给 brainstorm 走兜底分支
 ```
+
+**extractor error code 枚举**(`status: error` 时 `errors[].code` 必从下方选):
+| code | 含义 | 主线程行为 |
+|---|---|---|
+| `NAME_INVALID_CHARS` | name 含 `__`(跟 page id 分隔符冲突) | 让用户改名重派 |
+| `PPTX_CORRUPTED` | unzip 失败,.pptx 损坏 | 让用户重新提供文件 |
+| `RENDER_CLI_NOT_FOUND` | soffice/pdftoppm 不在 PATH | 报环境问题 |
+| `RENDER_TOTAL_FAILURE` | LibreOffice 渲染 0 页 | 报环境问题 |
+| `PAGE_READ_TIMEOUT` | 某页 Read PNG timeout | 可重派 |
+| `SCHEMA_VALIDATION_FAILED` | Step 3.3 self-check 失败(YAML 语法 / 必填字段缺 / enum 违规 / id 重复 / confidence 非数字) | 不放行,详见 errors[].message |
 
 **author 必加字段**:
 ```yaml
