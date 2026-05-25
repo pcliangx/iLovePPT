@@ -29,13 +29,6 @@ evals/plans/*_render/
 # Claude Code runtime telemetry (Stop hook 写,见 .claude/settings.json)
 .claude/runtime.log
 
-# 用户本地 .pptx 模板(机密 / 版权防误 commit)
-# 仅 README.md + example.yaml 入 git,其他都不入
-templates/*.pptx
-templates/*.pptx.bak
-templates/*.yaml
-!templates/example.yaml
-
 # 模板提取 / deck 工作素材(版权 + 体积)
 _assets/
 
@@ -47,23 +40,21 @@ decks/*/.~*
 # eval 跑产生的工作目录(在仓库内但不入 git)
 decks/eval-*/
 
-# library/visual-patterns/ RAG 生成产物(由 _rag/embed_text.py 重生)
-library/visual-patterns/_rag/text.sqlite
-library/visual-patterns/_rag/image.sqlite
-library/visual-patterns/_rag/patterns.sqlite
-library/visual-patterns/_rag/.cache/
+# === library/ · 知识库 ===
+# 共享 RAG 基础设施(venv / 凭据 / DB)
+library/_rag/.venv/
+library/_rag/.env
+library/_rag/.env.*
+library/_rag/db.sqlite
+library/_rag/.cache/
 
-# library/visual-patterns/ RAG · API key + 任何 .env(NEVER commit)
-library/visual-patterns/_rag/.env
-library/visual-patterns/_rag/.env.*
+# 各 kb 的 _source/ · 用户原始材料(机密 / 版权 / 体积)
+library/*/_source/*
+!library/*/_source/.gitkeep
+
+# items/<id>/{meta.yaml,preview.png} 是产品资产 · 入 git(不 ignore)
+
+# 通用 .env 保护
 **/.env
 **/.env.local
 **/.env.*.local
-
-# library/visual-patterns/patterns/*/preview.png 是 pattern 资产,**保留**
-!library/visual-patterns/patterns/*/preview.png
-# library/visual-patterns/_source_inspiration/ 用户上传的 .pptx 模板可能含机密 → 不入 git
-library/visual-patterns/_source_inspiration/*.pptx
-library/visual-patterns/_source_inspiration/*.pdf
-# 但保留用户给的 .png 截图作为入库参考(无版权风险且文件小)
-!library/visual-patterns/_source_inspiration/*.png
