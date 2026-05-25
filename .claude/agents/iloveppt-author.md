@@ -181,6 +181,41 @@ footer_meta:
 
 用户审 outline 时可改这些值;iloveppt 透传到 content.md frontmatter,从 content.md 读 footer_meta(不再走 dispatch_builder 入参)。
 
+#### Step 1A.5 · RAG 选 pattern hints per-chapter(2026-05-25 新增,Pyramid 自检之后,返回之前)
+
+对 outline.md 每章跑 RAG,选 1-2 个 pattern hint,Edit outline.md 加 `pattern_hints` 字段:
+
+1. 读 `brief.pattern_hints_for_author.candidates`(brainstorm Step 3.5 RAG 预选给的 category 候选,可空数组)
+2. 对每章(`## N. <action title>`):
+   ```bash
+   QUERY="<章节 action title + intent 关键词,可加 brainstorm category 限定>"
+   Bash: bash ${CLAUDE_PROJECT_DIR}/library/visual-patterns/search.sh \
+         --query "$QUERY" \
+         --mode hybrid \
+         --top-k 5 \
+         --format json
+   ```
+3. parse JSON top-5(每个 entry 含 id / category / score / yaml_path / doc_preview)
+4. **LLM 从 top-5 选 1-2 个最贴合**:
+   - 优先选 brainstorm candidates 命中的 category 中的 pattern
+   - 看 doc_preview / yaml_path → Read 对应 pattern.yaml 看 fallback_rendering / intent / 适用场景
+   - 排除明显不合(如 selected layout=cards 但 pattern 是 matrix)
+5. Edit outline.md 该章节,加 `pattern_hints` 字段(跟 intent/layout/data/diagram 同级):
+   ```markdown
+   ## 1. <action title>
+   - intent: <...>
+   - layout: cards
+   - data: <...>
+   - diagram: <...>
+   - pattern_hints:
+       selected: cards-flag-4
+       rationale: 4A 4 维并列,cards-flag 系列匹配
+       alternatives: [cards-flag-3, central-bidir-6, matrix-2x2]   # top-5 没选的 3 个
+   ```
+6. yaml return 同步在 `pattern_hints` 数组里加 per-chapter entry(见 §4 schema)
+
+**降级**:若某章 search.sh 调用失败 → 该章 `pattern_hints.selected: null` + `rationale: search_failed` + `alternatives: []`,**不阻塞**整体 Stage C 完成。
+
 6. **返回**:
 
 **Pyramid 自检全过 →**:
