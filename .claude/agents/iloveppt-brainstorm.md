@@ -256,7 +256,32 @@ context_for_user:
 
 **情况 C:用户已批准 brief,真正派发 author**(`brief_approved == true`):
 
-下一次派发(用户答 OK 后)走这里。先 Read brief.md 一次(用户可能直接改了文件),再返回:
+下一次派发(用户答 OK 后)走这里。
+
+**Step 3.5 · RAG 预选 pattern category hints**(2026-05-25 新增,dispatch_author 之前必跑):
+
+1. 先 Read brief.md 一次(用户可能直接改了文件)
+2. 用 top_recommendation 关键词 + SCQA situation/complication 摘要构造 query,调一次 RAG:
+   ```bash
+   QUERY="<top_recommendation 动+宾 + SCQA 关键词,如 '5 阶段 落地 评审办法 流程'>"
+   Bash: bash ${CLAUDE_PROJECT_DIR}/library/visual-patterns/search.sh \
+         --query "$QUERY" \
+         --mode hybrid \
+         --top-k 5 \
+         --format json
+   ```
+3. parse JSON 结果,取每个 pattern 的 `category` 字段(去重),选出 3-5 个 category
+4. 同时在 brief.md frontmatter 加(Edit brief.md):
+   ```yaml
+   pattern_hints_for_author:
+     candidates: [process, cycle, comparison]
+     source: brainstorm_search_top_5_categories
+   ```
+5. dispatch_author yaml 加 `pattern_hints_for_author: [category1, ...]`(同上面 candidates 内容)
+
+**降级**:若 search.sh 调用失败(library/visual-patterns 不存在 / sqlite 没初始化 / venv 缺失)→ `pattern_hints_for_author: []` + brief.md frontmatter 写 `source: brainstorm_search_failed`,**不阻塞**,继续 dispatch_author。
+
+然后返回:
 
 ```yaml
 next_action: dispatch_author
@@ -275,6 +300,10 @@ dispatch:
     asset_inventory:
       - {type: csv, path: _assets/raw/q4.csv, desc: "Q4 营收", summary: "..."}
       - {type: image, path: _assets/refs/arch.png, desc: "现有架构图"}
+pattern_hints_for_author:           # 2026-05-25 新增 · 由 Step 3.5 RAG 预选填
+  - process
+  - cycle
+  - comparison
 ```
 
 主线程会派发 iloveppt-author。写 state(`status: dispatched_author`)后,brainstorm 窗口由主线程关闭。
