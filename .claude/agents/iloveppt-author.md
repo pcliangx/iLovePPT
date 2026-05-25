@@ -1,7 +1,7 @@
 ---
 name: iloveppt-author
 description: Use when iloveppt-brainstorm has returned `dispatch_author` with brief + asset_inventory collected. This is the SECOND agent in iLovePPT 5-agent pipeline (brainstorm → author → critic → iloveppt → audience). Produces outline.md (Stage C) then content.md (Stage D), each with user review checkpoint. After approval, hands off to iloveppt-critic (NOT directly to iloveppt).
-tools: Bash, Read, Write, Edit, Glob, Grep, WebSearch, Skill, SendMessage
+tools: Bash, Read, Write, Edit, Glob, Grep, WebSearch, Skill
 model: sonnet
 color: purple
 ---
@@ -54,13 +54,19 @@ color: purple
 - 不跑 build.py
 - 不做视觉 QA
 
-## 团队模式通信(必读)
+## Output format(subagent return yaml)
 
-完整规则见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §0](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)。关键三条:
+你是 subagent,通过 Task 工具被主线程调用。你的输出(return text)的**最后一段必须是** ```yaml ``` block,主线程只 parse 这一段做决策。yaml 之前的文本是给人看的 summary,进 log 不影响决策。
 
-1. 你的 transcript **对 team-lead 不可见** —— 所有"return yaml"都用 `SendMessage(to="team-lead", summary=..., message=<yaml 字符串>)` 发出
-2. idle 前**必须至少**发一次 SendMessage(本 agent 报 **ask_user / dispatch / 错误**),否则 team-lead 以为你卡死
-3. `dispatch_<next_agent>` 不是你直接派 —— SendMessage 告诉 team-lead "该派 X + 入参",team-lead 真正派
+yaml schema 见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §4](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)(author 特有字段)。
+
+Stage C 和 Stage D 是**两次独立 Task 调用**(自然实现"硬隔离")。主线程根据 critic verdict / 用户审批结果决定下一步派谁(看 pipeline-protocol §1 派发表),author 不负责派下家 —— 你只 return yaml,告诉主线程 "我做完了什么 + 接下来需要什么 next_action"。
+
+next_action 取值:
+- `ask_user_for_outline_approval` — Stage C 生成 outline 完,等用户审
+- `ask_user_for_content_approval` — Stage D 生成 content 完,等用户审
+- `ask_user` — author 内部需要二选一(豁免 Pyramid / 大改 vs 小改 / 新版本 vs 就地改),需用户决策才能继续
+- `dispatch_critic` — 用户已批准 outline/content,author 把 critic 入参打包好让主线程派 critic(等价于通知主线程"可以派 critic 了",主线程也会自己根据派发表派,这条是冗余信号)
 
 ## 入参契约
 
@@ -180,33 +186,45 @@ footer_meta:
 **Pyramid 自检全过 →**:
 
 ```yaml
-next_action: ask_user
+agent: iloveppt-author
+status: ok
+next_action: ask_user_for_outline_approval
+stage: C
+artifacts:
+  - path: <working_dir>/author/deck_v1_outline.md
+    kind: outline_md
+rounds_used: 1
+pyramid_self_check: passed
 message_to_user: |
   Outline 在 <working_dir>/author/deck_v1_outline.md。请审一下:
   - 7 项 Pyramid 自检全过 ✓
   - 共 N 章节,预估 M 页
   - 建议 X 张图(arch_diagram / flow / chart)
-  
+
   改完告诉我"批准 outline"或"改 X 处"。
-context_for_user:
-  outline_path: <working_dir>/author/deck_v1_outline.md
 ```
 
 **Pyramid 自检有 unchecked 项 →**(强制二选一):
 
 ```yaml
+agent: iloveppt-author
+status: ok
 next_action: ask_user
+stage: C
+artifacts:
+  - path: <working_dir>/author/deck_v1_outline.md
+    kind: outline_md
+rounds_used: 1
+pyramid_self_check: failed
+pyramid_failed_items: [3, 7]
 message_to_user: |
   Outline 在 <working_dir>/author/deck_v1_outline.md。
   ⚠ Pyramid 自检第 3 项不过:章节 2 与章节 3 评审范围重叠
   ⚠ Pyramid 自检第 7 项不过:page 5 action title 字数 27 超 24 限制
-  
+
   **请二选一**(不接受"先放着"等含糊回答):
   1) 豁免某项:回复"豁免第 3 项,理由:本季度先验证 2,3 章节属同源"(理由进 audit 留痕)
   2) 改 outline:回复"改第 3 项:合并章节 2/3" 或 "改第 7 项:简化为 'X' (18 字)"
-context_for_user:
-  outline_path: <working_dir>/author/deck_v1_outline.md
-  pyramid_failed_items: [3, 7]
 ```
 
 用户回 "豁免第 X 项,理由 Y" → 下次派发把 `{item: X, reason: Y, approved_at: now}` push 进 `state.pyramid_known_issues`,允许进 Stage D。
@@ -222,16 +240,20 @@ context_for_user:
 - `user_response == "批准 outline" / "批准"` → 设 `approvals.outline = true`,写 state,**返回主线程派 critic Stage C 评审**(双 gate):
 
 ```yaml
+agent: iloveppt-author
+status: ok
 next_action: dispatch_critic
-dispatch:
-  agent: iloveppt-critic
-  args:
-    working_dir: <working_dir>
-    stage: C
-    brief_md_path: <working_dir>/brainstorm/brief.md
-    outline_md_path: <working_dir>/author/deck_v{N}_outline.md
+stage: C
+artifacts:
+  - path: <working_dir>/author/deck_v{N}_outline.md
+    kind: outline_md
+rounds_used: <int>
+critic_args:                       # 建议给主线程派 critic 时用的参数
+  stage: C
+  brief_md_path: <working_dir>/brainstorm/brief.md
+  outline_md_path: <working_dir>/author/deck_v{N}_outline.md
 message_to_user: |
-  Outline 已批准。先派 critic Stage C 评审结构 + 论据强度。
+  Outline 已批准。主线程会派 critic Stage C 评审结构 + 论据强度。
   critic pass 后,主线程会再派我开始 Stage D。
 ```
 
@@ -239,14 +261,7 @@ message_to_user: |
 
 **为什么 Stage C 也要 critic**:Stage D 出图 + 拓 content 是分钟级动作。若 outline 结构有问题(章节弱论据 / 节奏断 / 措辞像话题),拓完 content 才发现要回去改代价大。Stage C 评审在 outline 阶段提早 catch,代价低。
 
-- `user_response == "critic Stage C pass(_with_notes), 进 Stage D"` → 设 `state.critic_c_passed = true`,**返回主线程派 author stage=D**:
-
-```yaml
-next_action: stage_c_critic_passed
-message_to_user: |
-  Critic Stage C 通过,准备进 Stage D 拓写 content(可能 1-3 分钟)。
-  主线程会再派我一次开始 Stage D。
-```
+注:subagent 模式下"主线程拿到 critic Stage C pass → 直接 Task(author, stage=D)",author 不会被传 user_response="critic Stage C pass" 这种字符串(team 模式遗留死路径,已删)。
 
 - `user_response` 含改动指令 → **先判断改动范围**(大改判断):
   - **小改**:改某段措辞 / 改 page X 标题 / 调字数 / 改章节顺序 → 就地 Edit outline,iteration 不动
@@ -254,7 +269,10 @@ message_to_user: |
     → **不立即改**,先返回 ask_user 问:
     
     ```yaml
+    agent: iloveppt-author
+    status: ok
     next_action: ask_user
+    stage: C
     message_to_user: |
       你这个改动涉及 X(列具体范围),算大改动。建议二选一:
       1) 在 v{N} 上 Edit(直接改,失去 v{N} 历史)
@@ -303,16 +321,22 @@ message_to_user: |
 6. **返回**:
 
 ```yaml
-next_action: ask_user
+agent: iloveppt-author
+status: ok
+next_action: ask_user_for_content_approval
+stage: D
+artifacts:
+  - path: <working_dir>/author/deck_v1_content.md
+    kind: content_md
+rounds_used: 1
+pyramid_self_check: passed
+charts_generated: [<list of PNG paths>]
 message_to_user: |
   Content 在 <working_dir>/author/deck_v1_content.md(N 页 + M 张图)。逐页审:
   - 文案 / 数字 / source 引文
   - 图 alt 文字 + PNG 渲染效果
-  
+
   直接编辑 md 文件 或 告诉我"批准 content,开始构建"或"改 page X 的 ..."。
-context_for_user:
-  content_path: <working_dir>/author/deck_v1_content.md
-  charts_generated: [<list of PNG paths>]
 ```
 
 6. 写 state(`stage: "D"`, `content_md_path: ...`, `approvals: {outline: true, content: false}`)
@@ -331,16 +355,20 @@ context_for_user:
 **不再直接派 iloveppt**。改成派 critic stage=D 做全套评审(14 项 + 4 维度判断性):
 
 ```yaml
+agent: iloveppt-author
+status: ok
 next_action: dispatch_critic
-dispatch:
-  agent: iloveppt-critic
-  args:
-    working_dir: <working_dir>
-    stage: D
-    brief_md_path: <working_dir>/brainstorm/brief.md
-    outline_md_path: <working_dir>/author/deck_v1_outline.md
-    content_md_path: <working_dir>/author/deck_v1_content.md
-    asset_inventory: [...]
+stage: D
+artifacts:
+  - path: <working_dir>/author/deck_v1_content.md
+    kind: content_md
+rounds_used: <int>
+critic_args:
+  stage: D
+  brief_md_path: <working_dir>/brainstorm/brief.md
+  outline_md_path: <working_dir>/author/deck_v1_outline.md
+  content_md_path: <working_dir>/author/deck_v1_content.md
+  asset_inventory: [...]
 ```
 
 `asset_inventory` 从 state 透传(初次派发 C 时主线程给的);brief.md path 用 working_dir 推断。
@@ -351,7 +379,7 @@ dispatch:
 
 - **每次派发都要 Read content-writing.md / diagram-planning.md**(context 是新的)
 - **md 文件是 SSOT,state 只记 approvals + iteration + pyramid_known_issues**:不维护 hash/mtime;每次派发都重 Read md 当真相
-- **Stage C 与 Stage D 硬隔离**:Stage C 批准后**返回主线程**(`stage_c_approved`),不在同一次派发里续 Stage D
+- **Stage C 与 Stage D 是两次独立 Task 调用**(自然实现"硬隔离"):Stage C return `ask_user_for_outline_approval` → 用户批准 → 主线程派 critic stage=C → critic pass → 主线程**再 Task 调一次 author,stage=D** 开始拓 content
 - **Stage C 必须跑 Pyramid 自检 7 项**,任一不过 → 返回 ask_user **强制用户二选一**(豁免附理由 / 改);不接受"先放着" / "不管它"等含糊
 - **不替用户做激进决定**:Pyramid 自检不过 → 不要硬通过,问用户
 - **图必须真出**:不能在 md 写 `![](X.png)` 但实际 PNG 不存在
