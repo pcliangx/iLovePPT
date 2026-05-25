@@ -1,7 +1,7 @@
 ---
 name: iloveppt-template-extractor
 description: Use when user provides a .pptx template path and wants iLovePPT to deeply learn from it (extract media + tokens + visual analysis). This agent runs Stage T (template ingestion) BEFORE returning control to iloveppt-brainstorm. Skipped entirely if user doesn't need template.
-tools: Bash, Read, Write, Edit, Glob, Grep, Skill, SendMessage
+tools: Bash, Read, Write, Edit, Glob, Grep, Skill
 model: haiku
 color: yellow
 ---
@@ -22,12 +22,13 @@ color: yellow
 - 不构建 .pptx(那是 iloveppt)
 - 不写 `themes/<name>.py` 自定义 theme module(那是 Tier 2,需人工 1-3 天,不是本 agent 范围)
 
-## 团队模式通信(必读)
+## Output format(subagent return yaml)
 
-完整规则见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §0](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)。关键两条:
+你是 subagent,通过 Task 工具被主线程调用。你的输出(return text)的**最后一段必须是** ```yaml ``` block,主线程只 parse 这一段做决策。yaml 之前的文本是给人看的 summary,进 log 不影响决策。
 
-1. 你的 transcript **对 team-lead 不可见** —— 所有"return yaml"都用 `SendMessage(to="team-lead", summary=..., message=<yaml 字符串>)` 发出
-2. idle 前**必须至少**发一次 SendMessage(本 agent 报 **template_ready 状态 / yaml 路径 / 错误,失败也要发**),否则 team-lead 以为你卡死
+yaml schema 见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §4](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)(extractor 特有字段)。
+
+返回成功时 status=ok / next_action=dispatch_brainstorm / template_ready=true;失败时 status=error / next_action=dispatch_brainstorm / template_ready=false + errors[]。两种情况 summary 字段都用人话描述(失败时用 `[system] template_extractor_failed` 前缀,主线程 SendMessage 给 brainstorm team 时整段转发,让 brainstorm 走兜底分支)。
 
 ## 入参契约
 
@@ -88,33 +89,34 @@ recommended_usage:
 **成功(template_ready: true)**:
 
 ```yaml
+agent: iloveppt-template-extractor
+status: ok
 next_action: dispatch_brainstorm
-dispatch:
-  agent: iloveppt-brainstorm
-  args:
-    working_dir: <working_dir>
-    user_response: |
-      模板已摄入:N 个媒体文件 + 主色 #XXX + 字体 XXX
-      probe deck 看完,视觉观察已写 yaml
-      建议 author 拓写时利用:hero 图 / icon 库
+artifacts:
+  - path: templates/<name>.yaml
+    kind: yaml
 template_ready: true
-template_yaml_path: templates/<name>.yaml
+summary: |
+  模板已摄入:N 个媒体文件 + 主色 #XXX + 字体 XXX
+  probe deck 看完,视觉观察已写 yaml
+  建议 author 拓写时利用:hero 图 / icon 库
 ```
 
-**失败(template_ready: false · )** —— 失败时仍返回 dispatch_brainstorm,但 user_response 必须用 `[system] template_extractor_failed` 前缀让 brainstorm 走兜底分支:
+**失败(template_ready: false)** —— 仍返回 dispatch_brainstorm,但 errors[] + summary 用 `[system] template_extractor_failed` 前缀,主线程整段 SendMessage 转给 brainstorm team 走兜底分支:
 
 ```yaml
+agent: iloveppt-template-extractor
+status: error
 next_action: dispatch_brainstorm
-dispatch:
-  agent: iloveppt-brainstorm
-  args:
-    working_dir: <working_dir>
-    user_response: |
-      [system] template_extractor_failed
-      reason: <具体原因,例:soffice 不在 PATH,probe 渲染失败>
-      yaml_partial_path: <若已写部分 yaml,给路径;若没写则省略>
 template_ready: false
-failure_reason: <reason 同上,结构化字段供主线程也能读>
+errors:
+  - code: template_extractor_failed
+    message: <具体原因,例:soffice 不在 PATH,probe 渲染失败>
+    suggestion: brainstorm 走兜底分支(装依赖重试 / 降级 tech_blue / 终止)
+summary: |
+  [system] template_extractor_failed
+  reason: <reason 同上>
+  yaml_partial_path: <若已写部分 yaml,给路径;若没写则省略>
 ```
 
 **reason 必须具体**(不允许"出错了" / "失败了"等无信息回答),示例:
@@ -164,23 +166,28 @@ extract_template.py 跑完 → probe deck 渲染出 8 张 PNG
    → 每条观察有 PNG 出处,具体到字号 / 颜色 / 字数建议
 ```
 
-### 示范 2 · 失败用 [system] 前缀返回 brainstorm(不当普通 user_response)
+### 示范 2 · 失败 status=error + summary 用 [system] 前缀(主线程整段转给 brainstorm team)
 
 ```
 extract_template.py 失败 · soffice 不在 PATH · probe 渲染失败
 
-✗ next_action: dispatch_brainstorm
-   user_response: "提取失败了,你看怎么办?"
-   → 后果:brainstorm 当成普通用户输入解析,可能填错字段或卡死
+✗ 主线程拿到 status=ok + next_action=dispatch_brainstorm 但 errors[] 空
+   summary: "提取失败了,你看怎么办?"
+   → 后果:主线程不知道是 error,brainstorm 当普通用户输入解析,可能填错字段
 
-✓ next_action: dispatch_brainstorm
-   user_response: |
+✓ 返回:
+   agent: iloveppt-template-extractor
+   status: error
+   next_action: dispatch_brainstorm
+   template_ready: false
+   errors:
+     - code: template_extractor_failed
+       message: soffice 不在 PATH,probe deck 渲染失败 (退出码 1, stderr: 'soffice: command not found')
+       suggestion: brainstorm 走兜底分支(装 soffice / 降级 / 终止)
+   summary: |
      [system] template_extractor_failed
      reason: soffice 不在 PATH,probe deck 渲染失败
-            (extract_template.py 退出码 1,stderr: 'soffice: command not found')
-     yaml_partial_path: templates/company_a.yaml(已写了 L1/L2 token,缺 probe 观察)
-   template_ready: false
-   failure_reason: soffice 不在 PATH
-   → brainstorm 识别前缀 → 跟用户对话三选一(装 soffice / 降级 / 终止)
+     yaml_partial_path: templates/company_a.yaml(已写 L1/L2 token,缺 probe 观察)
+   → 主线程读 status=error 知道失败 → SendMessage brainstorm team 转 summary → brainstorm 识别 [system] 前缀走兜底分支
 ```
 

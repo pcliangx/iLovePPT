@@ -1,0 +1,34 @@
+{
+  "stage": "D",
+  "iteration": 1,
+  "outline_md_path": "/Users/pc2026/Documents/DevTools/iLovePPT/decks/eval-20260525-1351-01-exec-decision/author/deck_v1_outline.md",
+  "content_md_path": "/Users/pc2026/Documents/DevTools/iLovePPT/decks/eval-20260525-1351-01-exec-decision/author/deck_v1_content.md",
+  "approvals": {
+    "outline": true,
+    "content": false
+  },
+  "last_rework": {
+    "round": "D_r1_mustfix",
+    "fixed_at": "2026-05-25",
+    "fixes": ["Ch3 title 算术对齐(≤8天)", "B7 字数 Ch2/Ch4/Ch5/summary 压缩至 speaker 限"]
+  },
+  "pyramid_known_issues": [],
+  "critic_c_passed": true,
+  "asset_inventory": [
+    {
+      "type": "csv",
+      "path": "_assets/raw/q4_reviews.csv",
+      "desc": "Q4 评审数据(2025-10 至 12)",
+      "summary": "reviews_count 11-15件/月,review_days_avg 8.2→9.5→11.3天(恶化),passed_first_round_pct 42%→38%→31%(下降),reviewer_hours 156-194h/月"
+    },
+    {
+      "type": "image",
+      "path": "_assets/refs/current_arch.png",
+      "desc": "现有架构图(输入→处理→输出三阶段简图)"
+    }
+  ],
+  "charts_generated": [
+    "/Users/pc2026/Documents/DevTools/iLovePPT/decks/eval-20260525-1351-01-exec-decision/author/charts/review_trend.png",
+    "/Users/pc2026/Documents/DevTools/iLovePPT/decks/eval-20260525-1351-01-exec-decision/author/charts/review_flow_5stage.png"
+  ]
+}

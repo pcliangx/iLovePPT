@@ -70,18 +70,25 @@ pdftoppm -jpeg -r 120 /tmp/<file>.pdf /tmp/slide
 
 ## 架构
 
-### Agent 流水线(5 agent + 1 旁路)
+### Agent 流水线(Hybrid:1 team + 5 subagent + 1 旁路 subagent)
 
-`${CLAUDE_PROJECT_DIR}/.claude/agents/` 是项目的运行时流水线。**模型分层**:critic / iloveppt 用 opus(深度推理 / 多职责),author / brainstorm / audience 用 sonnet,template-extractor 用 haiku。
+`${CLAUDE_PROJECT_DIR}/.claude/agents/` 是项目的运行时流水线,**Hybrid 架构**:
 
-| agent | 角色 | model |
-|---|---|---|
-| `iloveppt-brainstorm` | Stage A-B:多轮对话收 brief + 素材,出 brief.md 让用户确认 | sonnet |
-| `iloveppt-author` | Stage C-D:出 outline.md(章节骨架)+ 拓写 content.md(全文) | sonnet |
-| `iloveppt-critic` | **partner 评审员**:14 项 checklist 底线 + 4 维度判断性评审(论据强度 / 节奏 / 措辞 / 平衡),Stage C(用户批准 outline 后)和 Stage D(用户批准 content 后)各跑一次 | opus |
-| `iloveppt` | Stage E:**机械构建 .pptx + 机械视觉 QA(Step 0-3)+ 主动加视觉(Step 4)**,iconify / Unsplash / brand 三路降级 | opus |
-| `iloveppt-audience` | 模拟目标受众读 deck 评分(9 分硬阈值);反馈三类分流(needs_author_rewrite / needs_visual_redo / needs_theme_fix) | sonnet |
-| `iloveppt-template-extractor` | 旁路:用户给 .pptx 模板时摄入 4 级 token | haiku |
+- **Phase A (team 模式)**:brainstorm 用 `TeamCreate` 持续窗口,多轮 SendMessage 跟用户聊收 brief。
+- **Phase B (subagent 模式)**:author / critic / iloveppt / audience / template-extractor 用 `Task` 工具调用,每次跑完 return yaml(主线程 parse 决定下一步)。
+
+**模型分层**:critic / iloveppt 用 opus(深度推理 / 多职责),author / brainstorm / audience 用 sonnet,template-extractor 用 haiku。
+
+| agent | 角色 | 调用方式 | model |
+|---|---|---|---|
+| `iloveppt-brainstorm` | Stage A-B:多轮对话收 brief + 素材,出 brief.md 让用户确认 | TeamCreate(team) | sonnet |
+| `iloveppt-author` | Stage C-D:出 outline.md(章节骨架)+ 拓写 content.md(全文)— 两次独立 Task | Task | sonnet |
+| `iloveppt-critic` | **partner 评审员**:14 项 checklist 底线 + 4 维度判断性评审(论据强度 / 节奏 / 措辞 / 平衡),Stage C/D 各跑一次 | Task | opus |
+| `iloveppt` | Stage E:**机械构建 .pptx + 机械视觉 QA(Step 0-3)+ 主动加视觉(Step 4)**,iconify / Unsplash / brand 三路降级 | Task | opus |
+| `iloveppt-audience` | 模拟目标受众读 deck 评分(9 分硬阈值);反馈三类分流(needs_author_rewrite / needs_visual_redo / needs_theme_fix) | Task | sonnet |
+| `iloveppt-template-extractor` | 旁路:用户给 .pptx 模板时摄入 4 级 token | Task | haiku |
+
+阶段切换信号:brainstorm SendMessage 返回 `next_action: dispatch_author` → 主线程**立即关闭 brainstorm team** → `Task(iloveppt-author, stage=C)` 进入 Phase B。
 
 👉 **运行时流水线协议(派发顺序 / handoff / gate / 退出条件)** —— AI 运行时活协议:[`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)
 
@@ -91,9 +98,9 @@ pdftoppm -jpeg -r 120 /tmp/<file>.pdf /tmp/slide
 
 ### 主线程派发规则(一句话总结)
 
-用户表达"做 PPT"意图时 → 主线程**必须** `TeamCreate` 建 team 并派 agent(**不要**自己写 brief / 写 content / 跑视觉 QA)。改仓库代码(helpers.py / themes / build.py / tests)时 → 主线程直接干(跨文件一致性)。
+用户表达"做 PPT"意图时 → 主线程**必须**先 `TeamCreate(brainstorm)` 跑 Phase A(收 brief);brainstorm `dispatch_author` 后**关闭 team**,转 `Task` 依次调 author/critic/iloveppt/audience 跑 Phase B(**不要**自己写 brief / 写 content / 跑视觉 QA)。改仓库代码(helpers.py / themes / build.py / tests / agent prompts / 协议文档)时 → 主线程直接干(跨文件一致性)。
 
-完整派发表 + 理由:见 [pipeline protocol §12](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md#12-主线程派发表)。
+完整派发表 + 理由:见 [pipeline protocol §1](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md#1-主线程派发表)。
 
 ### 三 skill 分层
 

@@ -10,6 +10,8 @@
 
 **iLovePPT 把"写 PPT"拆成 thin dispatcher 协调下的 5 专业 agent + 1 旁路接力流水线**:每个 agent 独立窗口、单一职责;通过 `next_action` 路由 + state file + brief.md / outline.md / content.md / deck_plan.json 四重接缝协作;critic 双 gate + audience 9 分硬阈值 + 用户最终确认共同把质量底线托起来。
 
+> **Hybrid 架构(2026-05-25 起)**:实际调用分两段。**Phase A** brainstorm 用 `TeamCreate` 持续 team window 跟用户多轮对话(单进程延迟 / token 最优);brief 批准后主线程关闭 team,**Phase B** author / critic / iloveppt / audience / extractor 用 `Task` subagent 调用(每次 return yaml 含 `next_action`,主线程 parse 决定派下一棒)。下文叙述沿用"agent + 窗口"统一抽象,关于具体调用方式 / handoff yaml schema 看权威协议 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md) §0 二段论 + §4 yaml schema。
+
 ---
 
 ## 目录
@@ -31,9 +33,9 @@
 主线程的职责严格限定为 4 件:
 
 1. 检测 PPT 意图(关键词命中 / 用户给 .pptx 模板 / `working_dir` 已有产物要续接)
-2. `TeamCreate team_name=iloveppt-<slug>` 建 team
-3. 按 agent 返回的 `next_action` 派下一个 agent / 转发问题给用户
-4. 把交付物路径(`brief.md` / `outline.md` / `content.md` / `deck_plan.json` / `.pptx`)跨窗口 `SendMessage`
+2. **Phase A**:`TeamCreate({agents: ["iloveppt-brainstorm"]})` 建 brainstorm team(收 brief);**Phase B**:brainstorm `dispatch_author` 后**关闭 team**,改用 `Task(<agent>, args)` 调 author / critic / iloveppt / audience / extractor
+3. 按 agent 返回的 `next_action` 派下一个 agent / 转发问题给用户(Phase A 走 SendMessage 给 team,Phase B 读 Task return yaml)
+4. 把交付物路径(`brief.md` / `outline.md` / `content.md` / `deck_plan.json` / `.pptx`)从 yaml 提取后续传给下家(Phase A 通过 SendMessage,Phase B 通过下次 Task 的 args)
 
 主线程**不**写 brief、**不**写 content、**不**自己跑视觉 QA。**反例**:主线程"为了快"自己重写整份 deck content + 自己跑 visual check —— 这是常见越权,会让 PPT 任务污染主线程 context、丢可移植性。正确做法是派 author + 派 audience。
 

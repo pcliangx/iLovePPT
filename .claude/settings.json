@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "_comment": "iLovePPT runtime telemetry · 修复审计 #3 token / latency 不可见。Stop hook 每个 agent 跑完追加 1 行到 .claude/runtime.log,便于事后 awk 统计 per-agent token / duration 占比。",
+  "_comment": "iLovePPT runtime telemetry · Hybrid 架构后增强:每次 Stop 追加 1 行到 .claude/runtime.log,记 agent / session / tokens / cached / duration / tool_uses。Phase A (brainstorm team) 和 Phase B (subagent) 通过 CLAUDE_AGENT_NAME 区分。若 Claude Code 未暴露某字段则记 'na',不影响主要功能,事后审计可定位 telemetry 缺口。",
   "hooks": {
     "Stop": [
       {
@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s | agent=%s | session=%s\\n' \"$(date -u +%FT%TZ)\" \"${CLAUDE_AGENT_NAME:-main}\" \"${CLAUDE_SESSION_ID:-unknown}\" >> \"${CLAUDE_PROJECT_DIR:-.}/.claude/runtime.log\""
+            "command": "printf '%s | agent=%s | session=%s | tokens_in=%s | tokens_out=%s | tokens_cached=%s | duration_ms=%s | tool_uses=%s\\n' \"$(date -u +%FT%TZ)\" \"${CLAUDE_AGENT_NAME:-main}\" \"${CLAUDE_SESSION_ID:-unknown}\" \"${CLAUDE_TOKEN_INPUT:-na}\" \"${CLAUDE_TOKEN_OUTPUT:-na}\" \"${CLAUDE_TOKEN_CACHED:-na}\" \"${CLAUDE_DURATION_MS:-na}\" \"${CLAUDE_TOOL_USE_COUNT:-na}\" >> \"${CLAUDE_PROJECT_DIR:-.}/.claude/runtime.log\""
           }
         ]
       }

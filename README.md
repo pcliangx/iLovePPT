@@ -68,7 +68,7 @@ flowchart TB
 | 文档 | 给谁看 |
 |---|---|
 | [docs/MANUAL.zh.md](docs/MANUAL.zh.md) | **用户** — 怎么对话、审稿、收稿 |
-| [docs/agent-internals.zh.md](docs/agent-internals.zh.md) | **改造者** — 流水线架构(5 agent + 1 旁路)+ agent 职责 + 4 协作机制 + 6 设计决策 |
+| [docs/agent-internals.zh.md](docs/agent-internals.zh.md) | **改造者** — 流水线架构(Hybrid:1 brainstorm team + 5 subagent + 1 旁路 subagent)+ agent 职责 + 4 协作机制 + 6 设计决策 |
 | [docs/agent-team-evaluation-checklist.zh.md](docs/agent-team-evaluation-checklist.zh.md) | **评审者** — 8 维度(A-H)审计框架 + L1-L3 母法则,适用任何 multi-agent system |
 | [.claude/pipeline-protocol.md](.claude/pipeline-protocol.md) | **Claude Code 主线程 AI** — 派发顺序 / handoff / gate 权威活协议 |
 | [CLAUDE.md](CLAUDE.md) | **Claude Code** — 仓库导航 + 不变式 + 约定 |

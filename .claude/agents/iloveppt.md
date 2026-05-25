@@ -1,7 +1,7 @@
 ---
 name: iloveppt
 description: Use when iloveppt-critic Stage D returned pass / pass_with_notes and content.md is ready for build. This is the FOURTH agent in iLovePPT 5-agent pipeline (brainstorm → author → critic → **iloveppt** → audience). iloveppt does both mechanical build (Step 0-3) AND proactive visual enhancement (Step 4: iconify/Unsplash/brand). After iloveppt produces .pptx, main thread directly dispatches audience (no designer intermediary). Supports mode=full (Step 0-5 full) | visual_redo (skip Step 0-3 for audience-triggered visual rework). Rejects bare brief / outline-only inputs — those go to brainstorm / author respectively. Also rejects if critic_d_report_path missing or verdict==needs_revision.
-tools: Bash, Read, Write, Edit, Glob, Grep, Skill, SendMessage
+tools: Bash, Read, Write, Edit, Glob, Grep, Skill
 model: opus
 color: blue
 ---
@@ -27,12 +27,15 @@ iLovePPT 仓库布局(可能在 cwd 或符号链接到 `${CLAUDE_PROJECT_DIR}/.c
 - `${CLAUDE_PROJECT_DIR}/.claude/skills/diagram/matplotlib_rc.py` —— matplotlib 风格 SSOT
 - `[[diagram]]` skill / `[[pptx]]` skill —— 出图与底层操作
 
-## 团队模式通信(必读)
+## Output format(subagent return yaml)
 
-完整规则见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §0](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)。关键两条:
+你是 subagent,通过 Task 工具被主线程调用。你的输出(return text)的**最后一段必须是** ```yaml ``` block,主线程只 parse 这一段做决策。yaml 之前的文本是给人看的 summary,进 log 不影响决策。
 
-1. 你的 transcript **对 team-lead 不可见** —— 所有"return yaml"都用 `SendMessage(to="team-lead", summary=..., message=<yaml 字符串>)` 发出
-2. idle 前**必须至少**发一次 SendMessage(本 agent 报 **完成 / hard stop(如 `error: critic_d_missing`) / auto_md_edits / 错误**),否则 team-lead 以为你卡死
+yaml schema 见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §4](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)(iloveppt 特有字段)。
+
+next_action 由结果决定:
+- 成功 + critic gate / Pyramid / visual QA 全过 → `next_action: dispatch_audience`(主线程派 audience)
+- 任一硬阻塞(critic_d_missing / critic_d_not_passed / missing_content_md / Pyramid fail / QA 3 轮未过 architectural) → `next_action: hard_stop`(主线程展示 errors 给用户三选一)
 
 ## 入参契约
 
@@ -357,17 +360,28 @@ python3 ${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/build.py <working_dir>/bu
 
 **返回最终 YAML**(verification-before-completion 要求 evidence 字段):
 
+**成功(全 gate 过)**:
+
 ```yaml
-pptx_path: <working_dir>/builder/deck_v{N}.pptx
-visual_report_path: <working_dir>/builder/visual_report_r{N}.md   # 本轮实际写入的具体路径
+agent: iloveppt
+status: ok
+next_action: dispatch_audience
+artifacts:
+  - path: <working_dir>/builder/deck_v{N}.pptx
+    kind: pptx
+  - path: <working_dir>/builder/deck_v{N}_render/
+    kind: render_dir
+  - path: <working_dir>/builder/visual_report_r{N}.md
+    kind: yaml
+build_iterations: 1                  # build.py 跑了几次(visual_redo 模式可能 > 1)
 qa_rounds: 1 | 2 | 3
-auto_md_edits: [...]    # Step 3 机械 QA 自动改 md 的清单
-visual_edits: [...]     # Step 4 主动加视觉的清单(留下的)
-rolled_back: [...]      # Step 4 回滚的改动 + 原因
-review_needed: [...]    # 3 轮仍 fail 的项,含 category: architectural 标记
+auto_md_edits: [...]                  # Step 3 机械 QA 自动改 md 的清单
+visual_edits: [...]                   # Step 4 主动加视觉的清单(留下的)
+rolled_back: [...]                    # Step 4 回滚的改动 + 原因
+review_needed: [...]                  # 3 轮仍 fail 的项,含 category: architectural 标记
 pyramid_check:
   passed: true
-  evidence:             # 必填,逐项 evidence(verification-before-completion 要求)
+  evidence:                           # 必填,逐项 evidence(verification-before-completion 要求)
     item_1: "top_recommendation: '本季度落地 X,5 阶段 ≤ 3 天'(动+宾+边界齐)"
     item_2: "scqa: {situation: '...', complication: '...', question: '...', answer: == top}"
     item_3: "cover.subtitle 含 '本季度落地 X' → ✓ BLUF"
@@ -376,15 +390,34 @@ pyramid_check:
     item_6: "所有 slide frontmatter / 必填字段齐"
     item_7: "页 1-N action title 字数: [12, 18, 14, ...]全 ≤ 24"
 visual_qa:
-  passed: true | false
-  evidence:             # 必填
+  passed: 17                          # 通过的检查项数(0..total)
+  total: 17                           # 总检查项数(17 项 / page 不变,× pages 数得 total)
+  rounds_used: 2
+  evidence:                           # 必填
     pages_read: [page-1.jpg, page-2.jpg, ..., page-N.jpg]
-    total_checks: 17 × N
-    issues_found: 0     # 或具体 issues 列表
-    rounds_used: 2
+    issues_found: 0
 ```
 
-主线程拿到 iloveppt 返回后,**直接派 audience**(不再有 designer 中间层)。`auto_md_edits` + `visual_edits` 在最终一起展示给用户。`review_needed` 让用户人审。
+**失败(hard_stop)**:
+
+```yaml
+agent: iloveppt
+status: error
+next_action: hard_stop
+errors:
+  - code: critic_d_missing | critic_d_not_passed | missing_content_md | pyramid_failed | qa_3_rounds_exhausted
+    message: <具体描述>
+    suggestion: <下一步建议给用户>
+pyramid_check:                        # 若是 pyramid_failed 类错误,必填 evidence
+  passed: false
+  evidence:
+    item_3: "FAIL: cover.subtitle 'AI 4A 评审解决方案' 不含顶端论点动词 '落地'"
+    # ...其他 fail 项
+```
+
+主线程拿到 iloveppt 返回后:
+- `next_action: dispatch_audience` → 派 audience(`auto_md_edits` + `visual_edits` 一起展示给用户)
+- `next_action: hard_stop` → 展示 errors 给用户三选一(按 suggestion 改 / 自己指令 / 终止)
 
 ---
 

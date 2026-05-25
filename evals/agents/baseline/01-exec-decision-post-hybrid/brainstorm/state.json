@@ -1,0 +1,54 @@
+{
+  "round": 4,
+  "status": "dispatched_author",
+  "collected": {
+    "duration_min": 15,
+    "top_recommendation": "应当本季度落地 AI 4A 评审办法,5 阶段每阶段 ≤ 3 天,降 60% 人力",
+    "audience": "executive",
+    "theme": "tech_blue",
+    "presentation_mode": "speaker",
+    "output": "/Users/pc2026/Documents/DevTools/iLovePPT/decks/eval-20260525-1351-01-exec-decision/builder/deck_v1.pptx"
+  },
+  "pending": [],
+  "asset_inventory": [
+    {
+      "type": "csv",
+      "path": "_assets/raw/q4_reviews.csv",
+      "desc": "Q4 评审数据(2025-10 至 12)",
+      "summary": "3个月数据:reviews_count 11-15件/月,review_days_avg 8.2→9.5→11.3天(恶化趋势),passed_first_round_pct 42%→38%→31%(下降),reviewer_hours 156-194h/月"
+    },
+    {
+      "type": "image",
+      "path": "_assets/refs/current_arch.png",
+      "desc": "现有架构图(输入→处理→输出三阶段简图)"
+    }
+  ],
+  "history": [
+    {
+      "round": 1,
+      "asked": ["top_recommendation", "audience"],
+      "answered": {
+        "top_recommendation": "应当本季度落地 AI 4A 评审办法,5 阶段每阶段 ≤ 3 天,降 60% 人力",
+        "audience": "executive"
+      }
+    },
+    {
+      "round": 2,
+      "asked": ["theme", "presentation_mode", "output"],
+      "answered": {
+        "theme": "tech_blue",
+        "presentation_mode": "speaker",
+        "output": "默认 → builder/deck_v1.pptx"
+      }
+    },
+    {
+      "round": 3,
+      "asked": ["brief_approval"],
+      "answered": {
+        "brief_approved": true
+      }
+    }
+  ],
+  "brief_md_path": "/Users/pc2026/Documents/DevTools/iLovePPT/decks/eval-20260525-1351-01-exec-decision/brainstorm/brief.md",
+  "brief_approved": true
+}

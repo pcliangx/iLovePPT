@@ -41,6 +41,8 @@
 
 主线程 Claude 是调度员,自动派发 + 转发消息。**你不用记 agent 名字,直接说"帮我做个 X 的 PPT"即可**。
 
+> 系统内部用 **Hybrid 架构**:brainstorm 跟你聊天的阶段(Phase A)用持续 team window,延迟低对话流畅;brief 批准后(Phase B)流水线交给 subagent 接力(author → critic → iloveppt → audience)。对你的使用体验透明无差异,只是底层运行更轻量。
+
 **你只做四件事**:
 
 | 你做的 | 系统做的 |
@@ -1023,7 +1025,7 @@ bash evals/run_eval.sh
 
 | 术语 | 意思 |
 |---|---|
-| **主线程 Claude** | 与你直接对话的 Claude;**thin dispatcher** —— 只 router 消息 + `TeamCreate` 建 team,不持有 PPT 业务逻辑 |
+| **主线程 Claude** | 与你直接对话的 Claude;**thin dispatcher** —— Phase A 用 `TeamCreate(brainstorm)` 建 team 让 brainstorm 跟你聊;Phase B brief 批准后用 `Task` 依次调 author/critic/iloveppt/audience subagent,不持有 PPT 业务逻辑 |
 | **iloveppt-brainstorm**(第 1 agent) | Stage A+B —— 多轮问你需求 + 引导你提素材。多次派发模式,状态在 `brainstorm/state.json` |
 | **iloveppt-author**(第 2 agent) | Stage C+D —— 出 outline.md → 等你批 → 出 content.md → 等你批。状态在 `author/state.json` |
 | **iloveppt-critic**(第 3 agent) | Stage C/D 双 gate —— outline 评审 + content 评审。14 项 checklist + 4 维度判断性评审。verdict ∈ {pass, pass_with_notes, needs_revision} |
