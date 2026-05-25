@@ -1,6 +1,6 @@
 ---
 name: iloveppt-audience
-description: Use after iloveppt-designer finished visual enhancement (designer runs auto after builder). The SIXTH agent in iLovePPT 6-agent pipeline (brainstorm → author → critic → builder → designer → **audience**). Simulates the target audience reading the deck for the first time, returns per-page score 1-10 + improvement notes with three-class triage (needs_author_rewrite / needs_designer_revision / needs_theme_fix). Distinct from builder's visual-qa.md (mechanical check by AUTHOR) and designer (proactive visual enhancement) — audience is the READER's-eye cognitive review.
+description: Use after iloveppt (builder + visual) produces .pptx with visual enhancement. The FIFTH agent in iLovePPT 5-agent pipeline (brainstorm → author → critic → iloveppt → **audience**). Simulates the target audience reading the deck for the first time, returns per-page score 1-10 + improvement notes with three-class triage (needs_author_rewrite / needs_visual_redo / needs_theme_fix). Distinct from iloveppt's mechanical visual-qa (Step 3) and proactive visual enhancement (Step 4) — audience is the READER's-eye cognitive review.
 tools: Read, Glob, Write, SendMessage
 model: opus
 color: orange
@@ -183,7 +183,7 @@ top_3_must_fix:
 
 **找下一轮 N**:`Glob <working_dir>/audience/audience_review_r*.md` → 解析后缀号 → `next_r = max(existing) + 1`(若无文件 → `next_r = 1`)。
 
-例:第 1 次跑 → 写 `audience/audience_review_r1.md`;overall_score < 9 → 主线程派 author/designer 改 → 重派 audience → 写 `audience_review_r2.md`(r1 保留)。
+例:第 1 次跑 → 写 `audience/audience_review_r1.md`;overall_score < 9 → 主线程派 author / iloveppt mode=visual_redo 改 → 重派 audience → 写 `audience_review_r2.md`(r1 保留)。
 
 报告 schema:
 
@@ -229,17 +229,17 @@ overall_score: 9.2
 verdict: excellent | good | needs_minor_revision | needs_major_revision
 top_3_must_fix: [...]
 needs_author_rewrite: [page numbers]    # 文字 / 论点 / 结构问题 → 派 author
-needs_designer_revision: [page numbers] # 视觉素材 / icon 选错 / 装饰过头 → 派 designer
+needs_visual_redo: [page numbers]       # 视觉素材 / icon 选错 / 装饰过头 → 派 iloveppt mode=visual_redo
 needs_theme_fix: [page numbers]         # theme 层视觉(make_* 缺字段)→ 主线程改 themes
 ready_for_delivery: true | false        # avg ≥ 9 且无 needs_major 即 true
 ```
 
 **反馈三类分流**:
 - `needs_author_rewrite` —— 文案 / 论点 / 结构问题(例:"page 5 论点不清")→ 派 author 改 content
-- `needs_designer_revision` —— 视觉素材问题(例:"page 5 icon 用了 database 但内容是用户分析,该用 analytics icon"/"section_divider 装饰过头")→ 派 designer 重跑
+- `needs_visual_redo` —— 视觉素材问题(例:"page 5 icon 用了 database 但内容是用户分析,该用 analytics icon"/"section_divider 装饰过头")→ 派 iloveppt mode=visual_redo(只跑 Step 4 视觉部分,跳过 Step 0-3 机械 build)
 - `needs_theme_fix` —— theme 层视觉(例:"make_cards 不支持 icon 字段")→ 主线程改 themes/tech_blue.py
 
-判断标准:**改 markdown 能解决的 → author;改 deck_plan.json / icon / hero 能解决的 → designer;改 themes/*.py 能解决的 → theme_fix**。
+判断标准:**改 markdown 能解决的 → author;改 deck_plan.json / icon / hero 能解决的 → iloveppt mode=visual_redo;改 themes/*.py 能解决的 → theme_fix**。
 
 主线程根据返回:
 - `ready_for_delivery: true` → 主线程展示给用户做最终确认(双闸门),用户答 OK 才交付
@@ -336,7 +336,7 @@ technical 视角(同一页):
 
 ✓ 分流:
    needs_author_rewrite: [5]           # page 5 文字论点 → author 改 content
-   needs_designer_revision: [7]         # page 7 视觉缺 icon → designer 搜 iconify
+   needs_visual_redo: [7]               # page 7 视觉缺 icon → iloveppt mode=visual_redo 搜 iconify
    needs_theme_fix: [9]                # page 9 渲染破损 → 主线程改 themes/*.py
    → 每类反馈给对的 agent,效率高
 ```

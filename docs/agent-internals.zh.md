@@ -1,6 +1,6 @@
 # iLovePPT Agent 工作原理
 
-> 这份文档讲清楚 iLovePPT **怎么工作的** —— 流水线架构、6 agent + 1 旁路职责、协作机制、关键设计决策、接口契约。适合想理解或改造系统的人;不是用户操作手册(那个看 [`${CLAUDE_PROJECT_DIR}/docs/MANUAL.zh.md`](${CLAUDE_PROJECT_DIR}/docs/MANUAL.zh.md))。
+> 这份文档讲清楚 iLovePPT **怎么工作的** —— 流水线架构、5 agent + 1 旁路职责、协作机制、关键设计决策、接口契约。适合想理解或改造系统的人;不是用户操作手册(那个看 [`${CLAUDE_PROJECT_DIR}/docs/MANUAL.zh.md`](${CLAUDE_PROJECT_DIR}/docs/MANUAL.zh.md))。
 >
 > *运行时活协议(权威):[`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)*
 
@@ -8,13 +8,13 @@
 
 让 LLM 一次性生成完整 PowerPoint deck,通常是"看着像但读起来空、视觉糙、论据弱" —— 单 agent 既要拓写又要自检,有结构盲区(自己写的自己评不出来)、有窗口污染(对话上下文挤掉细节)、有质量门含糊(没有"何时该 fail")。
 
-**iLovePPT 把"写 PPT"拆成 thin dispatcher 协调下的 6 专业 agent + 1 旁路接力流水线**:每个 agent 独立窗口、单一职责;通过 `next_action` 路由 + state file + brief.md / outline.md / content.md / deck_plan.json 四重接缝协作;critic 双 gate + audience 9 分硬阈值 + 用户最终确认共同把质量底线托起来。
+**iLovePPT 把"写 PPT"拆成 thin dispatcher 协调下的 5 专业 agent + 1 旁路接力流水线**:每个 agent 独立窗口、单一职责;通过 `next_action` 路由 + state file + brief.md / outline.md / content.md / deck_plan.json 四重接缝协作;critic 双 gate + audience 9 分硬阈值 + 用户最终确认共同把质量底线托起来。
 
 ---
 
 ## 目录
 
-- [§ 1. 流水线是 6 agent 接力 + 1 旁路](#-1-流水线是-6-agent-接力--1-旁路)
+- [§ 1. 流水线是 5 agent 接力 + 1 旁路](#-1-流水线是-5-agent-接力--1-旁路)
 - [§ 2. 每 agent 职责不重叠](#-2-每-agent-职责不重叠)
 - [§ 3. 4 机制串成流水线](#-3-4-机制串成流水线)
 - [§ 4. 6 决策撑起架构](#-4-6-决策撑起架构)
@@ -22,9 +22,9 @@
 
 ---
 
-## § 1. 流水线是 6 agent 接力 + 1 旁路
+## § 1. 流水线是 5 agent 接力 + 1 旁路
 
-主线程 Claude 检测到 PPT 意图后,**必须** `TeamCreate` 建 team,然后按 `next_action` 路由把任务派给 6 个专业 agent + 1 个模板旁路。主线程**不持有任何 PPT 业务逻辑**,只做派单 + 跨窗口转发。
+主线程 Claude 检测到 PPT 意图后,**必须** `TeamCreate` 建 team,然后按 `next_action` 路由把任务派给 5 个专业 agent + 1 个模板旁路。主线程**不持有任何 PPT 业务逻辑**,只做派单 + 跨窗口转发。
 
 ### 1.1 thin dispatcher 只路由不持业务
 
@@ -37,15 +37,14 @@
 
 主线程**不**写 brief、**不**写 content、**不**自己跑视觉 QA。**反例**:主线程"为了快"自己重写整份 deck content + 自己跑 visual check —— 这是常见越权,会让 PPT 任务污染主线程 context、丢可移植性。正确做法是派 author + 派 audience。
 
-### 1.2 6 agent + 1 旁路按 5 段接力
+### 1.2 5 agent + 1 旁路按 5 段接力
 
 | 段 | agent | 干什么 |
 |---|---|---|
 | **内容生产** | `iloveppt-brainstorm` | Stage A-B:多轮对话收 brief + 素材,出 `brief.md` 让用户确认 |
 | ↓ | `iloveppt-author` | Stage C-D:出 `outline.md`(章节骨架)+ 拓写 `content.md`(全文) |
 | **评审** | `iloveppt-critic` | Stage C 和 Stage D 各跑一次:14 项 checklist + 4 维度判断性 + 三档 verdict |
-| **机械构建** | `iloveppt`(builder) | Stage E:Pyramid Step 0 自检 → md→JSON → `build.py` → 机械视觉 QA 循环 |
-| **视觉优化** | `iloveppt-designer` | Stage E.5:自动跑,搜 iconify / Unsplash / brand,改 `deck_plan.json` 加 icon / hero / 装饰 |
+| **构建 + 视觉** | `iloveppt` | Stage E:Pyramid Step 0 自检 → md→JSON → `build.py` → 机械视觉 QA(Step 0-3)→ **Step 4 主动加视觉**(iconify / Unsplash / brand 三路降级) · 一气呵成 |
 | **受众评分** | `iloveppt-audience` | Stage F:模拟目标受众读 deck,9 分硬阈值 + 三类反馈分流 |
 | 旁路 | `iloveppt-template-extractor` | 用户给 .pptx 模板时一次性跑:提取 4 级 token(媒体 / 主色 / 字体 / 视觉风格) |
 
@@ -62,7 +61,6 @@ flowchart TB
     AU["<b>author</b><br/>Stage C+D · 双 stage 硬隔离<br/>outline.md + content.md"]
     CR["<b>critic</b><br/>Stage C/D 双 gate · 无状态<br/>14 checklist + 4 维度判断性<br/>三档 verdict"]
     BD["<b>builder</b>(iloveppt)<br/>Stage E · 单次派发<br/>Step 0 Pyramid 硬阻塞<br/>机械视觉 QA × 3"]
-    DS["<b>designer</b><br/>Stage E.5 · 自动跑<br/>iconify / Unsplash / brand<br/>风格统一硬规则"]
     AD["<b>audience</b><br/>Stage F · 每轮新建<br/>9 分硬阈值 + 三类反馈分流"]
     TE["<b>extractor</b>(旁路)<br/>模板入参时一次性跑<br/>4 级 token 提取"]
 
@@ -75,13 +73,11 @@ flowchart TB
     M --> CR
     CR -->|pass → 主线程派 author Stage D| M
     AU -->|dispatch_critic stage=D| M
-    CR -->|pass → 主线程派 builder| M
+    CR -->|pass → 主线程派 iloveppt| M
     M --> BD
     BD -->|done| M
-    M -->|自动| DS
-    DS -->|ready_for_audience| M
     M --> AD
-    AD -->|≥9 + 用户 OK → 交付<br/>&lt;9 → cherry-pick 派 author/designer| M
+    AD -->|≥9 + 用户 OK → 交付<br/>&lt;9 → cherry-pick 派 author / iloveppt mode=visual_redo| M
 
     BS -.->|检测到 .pptx 模板| TE
     TE -.->|回 brainstorm| BS
@@ -91,7 +87,6 @@ flowchart TB
     classDef stage2 fill:#FCE7F3,stroke:#BE185D,stroke-width:2px,color:#831843
     classDef stage3 fill:#CFFAFE,stroke:#0891B2,stroke-width:2px,color:#0E4F62
     classDef stage4 fill:#E6F0FC,stroke:#1E6FE0,stroke-width:2px,color:#0B2A4A
-    classDef stage45 fill:#FBCFE8,stroke:#C026D3,stroke-width:2px,color:#701A75
     classDef stage5 fill:#FED7AA,stroke:#EA580C,stroke-width:2px,color:#7C2D12
     classDef bypass fill:#FEF3C7,stroke:#D97706,stroke-width:1.5px,color:#78350F
     classDef user fill:#F5F5F5,stroke:#333
@@ -101,7 +96,6 @@ flowchart TB
     class AU stage2
     class CR stage3
     class BD stage4
-    class DS stage45
     class AD stage5
     class TE bypass
     class U user
@@ -111,7 +105,7 @@ flowchart TB
 
 ## § 2. 每 agent 职责不重叠
 
-7 个 agent 的职责严格分离 —— author 不评审、critic 不重写、builder 不评认知、designer 不动 content.md、audience 不自动修。**功能不重叠是设计原则,不是巧合**:任何两个 agent 职责重叠都会导致"该谁负责"歧义,系统性下降。
+5 个 agent + 1 旁路的职责严格分离 —— author 不评审、critic 不重写、iloveppt Step 3 不评认知、iloveppt 不动 content.md、audience 不自动修。**功能不重叠是设计原则,不是巧合**:任何两个 agent 职责重叠都会导致"该谁负责"歧义,系统性下降。
 
 ### 2.1 brainstorm:收 brief + 素材 + brief.md gate
 
@@ -274,9 +268,11 @@ flowchart TB
 
 详细 agent 文件:[`${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-critic.md`](${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-critic.md)
 
-### 2.4 builder:Step 0 硬阻塞 + 机械视觉 QA
+### 2.4 iloveppt:机械 build + Step 4 主动加视觉
 
-**职责**:接 author 和 critic 双 pass 的 `content.md`,机械构建 `.pptx`。**单次派发完成,内部含 ≤ 3 轮视觉 QA 循环**(限机械项)。
+**职责**:接 author 和 critic 双 pass 的 `content.md`,做两件事一气呵成:**(1) 机械构建 `.pptx`**(Step 0-3:critic gate + Pyramid + md→JSON + build.py + 机械视觉 QA × ≤ 3 轮)+ **(2) 主动加视觉**(Step 4:iconify / Unsplash / brand assets 三路降级,改 deck_plan.json + rebuild + 自检回滚)。**单次派发完成**,主线程直接派 audience(无 designer 中间层)。
+
+**v0.5.6 合并历史**:原 `iloveppt`(builder)+ `iloveppt-designer` 是两个独立 agent,跨 dispatch 接力。v0.5.6 物理合并为单 `iloveppt` agent,Step 4 内嵌"主动加视觉",dispatch 效率翻倍。
 
 **Step 0 强前置 gate**:
 - `Read 入参 critic_d_report_path`(主线程传具体 `critic_report_D_r{N}.md`)→ verdict ∈ {`pass`, `pass_with_notes`}
@@ -301,16 +297,17 @@ flowchart TB
     S02 -->|全过| S1
     S1["<b>Step 1</b> · md → deck_plan.json<br/>严约束:不引入新论点<br/>反向 diff 校验(差异 > 5% 报错)"]
     S1 --> S2["<b>Step 2</b> · 跑 build.py<br/>→ .pptx + 渲染 PNG"]
-    S2 --> S3["<b>Step 3</b> · 视觉 QA × 3 轮<br/>限机械项 · 不评认知<br/>auto 改副本 .postbuild.md"]
-    S3 --> S4["<b>Step 4</b> · 返回<br/>pptx_path + auto_md_edits[] + qa_rounds"]
+    S2 --> S3["<b>Step 3</b> · 机械视觉 QA × 3 轮<br/>限机械项 · 不评认知<br/>auto 改副本 .postbuild.md"]
+    S3 --> S4["<b>Step 4</b> · 主动加视觉(原 designer 并入)<br/>4.0 能力探测 · 4.1 扫 4 类机会<br/>4.2 iconify/Unsplash/brand 三路降级<br/>4.3 改 deck_plan + rebuild · 4.4 自检回滚"]
+    S4 --> S5["<b>Step 5</b> · 写 visual_report_r{N}.md<br/>返回 pptx_path + auto_md_edits + visual_edits"]
 
     classDef io fill:#FFF,stroke:#333
     classDef step fill:#F5F5F5,stroke:#555
     classDef gate fill:#FFF4E6,stroke:#D97706,stroke-width:2px,color:#7C2D12
     classDef fail fill:#FEE2E2,stroke:#DC2626,stroke-width:1.5px,color:#7F1D1D
 
-    class I,S4 io
-    class S01,S1,S2,S3 step
+    class I,S5 io
+    class S01,S1,S2,S3,S4 step
     class S00,S02 gate
     class HS0,HS2 fail
 ```
@@ -321,54 +318,7 @@ flowchart TB
 
 详细 agent 文件:[`${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt.md`](${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt.md)
 
-### 2.5 designer:三路降级加视觉 + 风格统一硬规则
-
-**职责**:builder 完成 .pptx 后**自动跑一次**(audience 之前),给 deck 主动加视觉资产(icon / hero / 装饰)+ 优化布局节奏。**这是 builder 机械 QA 和 audience 认知评审之间的真空填补** —— 没人主动加 icon / 装饰 / 节奏破型,deck 会显得朴素无品味。
-
-**4 类视觉提升机会**(designer 主动扫描):
-
-1. **icon 缺失** —— cards body 短(< 12 字)+ 标题前无 icon → 搜 iconify
-2. **hero image 缺失** —— cover / pic_text 适合摄影但无图 → 搜 Unsplash(需 KEY)或 brand assets
-3. **装饰过简** —— section_divider 太空 → 加 background 大字 / accent 线
-4. **布局节奏** —— ≥ 3 张连续 cards-like 同质 → 中间 1 张改 `compare_pk` / `single_focus` 破型
-
-**外部资源三路 + graceful degrade**:
-
-- **iconify.design**(免费,首选):全 deck 同 prefix(`lucide` / `phosphor` / `heroicons` / `tabler` 选一)
-- **cairosvg**(SVG→PNG):若 `import cairosvg` 失败 → 跳过 iconify 优化 + report 标"需 `pip install cairosvg`"
-- **Unsplash**(hero,需 `UNSPLASH_ACCESS_KEY`):若 key 未设 → 跳过 + report 标
-- **用户 brand assets**(`<working_dir>/_assets/brand/`):**优先级最高**
-
-**风格统一硬规则**:
-
-- 全 deck icon 同一 prefix(开始用 `lucide` 就全 deck `lucide`,某 icon 没有就改用同套其他 name,**不换 prefix**)
-- 染色限定 `BRAND_*` / `GRAY_*` 色板(`helpers.py` SSOT)
-- 不混 flat + 写实(单 deck 选一)
-
-**节制原则**:咨询稿是**文字驱动**,不是 marketing flyer。**没合适 icon 就不加**,比将就加更专业。改完跑新 PNG → fresh Read 自检 → 改了变好留下,变糟回滚。
-
-```mermaid
-flowchart TB
-    I([pptx + render PNG + deck_plan.json + content.md + brief.md]) --> S0
-    S0["Step 0 · 能力探测<br/>cairosvg? UNSPLASH_KEY? brand?"] --> S1
-    S1["Step 1 · 视觉扫描<br/>Read 全部 PNG · 找 4 类机会"] --> S2
-    S2["Step 2 · 主动加视觉<br/>iconify / Unsplash / brand 三路降级<br/>改 deck_plan.json 加字段"] --> S3
-    S3["Step 3 · 重 build<br/>build.py → 新 pptx + PNG"] --> S4
-    S4["Step 4 · 自检 fresh Read<br/>改了变好留下;变糟回滚"] --> S5
-    S5["Step 5 · 写 designer_report_r{N}.md<br/>ready_for_audience: true"]
-
-    classDef io fill:#FFF,stroke:#333
-    classDef step fill:#F5F5F5,stroke:#555
-
-    class I,S5 io
-    class S0,S1,S2,S3,S4 step
-```
-
-**反例**:designer 看到 audience 反馈说"page 5 没 icon 找不到落点" → 加了个 flat icon 但 deck 其他地方都是写实摄影 → 视觉违和。**风格统一硬规则**禁这种混风。
-
-详细 agent 文件:[`${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-designer.md`](${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-designer.md)
-
-### 2.6 audience:9 分硬阈值 + 三类反馈分流
+### 2.5 audience:9 分硬阈值 + 三类反馈分流
 
 **职责**:模拟目标受众第一次读 PPT,从**读者视角**给评分 + 改进建议。每轮新建窗口,无状态。
 
@@ -381,17 +331,17 @@ flowchart TB
 
 **9 分硬阈值**:`ready_for_delivery: true` 硬条件 = `overall_score ≥ 9` 且无 `needs_major_revision` 页。**理由**:行业惯例"7-8 合格"会让 deck 永远卡在低分(差不多就过)。9 分代表"真正打磨过",audience 必须**敢区分** 7/8/9/10。
 
-**严格分工**:audience 只评**认知接收**(论点清晰度 / 节奏 / 走神 / 记忆点),**不评**机械视觉(字号 / 对齐 / 颜色 —— builder Step 3 的活),**不主动改**(发现视觉问题通过 `needs_designer_revision` 分类反馈,用户 cherry-pick 后派 designer 重跑)。
+**严格分工**:audience 只评**认知接收**(论点清晰度 / 节奏 / 走神 / 记忆点),**不评**机械视觉(字号 / 对齐 / 颜色 —— builder Step 3 的活),**不主动改**(发现视觉问题通过 `needs_visual_redo` 分类反馈,用户 cherry-pick 后派 iloveppt mode=visual_redo 重跑)。
 
 **三类反馈分流**:
 
 - `needs_author_rewrite: [pages]` → **文字 / 论点 / 结构问题** → 派 author 改 content
-- `needs_designer_revision: [pages]` → **视觉素材 / icon 选错 / 装饰过头** → 派 designer 重跑
+- `needs_visual_redo: [pages]` → **视觉素材 / icon 选错 / 装饰过头** → 派 iloveppt mode=visual_redo
 - `needs_theme_fix: [pages]` → **theme 层视觉**(主线程改 `themes/tech_blue.py`)
 
-**修复顺序**:author rewrite 先 → designer revision → theme fix → 重派 builder → 重派 designer → 重派 audience。理由:author 改 content 后 designer 要重新加 icon(content 变了);theme 改完所有都要重 build。
+**修复顺序**:author rewrite 先(若 content 改)→ theme fix(若 theme 改)→ 重派 iloveppt mode=full;visual_redo 只时(无 content/theme 改)→ 派 iloveppt mode=visual_redo。理由:content 改后 iloveppt Step 4 要重新加 icon;theme 改完所有都要重 build。
 
-**5 轮上限**:audience-author-builder-designer 循环上限 5 轮,第 5 轮 < 9 时主线程问用户四选一(继续 / 接受 / 终止 / 回 brainstorm 改 brief)。
+**5 轮上限**:audience-author-iloveppt 循环上限 5 轮,第 5 轮 < 9 时主线程问用户四选一(继续 / 接受 / 终止 / 回 brainstorm 改 brief)。
 
 ```mermaid
 flowchart TB
@@ -422,7 +372,7 @@ flowchart TB
 
 详细 agent 文件:[`${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-audience.md`](${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-audience.md)
 
-### 2.7 extractor(旁路):提取 .pptx 模板 4 级 token
+### 2.6 extractor(旁路):提取 .pptx 模板 4 级 token
 
 **职责**:当用户提供 `.pptx` 模板时,提取媒体 + 4 级 token + 跑 probe deck + 视觉分析,让 author 拓写时能用上模板视觉资产。**一次性任务,不多轮派发**。
 
@@ -501,7 +451,7 @@ sequenceDiagram
 
 - `brainstorm/state.json` —— brainstorm(round / collected / asset_inventory / brief_md_path / brief_approved)
 - `author/state.json` —— author(stage / approvals / iteration / pyramid_known_issues)
-- builder / critic / audience / designer / extractor —— **无 state file**(单次派发或无状态,所有 state 在产物 .md 里)
+- iloveppt / critic / audience / extractor —— **无 state file**(单次派发或无状态,所有 state 在产物 .md 里)
 
 **为什么这套机制 work**:
 
@@ -520,11 +470,10 @@ next_action: ask_user
               | dispatch_brainstorm
               | dispatch_author
               | dispatch_critic
-              | dispatch_builder
-              | dispatch_designer
+              | dispatch_iloveppt
               | dispatch_audience
               | dispatch_template_extractor
-              | report_complete         # critic / designer / audience
+              | report_complete         # critic / iloveppt visual / audience
               | done                    # builder 最终
               | error
 
@@ -537,11 +486,11 @@ dispatch:
   agent: <agent-name>
   args: {...}
 
-# next_action == report_complete (critic / designer / audience) 时:
+# next_action == report_complete (critic / iloveppt visual / audience) 时:
 report_path: ...
 verdict: pass | pass_with_notes | needs_revision   # critic
 overall_score: 9.2                                 # audience
-visual_edits_count: 8                              # designer
+visual_edits_count: 8                              # iloveppt Step 4
 ready_for_next / ready_for_audience / ready_for_delivery: true | false
 
 # next_action == done 时(builder):
@@ -565,14 +514,12 @@ loop:
     case "report_complete":
       if critic and (pass or pass_with_notes):
         派下一步(C → author Stage D;D → builder)
-      elif designer and ready_for_audience:
-        派 audience
       elif audience and overall_score >= 9:
         展示给用户做最终确认 → 交付
       else:
-        展示 report 给用户 → cherry-pick → 派 author 或 designer
+        展示 report 给用户 → cherry-pick → 派 author 或 iloveppt mode=visual_redo
     case "done":
-      builder 完成 → 派 designer(不直接派 audience)
+      iloveppt 完成 → 派 audience(无 designer 中间层)
 ```
 
 主线程**零业务逻辑** —— 只是状态机的转发者。
@@ -591,10 +538,7 @@ flowchart LR
     CR2 -->|pass| BD[builder]
     BD -->|<b>deck_plan.json</b><br/>机器构建| BP[build.py]
     BP --> PPTX1[.pptx v1]
-    PPTX1 --> DS[designer]
-    DS -->|搜素材 + 改 deck_plan.json + 重 build| BP2[build.py 再跑]
-    BP2 --> PPTX2[.pptx v1 增强]
-    PPTX2 --> AD[audience]
+    PPTX1 --> AD[audience]
     AD -->|≥ 9 + 用户 OK| DL[交付]
 
     classDef u fill:#FFF,stroke:#333
@@ -628,8 +572,7 @@ flowchart LR
     A["author Stage C 自检<br/>(软阻塞 · 可豁免)"] --> CR1["critic Stage C<br/>(强阻塞 · 5 轮 cap)"]
     CR1 --> CR2["critic Stage D<br/>(强阻塞 · 5 轮 cap)"]
     CR2 --> BD["builder Step 0<br/>(硬阻塞 · hard stop)"]
-    BD --> DS["designer auto"]
-    DS --> AD["audience<br/>(9 分硬阈值 · 5 轮 cap)"]
+    BD --> AD["audience<br/>(9 分硬阈值 · 5 轮 cap)"]
     AD --> UC["用户最终确认<br/>(软规则 · 最终决策)"]
     UC --> SHIP[交付]
 
@@ -715,11 +658,11 @@ flowchart LR
 ```mermaid
 flowchart LR
     PNG[渲染 PNG] --> BD["builder Step 3<br/>(机械视觉)"]
-    PNG --> DS["designer<br/>(主动加视觉)"]
+    PNG --> DS["iloveppt Step 4<br/>(主动加视觉)"]
     PNG --> AD["audience<br/>(认知接收)"]
     BD --> BDout["字号 / 对齐 / 颜色 /<br/>溢出 / footer / chart 破损<br/>→ 自动修"]
     DS --> DSout["icon 缺失 / hero 缺失 /<br/>装饰过简 / 布局节奏<br/>→ 搜外部素材 + 改 deck_plan.json"]
-    AD --> ADout["论点清晰度 / 节奏 /<br/>走神 / 记忆点 / 视觉吸引<br/>→ 不自动修(回 author / designer)"]
+    AD --> ADout["论点清晰度 / 节奏 /<br/>走神 / 记忆点 / 视觉吸引<br/>→ 不自动修(回 author 或 iloveppt mode=visual_redo)"]
 
     classDef io fill:#FFF,stroke:#333
     classDef agent fill:#F5F5F5,stroke:#555,stroke-width:1.5px
@@ -976,7 +919,7 @@ ${CLAUDE_PROJECT_DIR}/decks/<slug>/
 │   └── deck_v1_render/                  (QA 用 PNG)
 ├── designer/                          ← Stage E.5 · 多轮 _r{N} 累积
 │   ├── designer_report_r1.md
-│   ├── designer_report_r2.md            (若 audience 反馈 needs_designer_revision)
+│   ├── designer_report_r2.md            (若 audience 反馈 needs_visual_redo)
 │   ├── icons/                           (iconify 下载)
 │   └── hero/                            (Unsplash 下载)
 ├── audience/                          ← Stage F · 多轮 _r{N} 累积
@@ -1001,7 +944,7 @@ ${CLAUDE_PROJECT_DIR}/decks/<slug>/
 | **iloveppt-author 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-author.md` |
 | **iloveppt-critic 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-critic.md` |
 | **iloveppt(builder)完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt.md` |
-| **iloveppt-designer 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-designer.md` |
+| **iloveppt(Step 4 visual) 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt(Step 4 visual).md` |
 | **iloveppt-audience 完整 prompt** | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-audience.md` |
 | iloveppt-template-extractor 完整 prompt | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-template-extractor.md` |
 | markdown schema(outline.md + content.md) | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md` |

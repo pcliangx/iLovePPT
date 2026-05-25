@@ -29,14 +29,13 @@
 
 ## 1. 30 秒理解 iLovePPT
 
-**iLovePPT 是 6 个 Claude Code agent 接力 + 1 个旁路**:
+**iLovePPT 是 5 个 Claude Code agent 接力 + 1 个旁路**:
 
 1. **iloveppt-brainstorm** —— 多轮跟你问 audience / duration / 核心命题 / 有什么素材
 2. **iloveppt-author** —— 出 `outline.md`(给你审)→ 出 `content.md`(再给你审)
 3. **iloveppt-critic** —— 在 outline 和 content 两个 checkpoint 各做一次评审(14 项 checklist + 4 维度判断性评审)
-4. **iloveppt**(builder)—— 接收审过的 content.md → 构建 `.pptx` + 17 项机械视觉自检
-5. **iloveppt-designer** —— builder 完成后自动加视觉资产(iconify 图标 / Unsplash hero / brand assets)
-6. **iloveppt-audience** —— 模拟目标受众读 deck 评分(9 分硬阈值,不过反馈到 author/designer/theme)
+4. **iloveppt** —— 接收审过的 content.md → Step 0-3 构建 `.pptx` + 17 项机械视觉自检 → **Step 4 主动加视觉**(iconify 图标 / Unsplash hero / brand assets)一气呵成
+5. **iloveppt-audience** —— 模拟目标受众读 deck 评分(9 分硬阈值,不过反馈到 author / iloveppt mode=visual_redo / theme)
 
 旁路:**iloveppt-template-extractor** —— 用户给 .pptx 模板时摄入主色 + 字体 + layout token。
 
@@ -49,12 +48,12 @@
 | 对话:答 audience/duration/核心命题/有什么素材 | brainstorm agent 多轮 prompt 问到收齐 |
 | 给素材(数据表 / 图 / 模板路径) | brainstorm Read 文件 / 落 `_assets/` |
 | 审 outline.md(可直接编辑文件) | critic 评审 → author 等批准 |
-| 审 content.md(可直接编辑文件) | critic 评审 → author 等批准;批准后 builder → designer → audience |
-| 收 .pptx + audience 评分 + 看 auto_md_edits 清单 | builder + designer 视觉优化后交付,audience ≥ 9 才 ok |
+| 审 content.md(可直接编辑文件) | critic 评审 → author 等批准;批准后 iloveppt(build + 视觉一气呵成) → audience |
+| 收 .pptx + audience 评分 + 看 auto_md_edits + visual_edits 清单 | iloveppt(机械 build + Step 4 视觉)后,audience ≥ 9 才 ok |
 
 > **核心原则——一图胜千文。** 凡涉及结构、流程、关系、数据对比,author 会主动用 draw.io / matplotlib 画图嵌进 markdown,而不是堆文字 bullet。
 
-> **为什么拆 6 agent?** 每个角色窄、可复用、可独立 test;主线程退化为 thin dispatcher,不被 PPT 任务污染;critic / designer / audience 填补了"内容自检 / 视觉资产 / 读者认知"三个独立的质量门。详见 [agent-internals.zh.md](agent-internals.zh.md) §6.3。
+> **为什么拆 5 agent?** 每个角色窄、可复用、可独立 test;主线程退化为 thin dispatcher,不被 PPT 任务污染;critic / iloveppt Step 4 / audience 填补了"内容自检 / 视觉资产 / 读者认知"三个独立的质量门。详见 [agent-internals.zh.md](agent-internals.zh.md)。
 
 ---
 
@@ -155,7 +154,7 @@ brainstorm: 好的。你这边有素材吗?
 你: 有一份 ./_assets/raw/review_metrics.csv,流程图让 author 帮我画一张
 ```
 
-字段收齐后 brainstorm 写 `brief.md` 等你 OK,然后主线程接力派 `iloveppt-author` 出 outline → `iloveppt-critic` 评 → 审 outline → author 拓 content → critic 评 → 审 content → `iloveppt`(builder)build → `iloveppt-designer` 加视觉 → `iloveppt-audience` 评分,直到 ≥ 9 分。
+字段收齐后 brainstorm 写 `brief.md` 等你 OK,然后主线程接力派 `iloveppt-author` 出 outline → `iloveppt-critic` 评 → 审 outline → author 拓 content → critic 评 → 审 content → `iloveppt`(build + Step 4 视觉一气呵成)→ `iloveppt-audience` 评分,直到 ≥ 9 分。
 
 ### 也可以显式派发某个 agent(进阶)
 
@@ -163,7 +162,7 @@ brainstorm: 好的。你这边有素材吗?
 |---|---|
 | 从一句话起步 | 直接说"做 PPT"(主线程会自动派 brainstorm)或显式 `@agent-iloveppt-brainstorm 做 X 的 PPT` |
 | 已有审过的 brief.md / content.md,想跳到下一步 | 把 brief.md / content.md 路径告诉主线程,主线程根据状态派 author / builder |
-| 已有审过的 content.md,只想跑 build + designer + audience | 直接说"按 content.md build 一份",主线程派 builder |
+| 已有审过的 content.md,只想跑 build + 视觉 + audience | 直接说"按 content.md build 一份",主线程派 iloveppt mode=full |
 
 **直接 `@agent-iloveppt`(builder)缺 content.md 会被 reject** —— builder 不做 brief 解析、不写 content。
 
@@ -189,16 +188,15 @@ ${CLAUDE_PROJECT_DIR}/decks/<slug>/
 │   ├── critic_report_C_r2.md              (若 r1 needs_revision)
 │   ├── critic_report_D_r1.md
 │   └── critic_report_D_r2.md
-├── builder/
-│   ├── deck_plan.json                     (机械接缝,可手改重 build)
-│   ├── deck_v1.pptx                       (最终产物)
-│   ├── deck_v1_content.postbuild.md       (builder 自动调整版,原文不动)
-│   └── deck_v1_render/                    (渲染图,QA 用,可删)
-├── designer/                            ← 多轮迭代 _r{N} 全保留
-│   ├── designer_report_r1.md
-│   ├── designer_report_r2.md              (若 audience 反馈 needs_designer_revision)
-│   ├── icons/                             (iconify 下载)
-│   └── hero/                              (Unsplash 下载)
+├── builder/                             ← iloveppt 全部产物(机械 build + Step 4 视觉)
+│   ├── deck_plan.json                    (机械接缝,可手改重 build)
+│   ├── deck_v1.pptx                      (最终产物)
+│   ├── deck_v1_content.postbuild.md      (Step 3 自动调整版,原文不动)
+│   ├── deck_v1_render/                   (渲染图,QA 用,可删)
+│   ├── visual_report_r1.md               (iloveppt Step 4 视觉优化报告)
+│   ├── visual_report_r2.md               (若 audience 反馈 needs_visual_redo)
+│   ├── icons/                            (iconify 下载)
+│   └── hero/                             (Unsplash 下载)
 ├── audience/                            ← 多轮迭代 _r{N} 全保留(5 轮 cap)
 │   ├── audience_review_r1.md
 │   ├── audience_review_r2.md              (若 r1 < 9)
@@ -211,7 +209,7 @@ ${CLAUDE_PROJECT_DIR}/decks/<slug>/
 
 ---
 
-## 5. 6 阶段你会看到什么
+## 5. 5 阶段你会看到什么
 
 流程拆成 **5 个用户审批 checkpoint**(brief / outline / content / audience 报告 / 最终交付)+ 1 个 critic 双 gate,各 agent 接力跑:
 
@@ -1030,7 +1028,7 @@ bash evals/run_eval.sh
 | **iloveppt-author**(第 2 agent) | Stage C+D —— 出 outline.md → 等你批 → 出 content.md → 等你批。状态在 `author/state.json` |
 | **iloveppt-critic**(第 3 agent) | Stage C/D 双 gate —— outline 评审 + content 评审。14 项 checklist + 4 维度判断性评审。verdict ∈ {pass, pass_with_notes, needs_revision} |
 | **iloveppt**(builder,第 4 agent) | Stage E —— 接 content.md → Pyramid 自检 → md→JSON → build → 17 项机械视觉 QA。单次派发完成 |
-| **iloveppt-designer**(第 5 agent) | Stage E.5 —— builder 后自动跑,搜 iconify / Unsplash / brand assets,改 deck_plan.json 加 icon / hero / 装饰 |
+| **iloveppt(Step 4 visual)**(第 5 agent) | Stage E.5 —— builder 后自动跑,搜 iconify / Unsplash / brand assets,改 deck_plan.json 加 icon / hero / 装饰 |
 | **iloveppt-audience**(第 6 agent) | Stage F —— 模拟目标受众读 deck 评分,9 分硬阈值。反馈分 3 类:author rewrite / designer revision / theme fix |
 | **iloveppt-template-extractor**(旁路) | 用户给 .pptx 模板时,提取主色 + 中文字体 + layout token |
 | **state file** | agent 的"跨派发记忆"——`brainstorm/state.json` / `author/state.json`。多次派发同一 agent 时,它读 state 恢复进度 |
@@ -1084,4 +1082,4 @@ bash evals/run_eval.sh
 
 ---
 
-*适用流水线:6 agent + 1 旁路(brainstorm / author / critic / builder / designer / audience · template-extractor)*
+*适用流水线:5 agent + 1 旁路(brainstorm / author / critic / builder / designer / audience · template-extractor)*
