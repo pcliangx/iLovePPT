@@ -12,8 +12,8 @@
 **手动触发**(CLI,适合 CI / 不走 agent 场景):
 
 ```bash
-python3 skills/pptx-deck/extract_template.py templates/company_a.pptx
-python3 skills/pptx-deck/extract_template.py templates/company_a.pptx --no-probe
+python3 .claude/skills/pptx-deck/extract_template.py templates/company_a.pptx
+python3 .claude/skills/pptx-deck/extract_template.py templates/company_a.pptx --no-probe
 ```
 
 ## 4 个 Level

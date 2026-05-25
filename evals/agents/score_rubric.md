@@ -89,7 +89,7 @@
 **重点 check**:
 - audience 给的 4 维度评分(comprehension_5s / info_density / visual_appeal / flow_coherence)各是多少?
 - top_3_must_fix 是否合理?
-- 是否区分了 needs_author_rewrite / needs_designer_revision / needs_theme_fix?
+- 是否区分了 needs_author_rewrite / needs_visual_redo / needs_theme_fix?
 
 ---
 

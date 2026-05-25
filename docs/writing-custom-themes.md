@@ -18,7 +18,7 @@
 
 ```bash
 # 复制为你的模板名(去掉 _ 前缀,这样 import 系统会识别)
-cp skills/pptx-deck/themes/_skeleton.py skills/pptx-deck/themes/company_a.py
+cp .claude/skills/pptx-deck/themes/_skeleton.py .claude/skills/pptx-deck/themes/company_a.py
 
 # 在 build.py 的 THEMES 字典注册
 # 当前:THEMES = {"tech_blue": _tech_blue}

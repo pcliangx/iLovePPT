@@ -175,7 +175,7 @@
 
 ## category: data(数据 / 图表)
 
-*用 `${CLAUDE_PROJECT_DIR}/skills/diagram/matplotlib_rc.py` 现画 · 通常不在本 library 范围*
+*用 `${CLAUDE_PROJECT_DIR}/.claude/skills/diagram/matplotlib_rc.py` 现画 · 通常不在本 library 范围*
 
 ---
 

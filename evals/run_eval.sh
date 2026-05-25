@@ -19,7 +19,7 @@ fi
 for plan in "$PLANS_DIR"/*.json; do
     name="$(basename "$plan" .json)"
     echo "== $name =="
-    if python3 "$ROOT/skills/pptx-deck/build.py" "$plan"; then
+    if python3 "$ROOT/.claude/skills/pptx-deck/build.py" "$plan"; then
         echo "## $name" >> "$SCORECARD"
         echo "渲染图见 evals/plans/${name}_render/。逐页按 rubric.md 记录 fail 项号：" >> "$SCORECARD"
         echo "" >> "$SCORECARD"

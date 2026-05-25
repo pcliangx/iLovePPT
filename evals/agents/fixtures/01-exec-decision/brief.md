@@ -26,7 +26,7 @@
 | critic Stage C 报告(若有 notes) | 接受 notes 进 Stage D |
 | content 审完 | 批准 content |
 | critic Stage D 报告(若有 notes) | 接受 notes 进 builder |
-| audience review(若 < 9) | 按 needs_designer_revision / needs_author_rewrite 分类,接受 designer 那条;needs_author_rewrite 我自己看一遍再决定 |
+| audience review(若 < 9) | 按 needs_visual_redo / needs_author_rewrite / needs_theme_fix 三类分流,接受 needs_visual_redo 那条;needs_author_rewrite 我自己看一遍再决定;needs_theme_fix 留给主线程改 theme code |
 | 最终交付确认 | OK 交付 |
 
 ## 准备素材(eval 跑前 mock)
@@ -43,5 +43,5 @@ month,reviews_count,review_days_avg,passed_first_round_pct,reviewer_hours
 EOF
 
 # 用一张占位图(或仓库自带的任何 PNG)
-cp /Users/pc2026/Documents/DevTools/iLovePPT/skills/diagram/examples/minimal.png $WORKDIR/_assets/refs/current_arch.png
+cp /Users/pc2026/Documents/DevTools/iLovePPT/.claude/skills/diagram/examples/minimal.png $WORKDIR/_assets/refs/current_arch.png
 ```

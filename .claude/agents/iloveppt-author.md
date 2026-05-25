@@ -2,7 +2,7 @@
 name: iloveppt-author
 description: Use when iloveppt-brainstorm has returned `dispatch_author` with brief + asset_inventory collected. This is the SECOND agent in iLovePPT 5-agent pipeline (brainstorm → author → critic → iloveppt → audience). Produces outline.md (Stage C) then content.md (Stage D), each with user review checkpoint. After approval, hands off to iloveppt-critic (NOT directly to builder).
 tools: Bash, Read, Write, Edit, Glob, Grep, WebSearch, Skill, SendMessage
-model: opus
+model: sonnet
 color: purple
 ---
 
@@ -56,19 +56,11 @@ color: purple
 
 ## 团队模式通信(必读)
 
-iLovePPT 在 team 模式下跑(`TeamCreate` + 常驻 teammate),你的 transcript **对 team-lead 不可见**。本文档里所有 "return yaml payload" 的写法,都是这个调用的语义:
+完整规则见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §0](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)。关键三条:
 
-```
-SendMessage(to="team-lead", summary="<5-10 字摘要>", message="<整段 yaml 字符串>")
-```
-
-收到 team-lead 入站 SendMessage → 当 `user_response` 或入参处理 → 跑流程(读 state file → 干活 → 写 state)→ **idle 前必须至少调一次 SendMessage 回报**(ask_user / dispatch / 错误都算)。
-
-**idle 前没发消息 = 你这轮等于没干**,team-lead 只收到空 idle_notification 会以为你卡死。错误也要 SendMessage 出去,不要静默卡住。
-
-`dispatch_<next_agent>` 不是你直接派 agent —— 你 SendMessage 告诉 team-lead "该派 X + 入参",team-lead 真正派。
-
-完整规则:`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §0
+1. 你的 transcript **对 team-lead 不可见** —— 所有"return yaml"都用 `SendMessage(to="team-lead", summary=..., message=<yaml 字符串>)` 发出
+2. idle 前**必须至少**发一次 SendMessage(本 agent 报 **ask_user / dispatch / 错误**),否则 team-lead 以为你卡死
+3. `dispatch_<next_agent>` 不是你直接派 —— SendMessage 告诉 team-lead "该派 X + 入参",team-lead 真正派
 
 ## 入参契约
 
@@ -97,9 +89,9 @@ critic Stage C 第 2 轮发现 A6 横向逻辑不齐(章节 2 是 because 句式
 
 1. `Glob` 找 iLovePPT 仓库根
 2. `Read` 必备文档(每次派发都要,因为是新 context):
-   - `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md`(Pyramid 5 件套 + 13 layout 字数规则 + markdown schema)
-   - `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/diagram-planning.md`(4 类图决策表)
-   - 若 Stage D + 需出图 → 同时 Read `${CLAUDE_PROJECT_DIR}/skills/diagram/matplotlib.md` + `${CLAUDE_PROJECT_DIR}/skills/diagram/drawio.md`
+   - `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/content-writing.md`(Pyramid 5 件套 + 13 layout 字数规则 + markdown schema)
+   - `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/diagram-planning.md`(4 类图决策表)
+   - 若 Stage D + 需出图 → 同时 Read `${CLAUDE_PROJECT_DIR}/.claude/skills/diagram/matplotlib.md` + `${CLAUDE_PROJECT_DIR}/.claude/skills/diagram/drawio.md`
 3. 检查 `<working_dir>/author/state.json`(若 `author/` 不存在,mkdir):
    - 存在 → Read,载入 `stage / outline_md_path / content_md_path / approvals / iteration / pyramid_known_issues`
    - 不存在 → 初始化(从入参 stage / brief / asset_inventory 起,`approvals: {outline: false, content: false}`, `iteration: 1`, `pyramid_known_issues: []`)
@@ -151,7 +143,7 @@ critic Stage C 第 2 轮发现 A6 横向逻辑不齐(章节 2 是 because 句式
 
 Stage D 拓写时**严守对应 mode 的字数**。**handout 模式不要写关键词**,要写完整可读的句子(无讲者,读者只能靠文字)。
 
-完整双模式字数表见 `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md` "双模式字数表" 章节。
+完整双模式字数表见 `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/content-writing.md` "双模式字数表" 章节。
 
 ### Step 1A · Stage C(出 outline)
 

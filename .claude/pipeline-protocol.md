@@ -690,7 +690,7 @@ content.md 改动 < 10%(< 5 个字段 / < 3 页)或仅是 quick fix(typo / 字�
 
 ```
 主线程直接:
-1. 跑 `python3 ${ILOVEPPT_ROOT}/skills/pptx-deck/build.py <working_dir>/builder/deck_plan.json`
+1. 跑 `python3 ${ILOVEPPT_ROOT}/.claude/skills/pptx-deck/build.py <working_dir>/builder/deck_plan.json`
 2. 跑 `soffice --headless --convert-to pdf ...` + `pdftoppm`
 3. Read 改动页对应的 page-N.jpg 视觉验证
 4. (可选)Read 1-2 张邻近页防回归

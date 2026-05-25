@@ -22,8 +22,8 @@
 ```bash
 git clone https://github.com/pcliangx/iLovePPT.git
 cd iLovePPT
-bash skills/pptx/scripts/check_deps.sh                                    # 检查依赖
-python3 skills/pptx-deck/build.py skills/pptx-deck/examples/demo_plan.json   # → demo .pptx + PNG
+bash .claude/skills/pptx/scripts/check_deps.sh                                    # 检查依赖
+python3 .claude/skills/pptx-deck/build.py .claude/skills/pptx-deck/examples/demo_plan.json   # → demo .pptx + PNG
 ```
 
 依赖:`python-pptx` / `lxml` / LibreOffice / poppler / Microsoft YaHei(macOS 需手动装)。

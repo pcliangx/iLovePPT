@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_comment": "iLovePPT runtime telemetry · 修复审计 #3 token / latency 不可见。Stop hook 每个 agent 跑完追加 1 行到 .claude/runtime.log,便于事后 awk 统计 per-agent token / duration 占比。",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s | agent=%s | session=%s\\n' \"$(date -u +%FT%TZ)\" \"${CLAUDE_AGENT_NAME:-main}\" \"${CLAUDE_SESSION_ID:-unknown}\" >> \"${CLAUDE_PROJECT_DIR:-.}/.claude/runtime.log\""
+          }
+        ]
+      }
+    ]
+  }
+}

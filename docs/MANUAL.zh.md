@@ -66,10 +66,10 @@
 cd <你的-iLovePPT-仓库>
 
 # 跑构建器(skill 自带 demo plan)
-python3 skills/pptx-deck/build.py skills/pptx-deck/examples/demo_plan.json
+python3 .claude/skills/pptx-deck/build.py .claude/skills/pptx-deck/examples/demo_plan.json
 ```
 
-成功的话,在 `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/examples/` 下会看到:
+成功的话,在 `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/examples/` 下会看到:
 
 - `sample_output.pptx` —— 成品
 - `sample_output_render/page-01.jpg` … —— 每页渲染图(用来视觉自检)
@@ -85,7 +85,7 @@ python3 skills/pptx-deck/build.py skills/pptx-deck/examples/demo_plan.json
 ### 3.1 一键自检
 
 ```bash
-bash skills/pptx/scripts/check_deps.sh
+bash .claude/skills/pptx/scripts/check_deps.sh
 ```
 
 输出会逐项打勾或报缺,大致这样:
@@ -631,7 +631,7 @@ review_needed:
 `deck_plan.json` 落在 `<output 同目录>/deck_plan.json`,直接改对应 slide 字段,然后:
 
 ```bash
-python3 skills/pptx-deck/build.py /path/to/deck_plan.json
+python3 .claude/skills/pptx-deck/build.py /path/to/deck_plan.json
 ```
 
 每页大概 3-4 秒(LibreOffice 启动 1.5 秒 + 渲染),20 页约 1 分钟。
@@ -670,9 +670,9 @@ agent 会跳过 Stage A-D,从 Stage E builder 开始重跑。
 | `BRAND_TINT` | `#E6F0FC` | 卡片底、tag 背景 |
 | `ACCENT` | `#00D1C1` | 极个别强调点 |
 
-> **以 `${CLAUDE_PROJECT_DIR}/skills/pptx/helpers.py` 的常量为唯一权威源**。手册里的 hex 是抄录,可能因主题更新而过时。
+> **以 `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/helpers.py` 的常量为唯一权威源**。手册里的 hex 是抄录,可能因主题更新而过时。
 
-字体:**Microsoft YaHei**(中文)+ 字符回退链。所有字号、间距体系见 `${CLAUDE_PROJECT_DIR}/skills/pptx/design-system.md`。
+字体:**Microsoft YaHei**(中文)+ 字符回退链。所有字号、间距体系见 `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/design-system.md`。
 
 ### 9.2 换品牌色
 
@@ -757,7 +757,7 @@ agent 会读 `notes` 用于拓写时尊重模板约束(比如 subtitle 字数收
 
 ### 9.5 想要彻底自定义视觉?
 
-需要写 Python——`${CLAUDE_PROJECT_DIR}/skills/pptx-deck/themes/tech_blue.py` 是模板,新建 `themes/party_red.py` 复制改即可。这超出本手册范围,见仓库 `CLAUDE.md` 与 `${CLAUDE_PROJECT_DIR}/skills/pptx/design-system.md`。
+需要写 Python——`${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/themes/tech_blue.py` 是模板,新建 `themes/party_red.py` 复制改即可。这超出本手册范围,见仓库 `CLAUDE.md` 与 `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/design-system.md`。
 
 ---
 
@@ -916,7 +916,7 @@ LibreOffice 有时会因为字体缓存损坏卡住,删 `~/Library/Application S
 或直接命令行:
 
 ```bash
-python3 skills/pptx-deck/build.py deck_plan.json --no-render
+python3 .claude/skills/pptx-deck/build.py deck_plan.json --no-render
 ```
 
 不推荐——少了视觉自检,字体 fallback / layout 错配会漏。
@@ -930,7 +930,7 @@ python3 skills/pptx-deck/build.py deck_plan.json --no-render
 ### 12.1 接口
 
 ```bash
-python3 skills/pptx-deck/build.py <deck_plan.json> [--no-render]
+python3 .claude/skills/pptx-deck/build.py <deck_plan.json> [--no-render]
 ```
 
 - `--no-render`:跳过 PNG 渲染,只出 `.pptx`(快 3-4 倍)
@@ -994,7 +994,7 @@ python3 skills/pptx-deck/build.py <deck_plan.json> [--no-render]
 python3 plot_trend.py    # 内部 dpi=200, savefig('./_assets/trend.png')
 ```
 
-详细模板见 `${CLAUDE_PROJECT_DIR}/skills/diagram/drawio.md` 与 `${CLAUDE_PROJECT_DIR}/skills/diagram/matplotlib.md`。
+详细模板见 `${CLAUDE_PROJECT_DIR}/.claude/skills/diagram/drawio.md` 与 `${CLAUDE_PROJECT_DIR}/.claude/skills/diagram/matplotlib.md`。
 
 ### 12.4 一键校验输出
 
@@ -1066,15 +1066,15 @@ bash evals/run_eval.sh
 | 想了解 | 看 |
 |---|---|
 | agent 的完整设计与约束 | `${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt.md` |
-| skill 全貌 | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/SKILL.md` |
-| 7 步主流程 | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/workflow.md` |
-| 13 layout 文案规则 + **金字塔原理 5 件套** + Pyramid 自检表 | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/content-writing.md` |
-| 图层规划 4 类决策表 | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/diagram-planning.md` |
-| 视觉自检 12 项 checklist | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/visual-qa.md` |
-| 模板提取(主色 + 字体) | `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/template-extract.md` |
-| draw.io / Mermaid / matplotlib 出图 | `${CLAUDE_PROJECT_DIR}/skills/diagram/SKILL.md` |
-| 底层 .pptx 读写 / 字体处理 | `${CLAUDE_PROJECT_DIR}/skills/pptx/SKILL.md` |
-| 设计 token(色值 / 字号 / helper) | `${CLAUDE_PROJECT_DIR}/skills/pptx/design-system.md` |
+| skill 全貌 | `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/SKILL.md` |
+| 7 步主流程 | `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/workflow.md` |
+| 13 layout 文案规则 + **金字塔原理 5 件套** + Pyramid 自检表 | `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/content-writing.md` |
+| 图层规划 4 类决策表 | `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/diagram-planning.md` |
+| 视觉自检 12 项 checklist | `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/visual-qa.md` |
+| 模板提取(主色 + 字体) | `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/template-extract.md` |
+| draw.io / Mermaid / matplotlib 出图 | `${CLAUDE_PROJECT_DIR}/.claude/skills/diagram/SKILL.md` |
+| 底层 .pptx 读写 / 字体处理 | `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/SKILL.md` |
+| 设计 token(色值 / 字号 / helper) | `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/design-system.md` |
 | 评分标准(Content / Design / Coherence) | `${CLAUDE_PROJECT_DIR}/evals/rubric.md` |
 | 仓库架构与代码约定 | `CLAUDE.md`(根目录) |
 

@@ -2,7 +2,7 @@
 name: iloveppt-brainstorm
 description: Use when the user first says "做 PPT / 帮我写 deck / 提案 / 路演" and brief / 素材 are not yet collected. This is the FIRST agent in iLovePPT 5-agent pipeline (brainstorm → author → critic → iloveppt → audience + extractor bypass). Dispatches itself across multiple turns until requirements + asset inventory are complete, then hands off to iloveppt-author.
 tools: Bash, Read, Write, Edit, Glob, Grep, WebSearch, Skill, SendMessage
-model: opus
+model: sonnet
 color: green
 ---
 
@@ -70,19 +70,11 @@ color: green
 
 ## 团队模式通信(必读)
 
-iLovePPT 在 team 模式下跑(`TeamCreate` + 常驻 teammate),你的 transcript **对 team-lead 不可见**。本文档里所有 "return yaml payload" 的写法,都是这个调用的语义:
+完整规则见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §0](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)。关键三条:
 
-```
-SendMessage(to="team-lead", summary="<5-10 字摘要>", message="<整段 yaml 字符串>")
-```
-
-收到 team-lead 入站 SendMessage → 当 `user_response` 或入参处理 → 跑流程(读 state file → 干活 → 写 state)→ **idle 前必须至少调一次 SendMessage 回报**(ask_user / dispatch / 错误都算)。
-
-**idle 前没发消息 = 你这轮等于没干**,team-lead 只收到空 idle_notification 会以为你卡死。错误也要 SendMessage 出去,不要静默卡住。
-
-`dispatch_<next_agent>` 不是你直接派 agent —— 你 SendMessage 告诉 team-lead "该派 X + 入参",team-lead 真正派。
-
-完整规则:`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §0
+1. 你的 transcript **对 team-lead 不可见** —— 所有"return yaml"都用 `SendMessage(to="team-lead", summary=..., message=<yaml 字符串>)` 发出
+2. idle 前**必须至少**发一次 SendMessage(本 agent 报 **ask_user / dispatch / 错误**),否则 team-lead 以为你卡死
+3. `dispatch_<next_agent>` 不是你直接派 —— SendMessage 告诉 team-lead "该派 X + 入参",team-lead 真正派
 
 ## 入参契约
 
@@ -96,7 +88,7 @@ initial_request: "用户的一句话需求"          # 仅初次派发必填
 
 ### Step 0 · 启动 / 恢复状态
 
-1. `Glob` 找 `**/skills/pptx-deck/build.py` 定位 iLovePPT 仓库根 `$ILOVEPPT_ROOT`(便于后续 Read skill 文档)
+1. `Glob` 找 `**/.claude/skills/pptx-deck/build.py` 定位 iLovePPT 仓库根 `$ILOVEPPT_ROOT`(便于后续 Read skill 文档)
 2. 检查 `<working_dir>/brainstorm/state.json`(若 `brainstorm/` 不存在,mkdir):
    - 存在 → `Read`,载入 `round/collected/pending/asset_inventory/history/brief_md_path/brief_approved`,继续
    - 不存在 → 初始化(`round=1, collected={}, asset_inventory=[], history=[], brief_md_path=null, brief_approved=false`)

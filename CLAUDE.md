@@ -6,9 +6,39 @@
 
 ## 仓库是什么
 
-iLovePPT 是一个 **Claude Code 技能库**(skill library),**不是独立应用**。交付物是 `${CLAUDE_PROJECT_DIR}/skills/` 目录:三个 skill(`pptx-deck` / `pptx` / `diagram`),每个由 `SKILL.md` 入口文档 + 子 `.md` 文档 + Python helper 模块组成。装到一个项目的 `${CLAUDE_PROJECT_DIR}/.claude/skills/` 之后,Claude 在运行时读这些文档,端到端生成 PowerPoint deck。
+iLovePPT 是一个 **agent team 帮你写 PPT 的开源工具**。clone 本仓库后,在仓库根目录跟 Claude Code 说"做 PPT",**5 个 agent + 1 旁路**(brainstorm → author → critic → iloveppt → audience + extractor)接力把你的想法变成完整 `.pptx`。
 
-仓库的两种用法:(1) 作为 skill 库,别的项目软链到 `${CLAUDE_PROJECT_DIR}/.claude/skills/` 引用;(2) 直接跑 `python3 ${CLAUDE_PROJECT_DIR}/skills/pptx-deck/build.py deck_plan.json`。
+仓库本身就是产品:
+
+- `.claude/agents/` —— 5 个 agent 定义,Claude Code 启动时自动加载
+- `.claude/skills/` —— 3 个 skill 实现(`pptx-deck` / `pptx` / `diagram`),Claude Code 自动加载,可直接 `Skill(skill="pptx-deck")` 调用
+- `.claude/pipeline-protocol.md` —— agent 之间的派发 / handoff / gate 协议
+- `.claude/settings.json` —— 框架配置(hooks / permissions / env)
+
+## Quick Start
+
+```bash
+# 1. clone + 装依赖
+git clone <repo-url> iLovePPT
+cd iLovePPT
+pip install -e ".[diagram,dev]"
+
+# 2. 检查外部依赖(python-pptx / soffice / pdftoppm / 中文字体)
+bash .claude/skills/pptx/scripts/check_deps.sh
+
+# 3. 跑测试确认环境 OK
+python3 -m pytest tests/ -q             # 应 72 passed
+
+# 4. 在仓库根目录打开 Claude Code,跟主线程说:
+#    "做个 15 分钟的 deck,给 CTO 看 AI 4A 评审办法的提案"
+# 主线程会按 pipeline-protocol 派 agent team,产出在 decks/<slug>/builder/deck_v1.pptx
+```
+
+也可以**绕过 agent team 手动跑**(已有 `deck_plan.json` 的场景):
+
+```bash
+python3 .claude/skills/pptx-deck/build.py path/to/deck_plan.json
+```
 
 ## 常用命令
 
@@ -20,16 +50,16 @@ python3 -m pytest tests/ -v
 python3 -m pytest tests/pptx/test_helpers.py::test_set_font_writes_ea_typeface -v
 
 # 检查外部依赖(python-pptx / soffice / pdftoppm / 字体)
-bash skills/pptx/scripts/check_deps.sh
+bash .claude/skills/pptx/scripts/check_deps.sh
 
 # 端到端:从 deck_plan.json 构建 deck
-python3 skills/pptx-deck/build.py deck_plan.json
+python3 .claude/skills/pptx-deck/build.py deck_plan.json
 # 可选:跳过 PNG 渲染
-python3 skills/pptx-deck/build.py deck_plan.json --no-render
+python3 .claude/skills/pptx-deck/build.py deck_plan.json --no-render
 
 # 烟测(跑 helper + render 流水线)
-python3 skills/pptx/examples/minimal_deck.py     # → /tmp/iloveppt_minimal.pptx
-bash skills/diagram/examples/render.sh           # → skills/diagram/examples/minimal.png
+python3 .claude/skills/pptx/examples/minimal_deck.py     # → /tmp/iloveppt_minimal.pptx
+bash .claude/skills/diagram/examples/render.sh           # → .claude/skills/diagram/examples/minimal.png
 
 # 渲染 .pptx 做视觉验证
 soffice --headless --convert-to pdf <file>.pptx --outdir /tmp/
@@ -40,19 +70,18 @@ pdftoppm -jpeg -r 120 /tmp/<file>.pdf /tmp/slide
 
 ## 架构
 
-### Agent 流水线(6 agent + 1 旁路)
+### Agent 流水线(5 agent + 1 旁路)
 
-`${CLAUDE_PROJECT_DIR}/.claude/agents/` 是项目的运行时流水线:
+`${CLAUDE_PROJECT_DIR}/.claude/agents/` 是项目的运行时流水线。**模型分层**(2026-05-25 后):critic / iloveppt 用 opus(深度推理 / 多职责),author / brainstorm / audience 用 sonnet,template-extractor 用 haiku(成本优化,见 [pipeline protocol §0.6 model 选型](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md))。
 
-| agent | 角色 |
-|---|---|
-| `iloveppt-brainstorm` | Stage A-B:多轮对话收 brief + 素材,出 brief.md 让用户确认 |
-| `iloveppt-author` | Stage C-D:出 outline.md(章节骨架)+ 拓写 content.md(全文) |
-| `iloveppt-critic` | **partner 评审员**:14 项 checklist 底线 + 4 维度判断性评审(论据强度 / 节奏 / 措辞 / 平衡),Stage C(用户批准 outline 后)和 Stage D(用户批准 content 后)各跑一次 |
-| `iloveppt`(builder) | Stage E:构建 .pptx + **机械**视觉 QA 循环(字号 / 对齐 / 颜色 / 溢出) |
-| `iloveppt-designer` | **视觉设计师**:builder 之后自动跑,搜 iconify / Unsplash / brand assets,改 deck_plan.json 加 icon / hero / 装饰 / 布局优化 |
-| `iloveppt-audience` | 模拟目标受众读 deck 评分(9 分硬阈值);反馈三类分流(needs_author_rewrite / needs_designer_revision / needs_theme_fix) |
-| `iloveppt-template-extractor` | 旁路:用户给 .pptx 模板时摄入 4 级 token |
+| agent | 角色 | model |
+|---|---|---|
+| `iloveppt-brainstorm` | Stage A-B:多轮对话收 brief + 素材,出 brief.md 让用户确认 | sonnet |
+| `iloveppt-author` | Stage C-D:出 outline.md(章节骨架)+ 拓写 content.md(全文) | sonnet |
+| `iloveppt-critic` | **partner 评审员**:14 项 checklist 底线 + 4 维度判断性评审(论据强度 / 节奏 / 措辞 / 平衡),Stage C(用户批准 outline 后)和 Stage D(用户批准 content 后)各跑一次 | opus |
+| `iloveppt` | Stage E:**机械构建 .pptx + 机械视觉 QA(Step 0-3)+ 主动加视觉(Step 4 · 原 designer 流程并入)**,iconify / Unsplash / brand 三路降级 | opus |
+| `iloveppt-audience` | 模拟目标受众读 deck 评分(9 分硬阈值);反馈三类分流(needs_author_rewrite / needs_visual_redo / needs_theme_fix) | sonnet |
+| `iloveppt-template-extractor` | 旁路:用户给 .pptx 模板时摄入 4 级 token | haiku |
 
 👉 **运行时流水线协议(派发顺序 / handoff / gate / 退出条件)** —— AI 运行时活协议,放 `${CLAUDE_PROJECT_DIR}/.claude/`:[`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)
 
@@ -92,12 +121,12 @@ diagram    ── 图表生成;也可独立使用
 
 ### SSOT 标准 —— helpers.py 是唯一真实源
 
-`${CLAUDE_PROJECT_DIR}/skills/pptx/helpers.py` 是两件事的权威定义,下游只能引用或扩展,**不允许重新定义**:
+`${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/helpers.py` 是两件事的权威定义,下游只能引用或扩展,**不允许重新定义**:
 
 1. **底层 pptx 操作** —— 所有字体/形状/表格原语(`set_font` / `_fix_ph_font` / `card` / `bullets` / `table_modern` / `section_header` 等)。Theme 模块在此基础上写 `make_*` layout 函数,**绝不**在 theme 里复制字体/形状逻辑。
 2. **设计 token** —— 字体(`FONT_CN` / `FONT_NUM`)、品牌色(`BRAND_PRIMARY` / `BRAND_DARK` / `BRAND_TINT` / `ACCENT`)、灰阶、slide 尺寸(`SLIDE_W` / `SLIDE_H`)。`tech_blue.py` **不**重新定义这些 —— 而是 alias(`PRIMARY = H.BRAND_PRIMARY`、`FONT_HEADER = H.FONT_CN`)。`build.py` 用 `H.SLIDE_W/H`,不写死 `Inches(...)`。
 
-`${CLAUDE_PROJECT_DIR}/skills/pptx/layout.py` 提供**几何原语**(`Box` / `content_region` / `full_region` / `columns` / `rows` / `stack` / `split` / `inset`),主题无关,跟 `helpers.py` 并列。Theme 的 `make_*` 函数用这些算元素位置,不重复几何数学。
+`${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/layout.py` 提供**几何原语**(`Box` / `content_region` / `full_region` / `columns` / `rows` / `stack` / `split` / `inset`),主题无关,跟 `helpers.py` 并列。Theme 的 `make_*` 函数用这些算元素位置,不重复几何数学。
 
 改动的连带后果:
 - 改色或改字体 = **只**改 `helpers.py` 一处,会传到 theme 和所有 helper 默认值。
@@ -108,13 +137,13 @@ diagram    ── 图表生成;也可独立使用
 
 `SKILL.md` + 子 `.md` 文件**不是**辅助文档 —— 它们是 Claude 在运行时读的内容,决定怎么生成 deck。改它们就是改产品行为。文档之间用 `[[skill-name]]` 语法交叉引用。
 
-`${CLAUDE_PROJECT_DIR}/skills/pptx/scripts/office/` 从 Anthropic 的 pptx skill **逐字 vendor 过来,不要改动**。
+`${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/scripts/office/` 从 Anthropic 的 pptx skill **逐字 vendor 过来,不要改动**。
 
 ## 核心原则 —— 一图胜千文
 
-表达**结构、流程、关系、数据对比**的内容应该变成**图**,**不是**一堵 bullet 文字墙。生成或审 deck 时,**主动用** AI 画图能力(`diagram` skill)处理这类内容;**拿不准的时候,画**。这条原则在工作流 Step 3(Claude 执行的图层规划步骤)落地,文档在 `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/diagram-planning.md`。任何改动生成行为都应保留这个"偏视觉"的倾向。
+表达**结构、流程、关系、数据对比**的内容应该变成**图**,**不是**一堵 bullet 文字墙。生成或审 deck 时,**主动用** AI 画图能力(`diagram` skill)处理这类内容;**拿不准的时候,画**。这条原则在工作流 Step 3(Claude 执行的图层规划步骤)落地,文档在 `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/diagram-planning.md`。任何改动生成行为都应保留这个"偏视觉"的倾向。
 
-结构化图(流程图、架构、矩阵、决策树、关系图)默认走 **draw.io** —— 颜色精确、布局可控、跨图视觉一致。Mermaid 只是快速 sketch 的 fallback;matplotlib 处理数据图。工具选择表见 `${CLAUDE_PROJECT_DIR}/skills/diagram/SKILL.md`。
+结构化图(流程图、架构、矩阵、决策树、关系图)默认走 **draw.io** —— 颜色精确、布局可控、跨图视觉一致。Mermaid 只是快速 sketch 的 fallback;matplotlib 处理数据图。工具选择表见 `${CLAUDE_PROJECT_DIR}/.claude/skills/diagram/SKILL.md`。
 
 ## 关键不变量
 
@@ -125,7 +154,7 @@ diagram    ── 图表生成;也可独立使用
 
 ## 约定
 
-- **路径表示**:文档里的 `${CLAUDE_PROJECT_DIR}/...` 是 [Claude Code 标准环境变量](https://code.claude.com/docs/en/hooks.md),指**项目根**。**开发场景**(直接开 iLovePPT 仓库) = iLovePPT 仓库根,文档当字面用即可。**使用场景**(iLovePPT 装为 skill 库,被别人项目 `${CLAUDE_PROJECT_DIR}/.claude/skills/` 软链)agent 通过 `iloveppt_root` dispatch 参数(见 [pipeline protocol §1](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md#1-ppt-意图触发规则强制))拿到实际 iLovePPT 路径,文档里的 `${CLAUDE_PROJECT_DIR}` 取**开发场景**语义。
+- **路径表示**:文档里的 `${CLAUDE_PROJECT_DIR}/...` 是 [Claude Code 标准环境变量](https://code.claude.com/docs/en/hooks.md),指 **iLovePPT 仓库根**(也是你的 cwd —— agent team 在仓库内跑,无双场景之分)。文档当字面用即可。
 - Commit message 用 conventional commits + scope:`feat(pptx-deck):` / `fix(pptx):` / `docs(diagram):` / `refactor:` / `test(pptx):` / `chore:`。
-- `pyproject.toml` 设了 `pythonpath = ["skills/pptx", "skills/pptx-deck"]`,测试直接 import `helpers` / `layout` / `themes.tech_blue` / `build`,**无需** `sys.path` hack。非 test 模块保留幂等的 `sys.path.insert`,方便脚本直接跑。
+- `pyproject.toml` 设了 `pythonpath = [".claude/skills/pptx", ".claude/skills/pptx-deck"]`,测试直接 import `helpers` / `layout` / `themes.tech_blue` / `build`,**无需** `sys.path` hack。非 test 模块保留幂等的 `sys.path.insert`,方便脚本直接跑。
 - 历史设计 spec / 实施计划归档在 `${CLAUDE_PROJECT_DIR}/docs/archive/`。流水线协议 spec(上方链接)是 agent 派发 / handoff 行为的权威。

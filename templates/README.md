@@ -32,7 +32,7 @@ output: ./deck_v1.pptx
 或者跑 build.py:
 
 ```bash
-python3 skills/pptx-deck/build.py deck_plan.json
+python3 .claude/skills/pptx-deck/build.py deck_plan.json
 # deck_plan.json 里 theme: company_a
 ```
 
@@ -82,7 +82,7 @@ agent 在 Stage A 问"用哪个模板?"时会列出来:
 
 **不提取**:背景图 / 装饰元素 / 自定义 layout / 圆角风格 / 间距 / 动画 / 模板内容。
 
-也就是说,模板**只用于换色 + 换字体**,布局仍然是 iLovePPT 内置的 13 种 layout。如果要"完全照模板视觉风格出稿",超出本系统能力——需要写自定义 theme 模块(类似 `${CLAUDE_PROJECT_DIR}/skills/pptx-deck/themes/tech_blue.py`)。
+也就是说,模板**只用于换色 + 换字体**,布局仍然是 iLovePPT 内置的 13 种 layout。如果要"完全照模板视觉风格出稿",超出本系统能力——需要写自定义 theme 模块(类似 `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/themes/tech_blue.py`)。
 
 ## 多人协作建议
 

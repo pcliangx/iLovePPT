@@ -123,7 +123,7 @@ def test_extract_template_cli_l1_l2(tmp_path):
     pptx = tmpl_dir / "minimal_template.pptx"
     _P().save(str(pptx))
     # 2. 跑 CLI
-    script = _Pa(__file__).resolve().parent.parent.parent / "skills" / "pptx-deck" / "extract_template.py"
+    script = _Pa(__file__).resolve().parent.parent.parent / ".claude" / "skills" / "pptx-deck" / "extract_template.py"
     result = subprocess.run(
         ["python3", str(script), str(pptx),
          "--no-probe", "--working-dir", str(tmp_path)],
@@ -156,7 +156,7 @@ def test_extract_template_preserves_user_yaml_fields(tmp_path):
         "name: 我的模板\ndesc: 不能覆盖\nowner: alice\nnotes: 保留我\n",
         encoding="utf-8")
     # 跑 CLI
-    script = _Pa(__file__).resolve().parent.parent.parent / "skills" / "pptx-deck" / "extract_template.py"
+    script = _Pa(__file__).resolve().parent.parent.parent / ".claude" / "skills" / "pptx-deck" / "extract_template.py"
     result = subprocess.run(
         ["python3", str(script), str(pptx), "--no-probe", "--working-dir", str(tmp_path)],
         capture_output=True, text=True)

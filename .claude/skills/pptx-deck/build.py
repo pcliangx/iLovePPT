@@ -217,7 +217,7 @@ def _extract_theme_from_pptx(pptx_path: str) -> ModuleType:
 
 
 def _repo_templates_dir() -> Path:
-    """iLovePPT 仓库根的 templates/ 目录(`<repo>/skills/pptx-deck/build.py`
+    """iLovePPT 仓库根的 templates/ 目录(`<repo>/.claude/skills/pptx-deck/build.py`
     → `<repo>/templates/`)。.resolve() 处理符号链接场景。"""
     return Path(__file__).resolve().parent.parent.parent / "templates"
 

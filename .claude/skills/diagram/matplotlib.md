@@ -30,7 +30,7 @@ python3 -c 'import matplotlib; print(matplotlib.__version__)'
 import sys
 from pathlib import Path
 
-# 加载 matplotlib_rc(skills/diagram/matplotlib_rc.py)
+# 加载 matplotlib_rc(.claude/skills/diagram/matplotlib_rc.py)
 _dpath = str(Path(__file__).parent.parent / "diagram")
 if _dpath not in sys.path:
     sys.path.insert(0, _dpath)

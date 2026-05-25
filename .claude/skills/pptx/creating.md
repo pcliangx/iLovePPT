@@ -370,7 +370,7 @@ pdftoppm -jpeg -r 100 /tmp/preview/output.pdf /tmp/preview/p
 ```
 my-deck/
 ├── build.py              # 主入口，python3 build.py 一键生成
-├── helpers.py            # 从 iLovePPT skills/pptx/ 复制 or symlink
+├── helpers.py            # 从 iLovePPT .claude/skills/pptx/ 复制 or symlink
 ├── scripts/
 │   ├── check_deps.sh     # 依赖检查
 │   ├── thumbnail.py      # 缩略图网格

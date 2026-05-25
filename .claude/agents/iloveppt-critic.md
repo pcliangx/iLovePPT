@@ -50,17 +50,10 @@ color: cyan
 
 ## 团队模式通信(必读)
 
-iLovePPT 在 team 模式下跑(`TeamCreate` + 常驻 teammate),你的 transcript **对 team-lead 不可见**。本文档里所有 "return yaml payload" 的写法,都是这个调用的语义:
+完整规则见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §0](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)。关键两条:
 
-```
-SendMessage(to="team-lead", summary="<5-10 字摘要>", message="<整段 yaml 字符串>")
-```
-
-收到 team-lead 入站 SendMessage → 当 `user_response` 或入参处理 → 跑流程(读 state file → 干活 → 写 state)→ **idle 前必须至少调一次 SendMessage 回报**(verdict / report 路径 / 错误都算)。
-
-**idle 前没发消息 = 你这轮等于没干**,team-lead 只收到空 idle_notification 会以为你卡死。错误也要 SendMessage 出去,不要静默卡住。
-
-完整规则:`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §0
+1. 你的 transcript **对 team-lead 不可见** —— 所有"return yaml"都用 `SendMessage(to="team-lead", summary=..., message=<yaml 字符串>)` 发出
+2. idle 前**必须至少**发一次 SendMessage(本 agent 报 **verdict / report 路径 / 错误**),否则 team-lead 以为你卡死
 
 ## 入参契约
 
@@ -81,7 +74,7 @@ asset_inventory:                                    # Stage D 必填(透传自 b
 ### Step 0 · 启动
 
 1. `Glob` 找 iLovePPT 仓库根 `$ILOVEPPT_ROOT`
-2. `Read` `<repo>/skills/pptx-deck/content-writing.md`(取 Pyramid 5 件套 + 13 layout 字数 + 双模式字数表参照)
+2. `Read` `<repo>/.claude/skills/pptx-deck/content-writing.md`(取 Pyramid 5 件套 + 13 layout 字数 + 双模式字数表参照)
 3. `Read` 输入 md 全文:
    - Stage C → `brief_md_path` + `outline_md_path`
    - Stage D → `brief_md_path` + `outline_md_path` + `content_md_path`

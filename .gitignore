@@ -18,13 +18,16 @@ preview*.png
 thumbnails-*.jpg
 
 # 但保留示例产物
-!skills/pptx-deck/examples/sample_output.pptx
+!.claude/skills/pptx-deck/examples/sample_output.pptx
 
 # evals 临时产物
 evals/_run/
 evals/plans/*.pptx
 evals/plans/*_render/
-skills/pptx-deck/examples/*_render/
+.claude/skills/pptx-deck/examples/*_render/
+
+# Claude Code runtime telemetry (Stop hook 写,见 .claude/settings.json)
+.claude/runtime.log
 
 # 用户本地 .pptx 模板(机密 / 版权防误 commit)
 # 仅 README.md + example.yaml 入 git,其他都不入

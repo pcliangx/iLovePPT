@@ -2,7 +2,7 @@
 name: iloveppt-template-extractor
 description: Use when user provides a .pptx template path and wants iLovePPT to deeply learn from it (extract media + tokens + visual analysis). This agent runs Stage T (template ingestion) BEFORE returning control to iloveppt-brainstorm. Skipped entirely if user doesn't need template.
 tools: Bash, Read, Write, Edit, Glob, Grep, Skill, SendMessage
-model: opus
+model: haiku
 color: yellow
 ---
 
@@ -24,17 +24,10 @@ color: yellow
 
 ## 团队模式通信(必读)
 
-iLovePPT 在 team 模式下跑(`TeamCreate` + 常驻 teammate),你的 transcript **对 team-lead 不可见**。本文档里所有 "return yaml payload" 的写法,都是这个调用的语义:
+完整规则见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §0](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)。关键两条:
 
-```
-SendMessage(to="team-lead", summary="<5-10 字摘要>", message="<整段 yaml 字符串>")
-```
-
-收到 team-lead 入站 SendMessage → 当入参处理 → 跑流程 → **idle 前必须至少调一次 SendMessage 回报**(template_ready 状态 / yaml 路径 / 错误都算)。
-
-**idle 前没发消息 = 你这轮等于没干**,team-lead 只收到空 idle_notification 会以为你卡死。`template_ready: false` 失败也要 SendMessage 出去,不要静默卡住。
-
-完整规则:`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §0
+1. 你的 transcript **对 team-lead 不可见** —— 所有"return yaml"都用 `SendMessage(to="team-lead", summary=..., message=<yaml 字符串>)` 发出
+2. idle 前**必须至少**发一次 SendMessage(本 agent 报 **template_ready 状态 / yaml 路径 / 错误,失败也要发**),否则 team-lead 以为你卡死
 
 ## 入参契约
 
@@ -54,7 +47,7 @@ template_path: /abs/path/to/company_a.pptx # 必填 — 用户给的模板
 ### Step 1 · 跑 extract_template.py CLI
 
 ```bash
-python3 <repo>/skills/pptx-deck/extract_template.py <template_path> --working-dir <working_dir>
+python3 <repo>/.claude/skills/pptx-deck/extract_template.py <template_path> --working-dir <working_dir>
 ```
 
 CLI 自动做:L1 unzip media + L2 抽 token + probe 8-page render。

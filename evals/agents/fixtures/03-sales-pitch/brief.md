@@ -33,5 +33,5 @@ api_endpoints,180,95,120
 sla_uptime,99.95,99.5,99.9
 EOF
 
-cp /Users/pc2026/Documents/DevTools/iLovePPT/skills/diagram/examples/minimal.png $WORKDIR/_assets/brand/logos.png
+cp /Users/pc2026/Documents/DevTools/iLovePPT/.claude/skills/diagram/examples/minimal.png $WORKDIR/_assets/brand/logos.png
 ```

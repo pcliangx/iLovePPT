@@ -32,11 +32,19 @@
     "audience_rounds": 1,
     "critic_c_rounds": 1,
     "critic_d_rounds": 1,
-    "designer_rounds": 1,
-    "builder_qa_rounds": 2,
+    "iloveppt_step3_qa_rounds": 2,
+    "iloveppt_step4_visual_rounds": 1,
     "total_time_min": 28
   },
-  "notes": "brief.md gate 走得顺;content.md page 5 cards body 20 字超标(speaker mode 上限 18);designer 加 5 个 lucide icon 全部保留"
+  "model_tiering": {
+    "brainstorm": "sonnet",
+    "author": "sonnet",
+    "critic": "opus",
+    "iloveppt": "opus",
+    "audience": "sonnet",
+    "template-extractor": "haiku"
+  },
+  "notes": "brief.md gate 走得顺;content.md page 5 cards body 20 字超标(speaker mode 上限 18);iloveppt Step 4 加 5 个 lucide icon 全部保留"
 }
 ```
 

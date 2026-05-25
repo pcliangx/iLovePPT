@@ -1,8 +1,8 @@
 """extract_template.py — 从 .pptx 模板提取媒体 + 扩展 token + 跑 probe deck
 
 用法:
-    python3 skills/pptx-deck/extract_template.py templates/company_a.pptx
-    python3 skills/pptx-deck/extract_template.py templates/company_a.pptx --no-probe
+    python3 .claude/skills/pptx-deck/extract_template.py templates/company_a.pptx
+    python3 .claude/skills/pptx-deck/extract_template.py templates/company_a.pptx --no-probe
 
 输出:
     extractor/template_company_a/    ← L1:解压 ppt/media/* 到这(在 deck working_dir 下)
