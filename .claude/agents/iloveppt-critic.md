@@ -164,6 +164,34 @@ asset_inventory:                                    # Stage D 必填(透传自 b
 
 **evidence 模板**:`summary 重列 5 个章节标题,无结论;应给 3-5 条"5 阶段 ≤ 15 天 / AI 助手降 60% 人力 / Q3 试点 → Q4 全公司"这种带数字的收口`
 
+#### 维度 5 · pattern 适配性(2026-05-25 新增 · 需 library/visual-patterns 库)
+
+看 author outline / content 中 `pattern_hints` 是否真的最匹配本章 intent。问自己:**作者选的 pattern 跟章节论点是不是同源?有没有更准的?**
+
+**触发信号**:
+- author selected pattern 的 fallback_rendering 跟章节 layout 不匹配(如 selected 是 matrix 但 layout 是 cards)
+- selected pattern 的 intent 跟章节 action title 语义偏差大(如 selected 是 cycle 但章节明显是 linear process)
+- selected pattern 是 author 因 "candidates 里第一个就选了" 而非真匹配(可看 alternatives list 里有没有更准的)
+
+**evidence 模板**:`page X 章节 "Y": author selected <id-A>,但 intent 是 "5 阶段串行",<id-A> 是 matrix pattern,RAG search.sh 重跑 top-5 含 <id-B> linear pattern,后者 fallback_rendering 跟 layout: pic_text 更兼容。建议 alternative`
+
+**怎么查**:
+1. Read `${CLAUDE_PROJECT_DIR}/library/visual-patterns/patterns/<author selected id>/pattern.yaml`,看 intent / fallback_rendering
+2. 若 author selected 跟章节明显不符,重跑 `Bash bash ${CLAUDE_PROJECT_DIR}/library/visual-patterns/search.sh --query "<章节 intent>" --mode hybrid --top-k 5 --format json`
+3. parse top-5,选出 1 个明显更优的 alternative(若 top-5 都不如 author 已选,**不**报 alternative,这维度 0 issue)
+4. 在 yaml return 加 `suggested_alternative_patterns` 字段(advisory):
+   ```yaml
+   suggested_alternative_patterns:
+     - page: 3
+       current: cards-flag-4
+       suggest: matrix-2x2
+       reason: "4A 不是并列而是因果矩阵,matrix-2x2 更准(RAG top-5 第 2 候选)"
+   ```
+
+**注意 advisory 性质**:你只**建议**,不能改 outline.md / content.md;主线程拿到你的建议会展示给用户 cherry-pick。**该字段不计入 verdict 决定**(不是 must_fix,即使有 alternative 也可 verdict=pass)。
+
+**降级**:若 search.sh 调用失败(library 不可用)→ `suggested_alternative_patterns: []`,**不阻塞**评审完成。
+
 ### Step 3 · 三档 verdict 判定
 
 跑完底线 + 判断性后,根据 issue 严重度给三档 verdict:

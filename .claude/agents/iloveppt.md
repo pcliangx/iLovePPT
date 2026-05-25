@@ -323,6 +323,32 @@ curl -s "<photo.urls.regular>" > builder/hero/architecture_<id>.jpg
 
 **节制原则**:咨询稿是**文字驱动**,不是 marketing flyer。**没合适 icon 就不加**,比将就加更专业。BCG/McKinsey 的 deck icon 通常很少。
 
+#### Step 4.2.5 · 第 4 路 RAG patterns fallback(2026-05-25 新增)
+
+**触发条件(三条全满足)**:
+- 上面三路降级**全部 disabled**(cairosvg 失败 / Unsplash KEY 缺 / brand_assets 为空)
+- **且** 某页 visual_qa 评分低(visual_qa.passed < 14/17,即至少 3 项 fail)
+- **且** `library/visual-patterns/` 存在 + `search.sh` 可调
+
+**做法**:
+1. 对每个低分页:
+   ```bash
+   PAGE_INTENT="<该页章节 intent + action title 关键词>"
+   Bash: bash ${CLAUDE_PROJECT_DIR}/library/visual-patterns/search.sh \
+         --query "$PAGE_INTENT" \
+         --mode hybrid \
+         --top-k 3 \
+         --format json
+   ```
+2. parse top-3,看每个 `patterns/<id>/preview.png`:
+   - 若该 page layout 支持 hero 图(`pic_text` / `single_focus`)→ 嵌入 preview.png 作 hero(写进 deck_plan.json `hero_image` 字段)
+   - 若 layout 不支持 hero(`table` / `bullet_list`)→ preview.png 仅作 reference,**不嵌入**,但记录在 yaml `usage: reference_only`
+3. 在 visual_report 同步记录 `rag_fallback_used`(给 audience 看哪些页用了 RAG)
+
+**节制原则同样适用**:即使 RAG top-3 有候选,若 preview 跟内容风格不符 → **不嵌入,reference_only**。
+
+**降级**:若 search.sh 调用失败 → `rag_patterns: 0_available` + `rag_fallback_used: []`,不阻塞 Step 4 完成。
+
 #### Step 4.3 · 改 deck_plan.json + rebuild
 
 把新 asset path 写进 `<working_dir>/builder/deck_plan.json` 对应 slide 字段(`icon` / `image_path` / `hero_image` 等)。
@@ -396,6 +422,17 @@ visual_qa:
   evidence:                           # 必填
     pages_read: [page-1.jpg, page-2.jpg, ..., page-N.jpg]
     issues_found: 0
+visual_step4:                         # 2026-05-25 新增 · Step 4 三路 + RAG 第 4 路状态
+  capability:
+    cairosvg: enabled | disabled
+    unsplash: enabled | disabled
+    brand_assets: <count> | none
+    rag_patterns: <count>_available   # patterns 库当前可用数(库不可用时 0_available)
+  rag_fallback_used:                  # 第 4 路实际使用(三路全降级 + 该页 visual_qa 低分时触发)
+    - page: 6
+      pattern_id: cards-flag-3
+      preview_path: library/visual-patterns/patterns/cards-flag-3/preview.png
+      usage: hero_reference | reference_only
 ```
 
 **失败(hard_stop)**:

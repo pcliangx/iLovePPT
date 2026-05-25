@@ -158,6 +158,7 @@ Task(<agent-name>, args={...})
 | critic verdict | `pass` 或 `pass_with_notes` |
 | audience overall_score | ≥ 9 |
 | 5 轮 cap | critic Stage C / Stage D / audience 各独立计数,达 5 轮强制询问用户四选一(继续 / 接受当前 / 回 outline / 终止) |
+| **Pattern cherry-pick**(2026-05-25 新增) | critic / iloveppt / audience 任一 yaml 含 `suggested_alternative_pattern(s)` → 主线程**必须**展示给用户决定,不允许自决;用户答"改" → Task author rework + user_response 含 `accept_alternative_pattern: <id>`;用户答"不改" → 继续派下一棒;若 audience 阶段触发改 → author rework 后必须重派 critic D + audience |
 
 ### §3.4 Pyramid 3 层防线
 
@@ -250,6 +251,10 @@ artifacts:
   - path: <abs path to brief.md>
     kind: brief_md
 brief_summary: <一句话 brief 概要>
+pattern_hints_for_author:           # 2026-05-25 新增 · category list,brainstorm RAG 预选,3-5 个
+  - process
+  - cycle
+  - comparison
 ```
 
 **critic 必加字段**:
@@ -268,6 +273,11 @@ issues:
     description: <一句话>
     suggestion: <修改建议>
 rounds_used: <int>  # 当前 stage 第几轮
+suggested_alternative_patterns:     # 2026-05-25 新增 · advisory(用户 cherry-pick 才采纳)
+  - page: 3
+    current: cards-flag-4
+    suggest: matrix-2x2
+    reason: "4A 不是并列而是因果矩阵(2 类风险 × 2 类应对),matrix-2x2 更准"
 ```
 
 **audience 必加字段**:
@@ -287,6 +297,13 @@ per_page_scores:
     info_density: <int 1-10>
     visual_appeal: <int 1-10>
     flow_coherence: <int 1-10>
+needs_visual_redo_pages:            # triage=needs_visual_redo 时填(多类 triage 时也填)
+  - page: 8
+    issue: "draw.io 流程图 HTML 标签裸露"
+    suggested_alternative_pattern:  # 2026-05-25 新增 · advisory(给 iloveppt mode=visual_redo 用)
+      current: pic_text + drawio_chart
+      suggest: process-5-step-linear
+      reason: "draw.io HTML 标签裸露,直接换内置 pattern preview 一击命中"
 rounds_used: <int>
 ```
 
@@ -305,6 +322,17 @@ pyramid_check: passed | failed
 visual_qa:
   passed: <int>
   total: <int>
+visual_step4:                       # 2026-05-25 新增 · Step 4 三路 + RAG 第 4 路状态
+  capability:
+    cairosvg: enabled | disabled
+    unsplash: enabled | disabled
+    brand_assets: <count> | none
+    rag_patterns: <count>_available  # patterns 库当前可用数(库为空时 0_available)
+  rag_fallback_used:                # 第 4 路实际使用(三路降级 + 该页 visual_qa 低分时)
+    - page: 6
+      pattern_id: cards-flag-3
+      preview_path: library/visual-patterns/patterns/cards-flag-3/preview.png
+      usage: hero_reference | reference_only
 ```
 
 **extractor 必加字段**:
@@ -331,6 +359,13 @@ artifacts:
     kind: outline_md | content_md
 rounds_used: <int>
 pyramid_self_check: passed | failed  # Stage D 必填
+pattern_hints:                      # 2026-05-25 新增 · Stage C 必填,Stage D 透传 outline,rework 可改
+  - chapter: 1
+    selected: [process-5-step-linear]
+    rationale: "5 阶段流程,linear pattern 匹配"
+  - chapter: 2
+    selected: [cards-flag-4]
+    rationale: "4A 4 维并列,cards 匹配"
 ```
 
 ---

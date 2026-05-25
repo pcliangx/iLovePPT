@@ -102,6 +102,8 @@ pdftoppm -jpeg -r 120 /tmp/<file>.pdf /tmp/slide
 
 完整派发表 + 理由:见 [pipeline protocol §1](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md#1-主线程派发表)。
 
+**Pattern cherry-pick gate**(2026-05-25 新增):任何 critic / iloveppt / audience subagent return yaml 含 `suggested_alternative_pattern(s)` 字段 → 主线程**必须**展示给用户决定,不允许自决。用户答"改" → Task author rework(user_response 含 `accept_alternative_pattern: {page, suggest}`);用户答"不改" → 继续派下一棒。若 audience 阶段触发改 → author rework 后必须重派 critic D + audience。完整流程见 [pipeline protocol §3.3](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md#33-gate-规则)。
+
 ### 三 skill 分层
 
 ```

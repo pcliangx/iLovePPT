@@ -174,6 +174,35 @@ top_3_must_fix:
     suggestion: "用 H.section_divider_with_bignum 加 800pt 背景 '02' 浅灰"
 ```
 
+### Step 3.5 · 对 needs_visual_redo 每页 RAG 找 alternative pattern(2026-05-25 新增)
+
+triage 划分后,**对每个 needs_visual_redo 页跑一次 RAG**:
+
+1. 用该页 layout + page issue 关键词构造 query:
+   ```bash
+   PAGE_QUERY="<page issue 关键词,如 '5 阶段流程图 PNG 渲染破损' 或 '4 维 cards 视觉单调'>"
+   Bash: bash ${CLAUDE_PROJECT_DIR}/library/visual-patterns/search.sh \
+         --query "$PAGE_QUERY" \
+         --mode hybrid \
+         --top-k 3 \
+         --format json
+   ```
+2. parse top-3,选 1 个最匹配的 alternative pattern
+3. 在 `needs_visual_redo_pages` 该页 entry 嵌入 `suggested_alternative_pattern`:
+   ```yaml
+   needs_visual_redo_pages:
+     - page: 8
+       issue: "draw.io 流程图 HTML 标签裸露"
+       suggested_alternative_pattern:
+         current: pic_text + drawio_chart
+         suggest: process-5-step-linear
+         reason: "draw.io HTML 标签裸露,直接换内置 pattern preview 一击命中(RAG top-1)"
+   ```
+
+**降级**:若 search.sh 失败 / top-3 没合适候选 → **不写** `suggested_alternative_pattern` 字段(留空,iloveppt mode=visual_redo 走自己的 Step 4 第 4 路 fallback)。
+
+**advisory 性质**:你只**建议**,不能改任何 .md / 调 iloveppt;主线程拿到建议会展示给用户 cherry-pick。**这字段不影响 overall_score / triage 判定**(纯 advisory)。
+
 ### Step 4 · 写报告
 
 `Write` `<working_dir>/audience/audience_review_r{N}.md`(若 `audience/` 不存在,mkdir)。

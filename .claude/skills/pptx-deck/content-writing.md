@@ -429,6 +429,10 @@ footer_meta:                            # author Stage C 出 outline 时默认�
 - layout: bullet_list | cards | compare | single_focus | table | pic_text
 - data: <关键数据点,逗号分隔>
 - diagram: <无 | drawio:flow | matplotlib:bar | ...>
+- pattern_hints:                        # 2026-05-25 新增 · author Stage C Step 1A.5 用 search.sh 选
+    selected: <pattern-id>              # 从 RAG top-5 选 1-2 个,如 process-5-step-linear
+    rationale: <一句话理由,为什么选这个 pattern>
+    alternatives: [<id>, <id>, <id>]    # top-5 里没选的 3-4 个,给用户审 outline 时看候选
 
 ## 2. <action title>
 - intent: ...
