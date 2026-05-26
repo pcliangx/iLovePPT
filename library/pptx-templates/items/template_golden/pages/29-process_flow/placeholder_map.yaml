@@ -1,0 +1,27 @@
+template_page_index: 28
+layout_class: process_flow
+slots:
+- id: step_1_body
+  tree_path: '3.25'
+- id: step_2_body
+  tree_path: '3.22'
+- id: step_3_body
+  tree_path: '3.24'
+- id: step_4_body
+  tree_path: '3.21'
+- id: step_5_body
+  tree_path: '3.23'
+- id: step_6_body
+  tree_path: '3.20'
+- id: step_1_num
+  tree_path: '3.7'
+- id: step_2_num
+  tree_path: '3.5'
+- id: step_3_num
+  tree_path: '3.3'
+- id: step_4_num
+  tree_path: '3.11'
+- id: step_5_num
+  tree_path: '3.9'
+- id: step_6_num
+  tree_path: '3.13'

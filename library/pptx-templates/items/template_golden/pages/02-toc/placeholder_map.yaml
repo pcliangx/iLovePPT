@@ -1,0 +1,43 @@
+template_page_index: 1
+layout_class: toc
+slots:
+- id: header
+  tree_path: '6'
+- id: subtitle
+  tree_path: '7'
+- id: item_1_num
+  tree_path: '1.2'
+  font_size_pt: 20
+- id: item_1_title
+  tree_path: '1.0'
+- id: item_1_body
+  tree_path: '1.1'
+- id: item_2_num
+  tree_path: '2.2'
+  font_size_pt: 20
+- id: item_2_title
+  tree_path: '2.0'
+- id: item_2_body
+  tree_path: '2.1'
+- id: item_3_num
+  tree_path: '3.2'
+  font_size_pt: 20
+- id: item_3_title
+  tree_path: '3.0'
+- id: item_3_body
+  tree_path: '3.1'
+- id: item_4_num
+  tree_path: '4.2'
+  font_size_pt: 20
+- id: item_4_title
+  tree_path: '4.0'
+- id: item_4_body
+  tree_path: '4.1'
+# 5th visible item — template has it as a duplicate "04" at tree_path 9, so we relabel
+- id: item_5_num
+  tree_path: '9.2'
+  font_size_pt: 20
+- id: item_5_title
+  tree_path: '9.0'
+- id: item_5_body
+  tree_path: '9.1'

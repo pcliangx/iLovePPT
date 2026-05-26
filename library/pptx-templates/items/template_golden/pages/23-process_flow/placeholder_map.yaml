@@ -1,0 +1,27 @@
+template_page_index: 22
+layout_class: process_flow
+slots:
+- id: step_1_title
+  tree_path: '3.12'
+- id: step_2_title
+  tree_path: '3.9'
+- id: step_3_title
+  tree_path: '3.8'
+- id: step_4_title
+  tree_path: '3.7'
+- id: step_5_title
+  tree_path: '3.6'
+- id: step_6_title
+  tree_path: '3.15'
+- id: callout_1_title
+  tree_path: 3.16.0
+- id: callout_1_body
+  tree_path: 3.16.1
+- id: callout_1_body2
+  tree_path: 3.16.2
+- id: callout_2_title
+  tree_path: 3.17.0
+- id: callout_2_body
+  tree_path: 3.17.1
+- id: callout_2_body2
+  tree_path: 3.17.2

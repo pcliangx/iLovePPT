@@ -119,6 +119,20 @@ diagram    ── 图表生成;也可独立使用
 - **Pyramid 收口 critic**:critic Section A 7 项是 Pyramid 唯一判定点,author 不自检 / iloveppt-builder 不重跑
 - **author/content.md 全程不可变**:iloveppt-builder Step 3 字数 / 视觉修复改 `deck_plan.json`,**不写 `.postbuild.md` 副本**;改写过头 → `review_needed_pages.needs_author_rewrite` 升 author
 - **`<!-- layout: X -->` 强制 explicit**:每个 `## N.` 内容页必须紧跟 layout 注释;iloveppt-builder strict 1:1 解析,缺则 `hard_stop: missing_layout_directive`,不做结构推断
+- **subagent 默认并行(≤5 实例)**:任何时候面对 ≥ 2 个**独立** subagent 工作(无 shared state / 无 sequential 依赖)→ **1 条消息里多 Agent tool call 并行起,最多 5 实例**;不要顺序串。可并行示例:多 Explore 扫不同模板范围 / author 改 content 跟 builder 改 deck_plan 不冲突 / 多 layout placeholder_map 各写各的。不可并行:hard gate(critic / audience)在 critical path 上;改同一文件的两 agent。反模式 ✗:用户提示"加大并行度"才并行(应该默认)。规则定义见 [pipeline protocol §0](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md#0-并行优先适用于所有派发场景)
+- **改前备份 + 统一命名(过程文档 + 结果 .pptx 强制)**:每次改动 SSOT 必须新增版本,上版本备份,**不允许直接覆盖**(防 outline v1 被覆盖丢失再发生)。
+  - **统一命名 schema**:`deck_v{N}_{kind}[.r{R}].{ext}`,kind 字典 `brief / outline / content / state / plan / critic_C / critic_D / visual_qa / audience` 不允许新增同义词
+  - **两层版本**:Major iteration(章节增删 / SCQA 变 / >3 页连锁 → `deck_v{N+1}_*` 新文件平行)+ Minor revision(小改前 cp 到 `archive/<basename>.r{R}.<ext>`)
+  - **反模式 ✗**:`deck_plan.json`(应 `deck_v1_plan.json`)/ `critic_report_C_r1.md`(应 `deck_v1_critic_C.r1.md`)/ `audience_report_tier1_r4.md`(应 `deck_v1_audience.r1.md`,sprint 信息进 state 不进文件名)/ `deck_v1_r2_backup.pptx`(应 `archive/deck_v1.r2.pptx`)
+  - **Escape hatch**:typo / < 5 行 trivial bug,edit_history 标 `no_backup: true`
+  - 完整 schema 表 + 目录树见 [pipeline protocol §0a](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md#0a-版本管理统一命名--改前备份)
+- **图片资产 reproducibility 强制**:**任何**引入到 deck 的图片(生成 / 下载 / 引用 / 提取)都必须能 traceback 到 reproducible 源 —— 只有 PNG 等于让用户重画。配对规则按引入方式区分:
+  - **生成类**(author Stage D matplotlib / draw.io / mermaid):`.py` / `.drawio` / `.mmd` 源文件跟 PNG 同目录、同名前缀 — `author/charts/X.{py,drawio,mmd}` + `author/charts/X.png`
+  - **下载类**(builder Step 4 iconify / Unsplash):落 `<name>.source.yaml` 记 URL / query / icon_name / photo_id / 颜色等参数,跟 PNG 同目录;iconify SVG 原文件也保留
+  - **引用类**(builder Step 4 RAG fallback / brand_assets):source.yaml 记 library item path / RAG query / 用户原 path
+  - **提取类**(extractor render_pages.py):preview.png 源 = `_source/<name>.pptx`(已保留)
+  - **渲染类**(builder final 51 张 page-NN.jpg):源 = `deck_v1.pptx`(已保留)
+  - return yaml 强制配对字段:author `charts_generated[{png, source, tool}]`、builder `visual_edits[{asset, source, tool}]`,缺 source 视为 bug。规则定义见 [`.claude/agents/iloveppt-author.md` Stage D](${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-author.md) + [`.claude/agents/iloveppt-builder.md` Step 4](${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-builder.md) + [`.claude/skills/diagram/SKILL.md` §源文件归档](${CLAUDE_PROJECT_DIR}/.claude/skills/diagram/SKILL.md)
 
 ## 约定
 

@@ -1,0 +1,27 @@
+template_page_index: 23
+layout_class: radial
+slots:
+- id: spoke_1_title
+  tree_path: 3.1.0.0
+- id: spoke_1_body
+  tree_path: 3.1.0.1
+- id: spoke_2_title
+  tree_path: 3.2.0.0
+- id: spoke_2_body
+  tree_path: 3.2.0.1
+- id: spoke_3_title
+  tree_path: 3.3.0.0
+- id: spoke_3_body
+  tree_path: 3.3.0.1
+- id: spoke_4_title
+  tree_path: 3.4.0.0
+- id: spoke_4_body
+  tree_path: 3.4.0.1
+- id: spoke_5_title
+  tree_path: 3.5.0.0
+- id: spoke_5_body
+  tree_path: 3.5.0.1
+- id: spoke_6_title
+  tree_path: 3.6.0.0
+- id: spoke_6_body
+  tree_path: 3.6.0.1

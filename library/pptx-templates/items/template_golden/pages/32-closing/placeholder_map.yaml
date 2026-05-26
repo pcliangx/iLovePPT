@@ -1,0 +1,12 @@
+template_page_index: 31
+layout_class: closing
+slots:
+- id: main_title
+  tree_path: '2'
+  font_size_pt: 48  # template 大字"Thanks"原始 80pt+, 中文需缩
+- id: subtitle
+  tree_path: '4'
+  font_size_pt: 16
+- id: website
+  tree_path: '3'
+  font_size_pt: 14

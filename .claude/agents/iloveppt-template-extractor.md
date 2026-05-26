@@ -200,6 +200,48 @@ echo "declared=$declared_pages rendered=$rendered_pages discrepancy=$discrepancy
 
 若某页 Read 失败 → 那一项 todo 改 `failed` + 记入 errors[],尽力推进其余页。
 
+#### Step 3.1.5 · 每页强制生成 placeholder_map.yaml.draft
+
+每个 `pages/NN-<layout>/` 在 `meta.yaml.draft` 之外**必须额外生成** `placeholder_map.yaml.draft`(tier1 模板 slide 复用机制的 SSOT,缺则 brainstorm 无法 surface tier1 能力 + builder 无法 tier1 path):
+
+```yaml
+# pages/NN-<layout>/placeholder_map.yaml.draft
+template_page_index: <NN minus 1>          # 0-indexed,build.py 加载 source_pptx 用
+layout_class: pyramid                       # ← 跟 meta.yaml.draft.layout_type 一致(critic B8 验)
+slots:
+  - id: title                               # author 心智上的"语义位"(不是 raw shape 数)
+    tree_path: '3'                          # 递归 shape 索引(`<top.0>.<group.1>.<leaf.2>` 用 `.` 拼接)
+    capacity_chars: 24
+    text_color_override: null               # 浅底色 tier 写 dark hex 强制 dark text
+    font_size_pt: null                      # 跟模板默认,需 override 时填(如 cover 66pt → 44pt)
+  - id: tier_1                              # pyramid 4-tier 的顶
+    tree_path: '3.16.0'
+    capacity_chars: 16
+    text_color_override: '#0B2A4A'          # 浅底色 + 强制 dark
+  - id: tier_2
+    ...
+```
+
+**约束**:
+- 每个 placeholder slot 用 `tree_path` 索引(从 `python-pptx slide.shapes` 递归走,顶层 = `0`/`1`/`2`...,group 子 = `<parent>.<idx>`)
+- `id` 用 author 语义命名(`title` / `tier_1` / `card_1_body` / `step_2_callout`),不是 raw shape name(模板 shape name 常 UTF-8 obfuscated 不可靠)
+- `capacity_chars` 估每 slot 的 hint(超过 author 会撑爆 textbox 换行,见本次 deck 经验)
+- `text_color_override` 浅底色 tier 必填 dark hex(防白字在浅底看不清)
+
+**实操**:
+1. inspect 该页 source .pptx slide(用 python-pptx + lxml 递归 walk shapes)
+2. 找所有含 text 的 shape(`shape.has_text_frame` + 非空 / 含 placeholder pattern 如 `…text` / `Text here` / `Copy paste fonts`)
+3. 按几何位置(top-to-bottom, left-to-right)给语义 id
+4. 写 placeholder_map.yaml.draft
+
+**Self-check**:`yq '.layout_class' pages/*/placeholder_map.yaml.draft | sort -u` 应该跟 `yq '.layout_type' pages/*/meta.yaml.draft | sort -u` 一致(layout 命名同源)。
+
+**Why 强制**:
+- brainstorm 列模板候选时 Read placeholder_map.draft 算 `tier1_template_slide_reuse.coverage` surface 给用户
+- critic Stage C B8 validate_layout_in_theme 查 placeholder_map 判断 tier1 路径是否有该 layout
+- builder Step 4 tier1 path 直接消费 placeholder_map(本次 deck Sprint v2 手工 backfill 写了 26 个,extractor 应该 ingest 时就生成)
+- 缺 placeholder_map.draft = tier1 路径不能用 → 用户选这模板只能继承色彩 → 跟"做 PPT"诉求错位
+
 #### Step 3.2 · 总览模板级 meta
 
 N+1 个 todo 最后一项是 template-level。写 `items/<name>/meta.yaml.draft`,**必填字段**:
@@ -257,7 +299,32 @@ assets:
   total_pages: 32                        # = extraction.rendered_pages
   cover_thumbnail: pages/01-cover/preview.png
 pages: [01-cover, 02-toc, ...]
+
+# === 渲染路径能力(brainstorm 列模板候选时 surface 给用户)===
+implementation:
+  # tier1 = 直接复用 .pptx 原 slide(保 100% 视觉签名,但 layout 受限于模板有什么页)
+  tier1_template_slide_reuse:
+    ready: true | partial | false        # true=所有 page 有 placeholder_map.yaml;partial=部分;false=都没写
+    coverage:                            # placeholder_map 覆盖的 layout_class 集合(去重)
+      - cover
+      - toc
+      - pyramid
+      - cards
+      - process_flow
+      - radial
+      - section_divider
+      - closing
+    gaps: []                             # 模板有但 placeholder_map 没写的 layout(用户审 gate 时主线程可补)
+  # tier2 = themes/<name>.py Python 重画(色彩 / 字体 / shape 全自由,但失去模板视觉签名)
+  tier2_python_theme: null               # null = 无 Python 实现;"themes/X.py" = 有
+  iLovePPT_can_replicate_pct: 85         # 主观估计(legacy 字段,逐步弃用,改用 tier1 coverage)
 ```
+
+**implementation 字段强制规则**:
+- extractor 必须为**每页**生成 `pages/<NN-slug>/placeholder_map.yaml.draft`(下方 Step 3.x · placeholder_map 章节,新加)
+- `tier1_template_slide_reuse.coverage` = 所有页 placeholder_map.draft 里 `layout_class` 字段去重 union
+- `tier1_template_slide_reuse.ready`:`true` 若 N 张页全有 placeholder_map.draft;`partial` 若 < N;`false` 若 0
+- `tier2_python_theme`:extractor 默认 `null`(不主动写 Python theme,后续主线程 / sprint 决定)
 
 - `visual_tokens` 从 .pptx 抽(若 `${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/extract_template.py` 可用就调;否则 fallback 默认)
 - `source_pptx_sha256`:`shasum -a 256 library/pptx-templates/_source/<name>.pptx | awk '{print $1}'`

@@ -1,0 +1,33 @@
+template_page_index: 15
+layout_class: timeline
+slots:
+- id: year_1
+  tree_path: '3.0'
+- id: year_2
+  tree_path: '3.1'
+- id: year_3
+  tree_path: '3.2'
+- id: year_4
+  tree_path: '3.3'
+- id: year_5
+  tree_path: '3.4'
+- id: step_1_title
+  tree_path: 3.10.0
+- id: step_1_body
+  tree_path: 3.10.1
+- id: step_2_title
+  tree_path: 3.11.0
+- id: step_2_body
+  tree_path: 3.11.1
+- id: step_3_title
+  tree_path: 3.12.0
+- id: step_3_body
+  tree_path: 3.12.1
+- id: step_4_title
+  tree_path: 3.13.0
+- id: step_4_body
+  tree_path: 3.13.1
+- id: step_5_title
+  tree_path: 3.14.0
+- id: step_5_body
+  tree_path: 3.14.1

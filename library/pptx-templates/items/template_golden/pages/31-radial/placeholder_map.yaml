@@ -1,0 +1,21 @@
+template_page_index: 30
+layout_class: radial
+slots:
+- id: hero_1_title
+  tree_path: 3.5.1
+- id: hero_1_body
+  tree_path: 3.5.0
+- id: hero_2_title
+  tree_path: 3.6.1
+- id: hero_2_body
+  tree_path: 3.6.0
+- id: hero_3_title
+  tree_path: 3.7.1
+- id: hero_3_body
+  tree_path: 3.7.0
+- id: label_left
+  tree_path: '3.1'
+- id: label_right
+  tree_path: '3.2'
+- id: bottom_message
+  tree_path: '3.3'

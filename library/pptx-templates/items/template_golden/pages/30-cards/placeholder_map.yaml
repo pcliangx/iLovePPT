@@ -1,0 +1,15 @@
+template_page_index: 29
+layout_class: cards
+slots:
+- id: card_1_title
+  tree_path: 3.10.1
+- id: card_1_body
+  tree_path: 3.10.0
+- id: card_2_title
+  tree_path: 3.9.1
+- id: card_2_body
+  tree_path: 3.9.0
+- id: card_3_title
+  tree_path: 3.11.1
+- id: card_3_body
+  tree_path: 3.11.0

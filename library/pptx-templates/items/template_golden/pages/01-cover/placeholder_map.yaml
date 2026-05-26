@@ -1,0 +1,18 @@
+template_page_index: 0
+layout_class: cover
+slots:
+- id: main_title
+  tree_path: '3'
+  font_size_pt: 44  # template 66pt 适配英文 30 字,中文 8-12 字需缩小
+- id: subtitle
+  tree_path: '2'
+  font_size_pt: 14  # template 22pt 适配 SUBTITLE HERE 13 字符短字;textbox 5.6in 宽限制,中文 + 标点需 14pt 单行装下
+- id: speaker
+  tree_path: '4'
+  font_size_pt: 14
+- id: website
+  tree_path: '5'
+  font_size_pt: 14
+- id: logo_text
+  tree_path: '6'
+  skip_if_empty: true

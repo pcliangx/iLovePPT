@@ -1,0 +1,23 @@
+template_page_index: 25
+layout_class: cards
+slots:
+- id: main_title
+  tree_path: 3.7.0
+- id: main_body
+  tree_path: 3.7.1
+- id: card_1_title
+  tree_path: 3.3.0.1
+- id: card_1_body
+  tree_path: 3.3.0.0
+- id: card_2_title
+  tree_path: 3.0.0.1
+- id: card_2_body
+  tree_path: 3.0.0.0
+- id: card_3_title
+  tree_path: 3.1.0.1
+- id: card_3_body
+  tree_path: 3.1.0.0
+- id: card_4_title
+  tree_path: 3.2.0.1
+- id: card_4_body
+  tree_path: 3.2.0.0

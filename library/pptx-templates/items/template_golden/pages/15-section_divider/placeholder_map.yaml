@@ -1,0 +1,9 @@
+template_page_index: 14
+layout_class: section_divider
+slots:
+- id: section_number
+  tree_path: '2'
+- id: section_title
+  tree_path: '0'
+- id: section_body
+  tree_path: '1'

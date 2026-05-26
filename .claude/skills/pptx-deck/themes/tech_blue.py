@@ -39,7 +39,17 @@ ACCENT       = H.ACCENT         # #00D1C1 青绿点睛
 
 
 def _blank_slide(prs: _Pres) -> Slide:
-    return prs.slides.add_slide(prs.slide_layouts[6])
+    # python-pptx default Presentation() has 7 layouts where idx 6 = blank.
+    # User-loaded templates may have fewer layouts (e.g. template_golden has 6 where blank=idx 4).
+    # Pick by name match first (most reliable across locales), fallback to last layout.
+    blank_names = ("Blank", "空白", "blank")
+    for layout in prs.slide_layouts:
+        if (layout.name or "").strip() in blank_names:
+            return prs.slides.add_slide(layout)
+    # Fallback: try idx 6, else last layout (which is usually blank-like in most templates)
+    n = len(prs.slide_layouts)
+    idx = 6 if n > 6 else n - 1
+    return prs.slides.add_slide(prs.slide_layouts[idx])
 
 
 def _add_title(
@@ -61,8 +71,14 @@ def _add_title(
 
 
 def _text(slide: Slide, box: "L.Box", text: str, *, size: int,
-          bold: bool = False, color=None, align=PP_ALIGN.LEFT, font=None) -> None:
-    """在一个 Box 内放一段文字（textbox + margin 归零 + set_font）。"""
+          bold: bool = False, color=None, align=PP_ALIGN.LEFT, font=None,
+          valign: str = "top") -> None:
+    """在一个 Box 内放一段文字（textbox + margin 归零 + set_font）。
+
+    valign: "top" | "middle" | "bottom" —— textbox 内文字垂直对齐。
+        默认 top 保持向后兼容；hero 大字号(big_number/big_text)用 middle 让
+        字在槽内居中,避免 ascent 撑爆槽位下沉到相邻区域。
+    """
     if color is None:
         color = H.GRAY_900
     if font is None:
@@ -70,6 +86,10 @@ def _text(slide: Slide, box: "L.Box", text: str, *, size: int,
     tb = slide.shapes.add_textbox(box.x, box.y, box.w, box.h)
     H.fix_textbox_margins(tb.text_frame)
     tb.text_frame.word_wrap = True
+    if valign == "middle":
+        tb.text_frame.vertical_anchor = 3  # MSO_ANCHOR.MIDDLE
+    elif valign == "bottom":
+        tb.text_frame.vertical_anchor = 5  # MSO_ANCHOR.BOTTOM
     p = tb.text_frame.paragraphs[0]
     p.alignment = align
     r = p.add_run()
@@ -220,16 +240,21 @@ def make_single_focus(
     big_number: str = "",
     explanation: str = "",
 ) -> Slide:
+    """Hero 大数字 / 大字页。
+
+    big_number 槽用 1.95 in + valign middle:120pt 字 ascent ~1.67 in,
+    旧版 1.6 in 槽 + top-anchor 会让字下沉到 big_text 槽。
+    """
     s = _blank_slide(prs)
     region = L.content_region()
-    blocks = L.stack(region, [Inches(1.6), Inches(0.8), Inches(0.5)],
-                     gap=Inches(0.2), align="middle")
+    blocks = L.stack(region, [Inches(1.95), Inches(0.9), Inches(0.6)],
+                     gap=Inches(0.25), align="middle")
     _text(s, blocks[0], big_number, size=120, bold=True, color=PRIMARY,
-          font=FONT_NUM, align=PP_ALIGN.CENTER)
+          font=FONT_NUM, align=PP_ALIGN.CENTER, valign="middle")
     _text(s, blocks[1], big_text, size=36, bold=True, color=PRIMARY_DEEP,
-          align=PP_ALIGN.CENTER)
+          align=PP_ALIGN.CENTER, valign="middle")
     _text(s, blocks[2], explanation, size=18, color=H.GRAY_700,
-          align=PP_ALIGN.CENTER)
+          align=PP_ALIGN.CENTER, valign="top")
     return s
 
 
@@ -439,24 +464,44 @@ def make_cards(prs: _Pres, title: str, cards: list[dict[str, Any]]) -> Slide:
 
     每张卡片可选字段 `icon`:unicode 字符(如 "▶")或 H.ICONS key(如 "terminal")。
     传 icon 时,卡片左上显 28pt PRIMARY 色 icon + 标题右移让位。
+
+    N > 5:自动 2 行布局(N=6→2×3 / N=7-8→2×4 / N=9-10→2×5),避免单行 6+ 列
+    每列窄到 ~1.65 in 撑爆 18pt 中英文混排标题(渲染成 "brainsto rm" 等 wrap 残相)。
     """
     s = _blank_slide(prs)
     _add_title(s, title)
     region = L.content_region()
-    card_h = Inches(4.6) if H.is_handout() else Inches(3.4)
-    row = L.stack(region, [card_h], align="middle")[0]
-    cols = L.columns(row, len(cards))
+    n = len(cards)
+    if n > 5:
+        cols_per_row = (n + 1) // 2  # ceil(n/2):N=6→3 / 7-8→4 / 9-10→5
+        row_gap = Inches(0.3)
+        card_h = Emu((region.h - row_gap) // 2)
+        body_box_h = Inches(1.7) if H.is_handout() else Inches(1.1)
+        row_boxes = L.stack(region, [card_h, card_h], gap=row_gap, align="middle")
+        col_boxes: list[L.Box] = []
+        for row_idx, row_box in enumerate(row_boxes):
+            row_cols = L.columns(row_box, cols_per_row)
+            start = row_idx * cols_per_row
+            end = min(start + cols_per_row, n)
+            col_boxes.extend(row_cols[: end - start])
+        cols = col_boxes
+    else:
+        cols_per_row = n
+        card_h = Inches(4.6) if H.is_handout() else Inches(3.4)
+        body_box_h = Inches(3.6) if H.is_handout() else Inches(2.2)
+        row = L.stack(region, [card_h], align="middle")[0]
+        cols = L.columns(row, n)
     body_size = 12 if H.is_handout() else 16
-    body_box_h = Inches(3.6) if H.is_handout() else Inches(2.2)
     for col, card in zip(cols, cards):
         H.card(s, col.x, col.y, col.w, col.h, fill=H.WHITE,
                border=H.GRAY_300, accent=PRIMARY)
 
         # icon(可选)— 多列(≥4)放标题上方居中,少列(≤3)放标题左侧
+        # 按 per-row 列数判断(N>5 时按 cols_per_row,非 total cards)
         icon_char = card.get("icon")
         if icon_char:
             icon_str = H.ICONS.get(icon_char, icon_char)
-            many_cols = len(cards) >= 4
+            many_cols = cols_per_row >= 4
             if many_cols:
                 # icon 上方居中(列窄,标题需全宽)
                 icon_x = col.x + (col.w - Inches(0.55)) // 2
@@ -596,16 +641,24 @@ def make_summary(
     """总结 N 条结论。每条 = 紧凑数字方块 + 等高文字行,整体居中,不再均分留白。
 
     按内容算单元高度 + 整体垂直居中,避免 number box 过高 / 短结论文字撑不满的视觉失衡。
+
+    安全距 + 自适应:start_y 保证在 title 下方安全距开始(避免与 36pt title 重叠),
+    当 desired total_h 超过可用高度时,动态缩 unit_h 防最后一条溢出底边。
     """
     s = _blank_slide(prs)
     _add_title(s, title, size=36, color=PRIMARY_DEEP)
     region = L.content_region()
+    n = len(conclusions)
     text_size = 16 if H.is_handout() else 22
-    # 每条单元高度 = 数字尺寸 + padding,handout 留更多空间(因长结论可能 wrap 到 2-3 行)
-    unit_h = Inches(1.2) if H.is_handout() else Inches(0.9)
     gap = Inches(0.25)
-    total_h = unit_h * len(conclusions) + gap * (len(conclusions) - 1)
-    start_y = region.y + (region.h - total_h) // 2  # 整体垂直居中
+    safe_top = Inches(0.7)  # title bottom edge 下方安全距,防 number box 与 36pt title 重叠
+    available_h = region.h - safe_top
+    # 每条单元高度 = 数字尺寸 + padding,handout 长结论可能 wrap 2-3 行
+    desired_unit_h = Inches(1.2) if H.is_handout() else Inches(0.9)
+    max_unit_h = Emu((available_h - gap * (n - 1)) // n)
+    unit_h = min(desired_unit_h, max_unit_h)
+    total_h = unit_h * n + gap * (n - 1)
+    start_y = region.y + safe_top + (available_h - total_h) // 2
     num_w = Inches(1.0)
     text_x = region.x + num_w + Inches(0.3)
     text_w = region.w - num_w - Inches(0.3)

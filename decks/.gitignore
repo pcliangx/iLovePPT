@@ -1,0 +1,25 @@
+# decks/.gitignore — 默认 track 所有 deck SSOT,只忽略可重生成的临时产物
+#
+# 设计原则(防 outline v1 永久丢失事故再发生):
+# - 所有 .md / .json / .yaml(SSOT 跨 session 必须 git track)
+# - 当前 active .pptx(交付物)
+# - archive/ 下 .md / .json(版本快照,要 track,可 diff 回看)
+# - 仅忽略大文件(render PNG + archive 旧 .pptx)
+
+# 渲染 PNG 目录(可从 .pptx 重新生成)
+*_render/
+
+# archive 下的旧 .pptx(本身就是 backup,且大文件 ~2MB+ 每份)
+**/archive/*.pptx
+
+# 临时构建产物
+*.tmp.pptx
+*.tmp.json
+__pycache__/
+
+# 用户原始素材(_assets/raw/* 可能含敏感 / 大文件,按需 track,默认忽略)
+*/_assets/raw/
+
+# OS 杂项
+.DS_Store
+Thumbs.db

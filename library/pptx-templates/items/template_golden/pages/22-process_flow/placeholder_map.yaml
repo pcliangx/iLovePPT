@@ -1,0 +1,23 @@
+template_page_index: 21
+layout_class: process_flow
+slots:
+- id: hero_text
+  tree_path: '3.0'
+- id: step_1_text
+  tree_path: '3.14'
+- id: step_2_text
+  tree_path: '3.13'
+- id: step_3_text
+  tree_path: '3.12'
+- id: step_4_text
+  tree_path: '3.11'
+- id: step_5_text
+  tree_path: '3.10'
+- id: mid_left_text
+  tree_path: '3.6'
+- id: mid_mid_text
+  tree_path: '3.4'
+- id: mid_right_text
+  tree_path: '3.8'
+- id: bottom_right_text
+  tree_path: '3.9'

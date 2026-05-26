@@ -1,0 +1,15 @@
+template_page_index: 18
+layout_class: compare
+slots:
+- id: item_1_title
+  tree_path: 3.4.1
+- id: item_1_body
+  tree_path: 3.4.0
+- id: item_2_title
+  tree_path: 3.5.1
+- id: item_2_body
+  tree_path: 3.5.0
+- id: item_3_title
+  tree_path: 3.6.1
+- id: item_3_body
+  tree_path: 3.6.0

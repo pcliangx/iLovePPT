@@ -1,0 +1,21 @@
+template_page_index: 27
+layout_class: timeline
+slots:
+- id: year_1
+  tree_path: '3.5'
+- id: year_2
+  tree_path: '3.6'
+- id: year_3
+  tree_path: '3.7'
+- id: step_1_title
+  tree_path: '3.9'
+- id: step_1_body
+  tree_path: '3.8'
+- id: step_2_title
+  tree_path: '3.11'
+- id: step_2_body
+  tree_path: '3.10'
+- id: step_3_title
+  tree_path: '3.13'
+- id: step_3_body
+  tree_path: '3.12'

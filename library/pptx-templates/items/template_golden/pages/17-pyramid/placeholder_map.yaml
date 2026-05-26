@@ -1,0 +1,22 @@
+template_page_index: 16
+layout_class: pyramid
+slots:
+- id: tier_1
+  tree_path: '3.5'
+  text_color: '#0B2A4A'
+- id: tier_2
+  tree_path: '3.4'
+- id: tier_3
+  tree_path: '3.3'
+- id: side_1_left
+  tree_path: '3.16'
+- id: side_1_right
+  tree_path: '3.19'
+- id: side_2_left
+  tree_path: '3.17'
+- id: side_2_right
+  tree_path: '3.20'
+- id: side_3_left
+  tree_path: '3.18'
+- id: side_3_right
+  tree_path: '3.21'

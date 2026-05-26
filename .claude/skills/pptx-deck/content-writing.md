@@ -555,20 +555,42 @@ iloveppt-builder 在 md→JSON 转换时**必须强制校验**:字段超限 → 
 
 ```
 <deck-工作目录>/
-├── deck_v1_outline.md           # 用户审 outline 用
-├── deck_v1_content.md           # 用户审 content 用,agent 的输入
-├── deck_v1.pptx                 # build.py 产出
-├── deck_v1_render/              # 渲染图(.gitignore'd)
-│   ├── page-01.jpg
-│   └── ...
+├── brainstorm/
+│   ├── deck_v1_brief.md         # active
+│   └── archive/                 # minor revision snapshots
+├── author/
+│   ├── deck_v1_outline.md       # active
+│   ├── deck_v1_content.md       # active
+│   ├── deck_v1_state.json       # active
+│   ├── charts/                  # 见下方 §charts
+│   └── archive/
+│       ├── deck_v1_outline.r1.md
+│       ├── deck_v1_outline.r2.md
+│       └── ...
+├── critic/                      # 每轮 r{R} 文件天然独立,无 archive
+│   ├── deck_v1_critic_C.r1.md
+│   ├── deck_v1_critic_C.r2.md
+│   └── deck_v1_critic_D.r1.md
+├── builder/
+│   ├── deck_v1.pptx             # active
+│   ├── deck_v1_plan.json        # active(原 deck_plan.json 弃用,统一命名)
+│   ├── deck_v1_render/          # 渲染图(.gitignore'd)
+│   ├── deck_v1_visual_qa.r1.md  # builder QA round 报告
+│   └── archive/
+│       ├── deck_v1.r1.pptx
+│       └── deck_v1_plan.r1.json
+└── audience/                    # 每轮 r{R} 文件天然独立,无 archive
+    └── deck_v1_audience.r1.md
 ├── _assets/
 │   ├── raw/                     # 用户提供的原始素材(对话中收集)
 │   │   ├── q4_revenue.csv
 │   │   ├── customer_logos.png
 │   │   └── industry_report.pdf
-│   ├── charts/                  # matplotlib / draw.io 生成的图
-│   │   ├── q4_revenue.png
-│   │   └── review_flow.png
+│   ├── charts/                  # matplotlib / draw.io 生成的图(PNG + 源文件配对)
+│   │   ├── q4_revenue.py        # ← matplotlib 源(用户可改)
+│   │   ├── q4_revenue.png       # ← 渲染产物
+│   │   ├── review_flow.drawio   # ← draw.io 源(用户可改)
+│   │   └── review_flow.png      # ← 渲染产物
 │   └── refs/                    # 用户直接给的参考图(不重做)
 │       └── existing_diagram.png
 └── deck_v2_*.md / deck_v2.pptx  # 后续迭代版本(决策 7a)
