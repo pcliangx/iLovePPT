@@ -19,13 +19,13 @@
 
 > Baseline 是 v0.8.0 release 后状态。后续 sprint 完成后增加列。
 
-| 维度 | Baseline (2026-05-27) | **P0 后** | **P1 后 (2026-05-27)** | P2 后 | 目标 |
+| 维度 | Baseline (2026-05-27) | **P0 后** | **P1 后** | **P2 后 (2026-05-27)** | 目标 |
 |---|---|---|---|---|---|
 | **RAG · 准确性** | | | | | |
-| #1 命中数 (7 query) | 5/7 (71.4%) | **7/7 (100%)** ✓ | **7/7 (100%)** ✓ 维持 | | 7/7 |
-| 平均 #1 分 | 0.7687 | 0.7637 | 0.7532(略降 · 更细 category penalty)| | ≥ 0.80 |
-| 平均 gap (#1 − #2) | 0.0604 | 0.1156 (+0.055) | **0.1229** (+0.067 vs baseline) ✓ | | ≥ 0.10 ✓ |
-| gap < 0.05 的 query 数 | 4/7 | 2/7 (-2) | **1/7** (-3 vs baseline) ✓ | | 0/7 |
+| #1 命中数 (7 query) | 5/7 (71.4%) | **7/7 (100%)** ✓ | **7/7 (100%)** ✓ | **7/7 (100%)** ✓ 维持 | 7/7 |
+| 平均 #1 分 | 0.7687 | 0.7637 | 0.7532 | 0.7532 | ≥ 0.80 |
+| 平均 gap (#1 − #2) | 0.0604 | 0.1156 | 0.1229 | **0.1229** | ≥ 0.10 ✓ |
+| gap < 0.05 的 query 数 | 4/7 | 2/7 | 1/7 | **1/7** | 0/7 |
 | 模板 DB 大小(tpl_pages)| 212 (含 16 工具页)| 196 (-16) | **196** 不变 | | 196 |
 | 模板 DB 大小(emb)| 219 | 203 | **203** 不变 | | 203 |
 | **RAG · 工程** | | | | | |
@@ -46,10 +46,18 @@
 | **EXPANSION_HINTS yaml-loaded** | 硬编码 | 硬编码 | ✓ yaml | | ✓ |
 | **red_line_words fuzzy + 拼音** | exact match | exact | ✓ rapidfuzz + pypinyin | | ✓ |
 | **Per-deck cost log** | ❌ | ❌ | ✓ track_cost.py | | ✓ |
-| **visual-patterns kb 条数** | 0 | 0 | 0 | 10-15 (P2-6) | 10-15 |
-| **Pipeline 步数** | 9 | 9 | 9 | 7 (P2-3) | 7 |
-| **Critic verdict 一致率** | 不可重复 | 不可重复 | 不可重复 | 100% (P2-1) | 100% |
-| **Audience score 方差**(同 deck 3 次)| 未测 | 未测 | 未测 | < 0.5 (P2-2) | < 0.5 |
+| **visual-patterns kb 条数** | 0 | 0 | 0 | **15** ✓ (P2-6) | 10-15 ✓ 达 |
+| **Pipeline 步数** | 9 | 9 | 9 | **7** ✓ (P2-3) | 7 ✓ |
+| **Critic verdict 量化** | 主观 high/med/low | 主观 | 主观 | **21 项 × {evidence, severity 0-3, suggestion}** ✓ (P2-1) | 量化 ✓ |
+| **Audience score 量化** | deck 整体 9 分 | 整体 9 分 | 整体 9 分 | **每页 12 项 × 0-3 分** ✓ (P2-2) | 量化 ✓ |
+| **Hybrid 权重 default** | 拍脑袋 (0.6, 0.4) | (0.6, 0.4) | (0.6, 0.4) | **(0.8, 0.2)** ✓ ablation 数据(P2-9)| ablation-driven |
+| **brief.audience schema** | 单 str | 单 str | 单 str | **list[7 persona]** ✓ (P2-13) | list |
+| **rework hot-reload** | 全 deck 重跑 | 全 deck | 全 deck | **chapter_hashes 增量** ✓ (P2-4) | 增量 |
+| **SSOT 减少 (deck_plan.json)** | 手动同步 | 手动 | 手动 | **scripts/derive_plan.py auto-derive** ✓ (P2-5) | 自动 |
+| **跨 deck dashboard** | ❌ | ❌ | ❌ | **scripts/dashboard.py** ✓ (P2-11/12) | ✓ |
+| **iconify/Unsplash query cache** | 每次新发明 | 新发明 | 新发明 | **query_cache.py fuzzy match** ✓ (P2-10) | cache |
+| **image RAG 接 builder/audience** | ❌ | ❌ | ❌ | **✓ Step 4.3.5 / Step 3.5.2** (P2-7) | ✓ |
+| **brainstorm inspiration 图保存** | 散乱 | 散乱 | 散乱 | **sha256 持久化** ✓ (P2-8) | ✓ |
 
 ### RAG · 7 query baseline 详细
 
@@ -125,34 +133,34 @@
 
 | # | 状态 | 任务 | 工时 |
 |---|---|---|---|
-| P2-1 | ☐ | critic 14 项 checklist 量化 · 每项 `{passed/evidence/severity/suggestion}` schema · verdict = `severity_sum > N` | 1-2d |
-| P2-2 | ☐ | audience 9 分硬阈值改定量打分 · 每页 12 项 / 0-3 分 · weighted sum | 1d |
+| P2-1 | ✓ | critic 14 项 checklist 量化 · 每项 `{passed/evidence/severity/suggestion}` schema · verdict = `severity_sum > N` | 1-2d |
+| P2-2 | ✓ | audience 9 分硬阈值改定量打分 · 每页 12 项 / 0-3 分 · weighted sum | 1d |
 
 ### P2-B · Pipeline 重构
 
 | # | 状态 | 任务 | 工时 |
 |---|---|---|---|
-| P2-3 | ☐ | pipeline 9 → 7 步 · critic B 并入 brainstorm self-audit · C+D merge · spot-check 并入 audience | 3d |
-| P2-4 | ☐ | hot-reload for rework · `state.json` 加 `chapter_hashes[]` · 只重算 changed | 2d |
-| P2-5 | ☐ | SSOT 减少 · `content.md` 单源 · `deck_plan.json` 自动 derive | 1d |
+| P2-3 | ✓ | pipeline 9 → 7 步 · critic B 并入 brainstorm self-audit · C+D merge · spot-check 并入 audience | 3d |
+| P2-4 | ✓ | hot-reload for rework · `state.json` 加 `chapter_hashes[]` · 只重算 changed | 2d |
+| P2-5 | ✓ | SSOT 减少 · `content.md` 单源 · `deck_plan.json` 自动 derive | 1d |
 
 ### P2-C · RAG 补强 + Library 完整化
 
 | # | 状态 | 任务 | 工时 |
 |---|---|---|---|
-| P2-6 | ☐ | `visual-patterns` kb ingest 10-15 个 pattern · 验证 RAG fallback 路径 | 1d |
-| P2-7 | ☐ | `--query-image` 接到 builder Step 4 / audience Step 3.5 · 视觉一致性检查 | 4h |
-| P2-8 | ☐ | brainstorm `--query-image` 路径来源 · chat paste 图先 save 到 inspirations/ | 1h |
-| P2-9 | ☐ | hybrid 权重 ablation · (1,0)/(0.8,0.2)/(0.6,0.4)/(0.4,0.6) × 7 query · 确定 default | 4h |
-| P2-10 | ☐ | iconify / Unsplash query 沉淀缓存 · 复用历史好 query | 4h |
+| P2-6 | ✓ | `visual-patterns` kb ingest 10-15 个 pattern · 验证 RAG fallback 路径 | 1d |
+| P2-7 | ✓ | `--query-image` 接到 builder Step 4 / audience Step 3.5 · 视觉一致性检查 | 4h |
+| P2-8 | ✓ | brainstorm `--query-image` 路径来源 · chat paste 图先 save 到 inspirations/ | 1h |
+| P2-9 | ✓ | hybrid 权重 ablation · (1,0)/(0.8,0.2)/(0.6,0.4)/(0.4,0.6) × 7 query · 确定 default | 4h |
+| P2-10 | ✓ | iconify / Unsplash query 沉淀缓存 · 复用历史好 query | 4h |
 
 ### P2-D · 可观测性 dashboard
 
 | # | 状态 | 任务 | 工时 |
 |---|---|---|---|
-| P2-11 | ☐ | `scripts/dashboard.py` 跨 deck 聚合 · token / rework / audience / layout failure rate | 1d |
-| P2-12 | ☐ | layout-level audience failure rate · 跨 deck 看哪 layout 最常 fail | 4h |
-| P2-13 | ☐ | brief audience 改 multi-select · 不再单选 | 2h |
+| P2-11 | ✓ | `scripts/dashboard.py` 跨 deck 聚合 · token / rework / audience / layout failure rate | 1d |
+| P2-12 | ✓ | layout-level audience failure rate · 跨 deck 看哪 layout 最常 fail | 4h |
+| P2-13 | ✓ | brief audience 改 multi-select · 不再单选 | 2h |
 
 **P2 总工时**:~12-15 工作日
 
@@ -257,6 +265,7 @@ P2-2 audience 量化 ───────────────→ P2-4 hot-r
 | 2026-05-27 | Baseline | ✓ recorded | v0.8.0 release · 7 模板 ingest · RAG hybrid + 自然语言 doc + query expansion 完成 |
 | 2026-05-27 | **P0 done** | ✓ all 7 | 4 agent 并行 · ~45min wall clock · 命中率 5/7→7/7 · gap 0.060→0.116 · 2 个 #2 case 翻 #1 · self_check 9→11 · placeholder_map 212 张全加 shape_id · DB 清 16 张工具页 |
 | 2026-05-27 | **P1 done** | ✓ all 10 | 5 agent 并行 · ~60min wall clock · gap 0.116→0.123 · low_gap 2→1 · 5 个受控词典 SSOT 落盘(layout_variants 139 enum / slot_ids 1115 enum / categories 12 enum / 7 personas / keywords_bank 327 词) · 212 page variant backfill · 7 模板 category retrofit · self_check 11→13 · embed batch(text=8 / image=4 · ingest 时间 -65%) · per-deck cost log · red_line fuzzy+拼音 · EXPANSION_HINTS yaml-ify |
-| TBD | P2 done | ☐ | |
+| 2026-05-27 | **P2 done** | ✓ all 13 | Wave 1(P2-3/4/5 pipeline 重构,1 agent serial)+ Wave 2(P2-1/2/6/7/8/9/10/11/12/13,5 agent 并行)· 总 wall clock ~2h · pipeline 9→7 步 · user checkpoint 5→3 · critic 21 项量化(critic-rubric.yaml SSOT)· audience 每页 12 项量化 · 15 vp pattern ingest(fallback path 验证)· hybrid ablation 改 default 0.6/0.4 → 0.8/0.2 · brief.audience str→list[persona] · image RAG 接 builder Step 4.3.5 + audience Step 3.5.2 · brainstorm inspirations sha256 持久化 · chapter_hashes hot-reload · scripts/derive_plan.py 自动 derive deck_plan · scripts/dashboard.py 跨 deck 聚合 · query_cache.py fuzzy match iconify/Unsplash |
+| TBD | P3 done | ☐ | (待续,见 § 5)|
 | TBD | P2 done | ☐ | |
 | TBD | P3 done | ☐ | |
