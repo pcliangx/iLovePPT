@@ -28,6 +28,6 @@ native_elements:
   - 6 项左右各 3 排成 grid
 
 layout_hint: null
-variant: 6-cards-heart-center
+variant: cards-6-icon
 page_number: 28
 template_name: training_team

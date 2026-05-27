@@ -1,7 +1,7 @@
 template_page_index: 27
 layout_class: venn
 slots:
-- id: q1_num
+- id: q1_number
   shape_id: 21
   tree_path: 3.0.4
   capacity_chars: 2
@@ -19,7 +19,7 @@ slots:
   capacity_chars: 28
   text_color_override: null
   font_size_pt: null
-- id: q2_num
+- id: q2_number
   shape_id: 24
   tree_path: 3.0.7
   capacity_chars: 2
@@ -37,7 +37,7 @@ slots:
   capacity_chars: 28
   text_color_override: null
   font_size_pt: null
-- id: q3_num
+- id: q3_number
   shape_id: 23
   tree_path: 3.0.6
   capacity_chars: 2
@@ -55,7 +55,7 @@ slots:
   capacity_chars: 28
   text_color_override: null
   font_size_pt: null
-- id: q4_num
+- id: q4_number
   shape_id: 22
   tree_path: 3.0.5
   capacity_chars: 2

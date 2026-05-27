@@ -28,6 +28,6 @@ native_elements:
   - 下半浅灰 band 含底部标语 "Unified fonts make reading more fluent."
 
 layout_hint: speaker-with-quote-bursts (single_focus 兜底)
-variant: speaker-podium-bubbles
+variant: single-focus-text-image
 page_number: 16
 template_name: training_team

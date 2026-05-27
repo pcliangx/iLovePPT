@@ -32,6 +32,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: signal-tower-radar
-variant: 4-stations
+variant: radial-4-spoke
 page_number: 7
 template_name: business_geometric

@@ -39,6 +39,6 @@ native_elements:
   - 快捷键标注 ALT+F9 开启和查看本主题预设的参考线 / Press Alt + F9 to show/hide guides
   - 提示 可以通过 iSlide【一键优化】(智能参考线) 功能 应用更多预设参考线 + 英文同义注释
 layout_hint: "模板自带工具说明页,展示主题色板 + 字体规范 + ALT+F9 参考线快捷键;非内容页"
-variant: islide_design_criteria_tool_page
+variant: other-islide-library
 page_number: 33
 template_name: modern_stripes

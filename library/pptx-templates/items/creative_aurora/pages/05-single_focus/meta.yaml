@@ -32,6 +32,6 @@ native_elements:
 
 # === 辅助 ===
 layout_hint: null
-variant: "left-image-right-text"
+variant: single-focus-text-image
 page_number: 5
 template_name: creative_aurora

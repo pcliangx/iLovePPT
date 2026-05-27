@@ -30,6 +30,6 @@ native_elements:
   - 整体上下左右对称构图
 
 layout_hint: null
-variant: 4-corners-with-center
+variant: radial-4-spoke
 page_number: 14
 template_name: enterprise_skyline

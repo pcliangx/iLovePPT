@@ -20,7 +20,7 @@ keywords:
   - 头像 donut
   - 局部占比
   - 多片饼图
-variant: 3-pct-cards-plus-head-donut
+variant: data-mixed-chart-kpi
 native_elements:
   - 左上深黑粗体标题"国债跌价幅度大"
   - 左侧 3 行卡片:每行左为大号占比数字圆(灰 14% / 橙 76% / 灰 10%)

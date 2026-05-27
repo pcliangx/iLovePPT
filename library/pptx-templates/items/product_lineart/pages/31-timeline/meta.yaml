@@ -34,5 +34,6 @@ native_elements:
   - 节点间细灰横线分隔
 
 layout_hint: null
+variant: timeline-v-4
 page_number: 31
 template_name: product_lineart

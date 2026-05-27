@@ -32,6 +32,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: interlocking-diamonds
-variant: 4-cards-with-interlocking-center
+variant: cards-4-icon
 page_number: 29
 template_name: business_geometric

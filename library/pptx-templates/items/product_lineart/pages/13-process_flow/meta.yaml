@@ -32,5 +32,6 @@ native_elements:
   - 节点交替位于路径上下两侧
 
 layout_hint: null
+variant: process-vertical-4
 page_number: 13
 template_name: product_lineart

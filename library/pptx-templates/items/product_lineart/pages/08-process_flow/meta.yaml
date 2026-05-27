@@ -34,5 +34,6 @@ native_elements:
   - 最顶部双人庆祝 icon
 
 layout_hint: null
+variant: process-arrow-5
 page_number: 8
 template_name: product_lineart

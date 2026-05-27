@@ -29,6 +29,6 @@ native_elements:
 - 标题下方一行灰白小字副标题
 - 底部一条横向蓝色装饰带 + 圆点 / 短线作 footer
 layout_hint: null
-variant: null
+variant: section-divider-text
 page_number: 3
 template_name: creative_aurora

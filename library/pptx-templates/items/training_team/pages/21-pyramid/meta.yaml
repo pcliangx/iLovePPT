@@ -27,6 +27,6 @@ native_elements:
   - 周围 5 个 Text here 文字描述
 
 layout_hint: 5-vertical-bars-with-focal-center (pyramid 兜底)
-variant: 5-bars-focal-center
+variant: pyramid-5
 page_number: 21
 template_name: training_team

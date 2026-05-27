@@ -29,6 +29,6 @@ native_elements:
   - 灰色横线分隔
 
 layout_hint: null
-variant: 3-cards-with-breakthrough-arrow
+variant: cards-3-icon
 page_number: 23
 template_name: training_team

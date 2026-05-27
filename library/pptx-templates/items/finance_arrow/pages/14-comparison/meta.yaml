@@ -20,7 +20,7 @@ keywords:
   - 中间高亮
   - 资产质量
   - tier 对比
-variant: 3-tier-middle-highlight
+variant: comparison-tier-3
 native_elements:
   - 左上深黑粗体标题"资产质量"
   - 3 列横向并列:¥500(灰)/ ¥1000(橙黄高亮 + 大字)/ ¥600(灰)

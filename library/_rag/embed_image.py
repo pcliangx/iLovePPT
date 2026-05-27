@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""扫指定 kb 的 preview.png → 计算 image embedding → 写 db.sqlite.image_emb。
+"""扫指定 kb 的 preview.png → 计算 image embedding(batch API)→ 写 db.sqlite.image_emb。
 
 用法跟 embed_text.py 一致(--kb / --id)。
+
+P1-6 改造:先 collect 所有 preview path → batch API(4 张/请求)→ 写 DB。
 """
 
 from __future__ import annotations
@@ -15,7 +17,7 @@ import yaml as _yaml
 
 SCRIPT_DIR = Path(__file__).parent
 sys.path.insert(0, str(SCRIPT_DIR))
-from qwen_embedding import embed_image, get_api_key, open_db  # noqa: E402
+from qwen_embedding import embed_image_batch, get_api_key, open_db  # noqa: E402
 
 LIBRARY_ROOT = SCRIPT_DIR.parent
 VP_ROOT = LIBRARY_ROOT / "visual-patterns"
@@ -27,31 +29,22 @@ def _blob(v: list[float]) -> bytes:
 
 
 def _should_skip_page(page_data: dict) -> bool:
-    """跳过 iSlide 工具说明页(layout_type == 'other' AND needs_manual_review == true)。
-
-    这类 page 的 keywords 含通用词(design criteria / template reference 等),
-    embed 入库会污染 RAG 检索结果。
-    """
+    """跳过 iSlide 工具说明页(layout_type == 'other' AND needs_manual_review == true)。"""
     return (
         page_data.get("layout_type") == "other"
         and page_data.get("needs_manual_review") is True
     )
 
 
-def _embed_one(db, item_id: str, preview: Path, api_key: str) -> bool:
-    if not preview.exists():
-        print(f"  skip(无 preview.png): {item_id}")
-        return False
-    vec = embed_image(preview, api_key=api_key)
-    db.execute("DELETE FROM image_emb WHERE id = ?", (item_id,))
-    db.execute("INSERT INTO image_emb(id, embedding) VALUES (?, ?)", (item_id, _blob(vec)))
-    return True
+def _collect_tasks(kb: str | None, target_id: str | None) -> tuple[list[dict], list[dict]]:
+    """收集 embed tasks + skip tasks。
 
-
-def run(kb: str | None, target_id: str | None) -> None:
-    api_key = get_api_key()
-    db = open_db()
-    done = 0
+    Returns:
+        embed_tasks: [{full_id, preview_path}, ...]
+        skip_tasks:  [{full_id}, ...]
+    """
+    embed_tasks: list[dict] = []
+    skip_tasks: list[dict] = []
 
     if kb in (None, "visual-patterns"):
         vp_items = VP_ROOT / "items"
@@ -62,9 +55,11 @@ def run(kb: str | None, target_id: str | None) -> None:
                 if target_id and d.name != target_id:
                     continue
                 full_id = f"vp:{d.name}"
-                print(f"[vp] {full_id}", flush=True)
-                if _embed_one(db, full_id, d / "preview.png", api_key):
-                    done += 1
+                preview = d / "preview.png"
+                if not preview.exists():
+                    print(f"  skip(无 preview.png): {full_id}")
+                    continue
+                embed_tasks.append({"full_id": full_id, "preview_path": preview})
 
     if kb in (None, "pptx-templates"):
         tpl_items = TPL_ROOT / "items"
@@ -75,9 +70,12 @@ def run(kb: str | None, target_id: str | None) -> None:
                 if target_id and tpl.name != target_id:
                     continue
                 tpl_id = f"tpl:{tpl.name}"
-                print(f"[tpl] {tpl_id}", flush=True)
-                if _embed_one(db, tpl_id, tpl / "preview.png", api_key):
-                    done += 1
+                preview = tpl / "preview.png"
+                if preview.exists():
+                    embed_tasks.append({"full_id": tpl_id, "preview_path": preview})
+                else:
+                    print(f"  skip(无 preview.png): {tpl_id}")
+
                 pages = tpl / "pages"
                 if pages.exists():
                     for pg in sorted(pages.glob("*/preview.png")):
@@ -88,19 +86,52 @@ def run(kb: str | None, target_id: str | None) -> None:
                         pg_data = _yaml.safe_load(m.read_text(encoding="utf-8"))
                         pg_id = f"tpl:{pg_data['id']}"
                         if _should_skip_page(pg_data):
-                            print(f"[tpl-page] SKIPPED (tool page): {pg_id}", flush=True)
-                            # 清理已 embed 的旧数据(tpl_pages + text_emb + image_emb)
-                            db.execute("DELETE FROM tpl_pages WHERE id = ?", (pg_id,))
-                            db.execute("DELETE FROM text_emb WHERE id = ?", (pg_id,))
-                            db.execute("DELETE FROM image_emb WHERE id = ?", (pg_id,))
+                            skip_tasks.append({"full_id": pg_id})
                             continue
-                        print(f"[tpl-page] {pg_id}", flush=True)
-                        if _embed_one(db, pg_id, pg, api_key):
-                            done += 1
+                        embed_tasks.append({"full_id": pg_id, "preview_path": pg})
+    return embed_tasks, skip_tasks
+
+
+def run(kb: str | None, target_id: str | None) -> None:
+    api_key = get_api_key()
+    db = open_db()
+
+    embed_tasks, skip_tasks = _collect_tasks(kb, target_id)
+
+    # 处理 skip
+    for st in skip_tasks:
+        print(f"[tpl-page] SKIPPED (tool page): {st['full_id']}", flush=True)
+        db.execute("DELETE FROM tpl_pages WHERE id = ?", (st["full_id"],))
+        db.execute("DELETE FROM text_emb WHERE id = ?", (st["full_id"],))
+        db.execute("DELETE FROM image_emb WHERE id = ?", (st["full_id"],))
+
+    if not embed_tasks:
+        db.commit()
+        db.close()
+        print("done. 0 image(s) embedded.")
+        return
+
+    paths = [t["preview_path"] for t in embed_tasks]
+    print(f"[embed_image] batching {len(paths)} image(s) ...", flush=True)
+    vecs = embed_image_batch(paths, api_key=api_key, batch_size=4)
+    assert len(vecs) == len(embed_tasks), f"batch returned {len(vecs)} vs {len(embed_tasks)}"
+
+    done = 0
+    COMMIT_EVERY = 20
+    for task, vec in zip(embed_tasks, vecs):
+        full_id = task["full_id"]
+        db.execute("DELETE FROM image_emb WHERE id = ?", (full_id,))
+        db.execute("INSERT INTO image_emb(id, embedding) VALUES (?, ?)", (full_id, _blob(vec)))
+        done += 1
+        # 简化输出:只 print 大类
+        if full_id.startswith("vp:") or "__" not in full_id.split(":")[1]:
+            print(f"[{full_id}]", flush=True)
+        if done % COMMIT_EVERY == 0:
+            db.commit()
 
     db.commit()
     db.close()
-    print(f"done. {done} image(s) embedded.")
+    print(f"done. {done} image(s) embedded (batch API).")
 
 
 def main():

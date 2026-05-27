@@ -27,6 +27,6 @@ native_elements:
   - 灰色细线分隔列
   - 底部大型浅灰 callout 气泡(右下三角尾)+ 内含大字 "Unified fonts make reading more fluent." 总结
 layout_hint: null
-variant: 4-products-bottom-callout
+variant: cards-4-icon
 page_number: 31
 template_name: modern_stripes

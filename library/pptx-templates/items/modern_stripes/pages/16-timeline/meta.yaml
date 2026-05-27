@@ -28,6 +28,6 @@ native_elements:
   - 最右侧路径末端带箭头(指向右)
   - 中间红色节点视觉突出(轮廓 + 红字)
 layout_hint: null
-variant: 3-step-ascending-stairs
+variant: timeline-staircase
 page_number: 16
 template_name: modern_stripes

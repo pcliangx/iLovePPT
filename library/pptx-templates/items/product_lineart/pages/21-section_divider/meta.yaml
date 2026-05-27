@@ -24,5 +24,6 @@ native_elements:
 - 右侧巨大黄色加粗数字 "04"
 - 底部浅蓝色色块
 layout_hint: null
+variant: section-divider-illustration
 page_number: 21
 template_name: product_lineart

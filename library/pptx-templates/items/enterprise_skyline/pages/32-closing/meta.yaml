@@ -31,6 +31,6 @@ native_elements:
   - 跟 01-cover 呼应
 
 layout_hint: null
-variant: null
+variant: closing-text-only
 page_number: 32
 template_name: enterprise_skyline

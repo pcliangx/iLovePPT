@@ -27,6 +27,6 @@ native_elements:
   - 底层 2 个 red 圆环 icon 子节点(挂在中层第 2 / 第 4 节点下)
   - 灰色细线作为父子连接线(树形拓扑)
 layout_hint: "org_chart_tree_1+5+2"
-variant: tree-hierarchy
+variant: other-tree-hierarchy
 page_number: 17
 template_name: modern_stripes

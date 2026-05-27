@@ -32,5 +32,6 @@ native_elements:
   - 箭头外端右/左 "Text here" 步骤标签
 
 layout_hint: null
+variant: process-arrow-3
 page_number: 5
 template_name: product_lineart

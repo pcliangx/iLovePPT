@@ -27,6 +27,6 @@ native_elements:
   - 每扇形外 Text here + bullets
 
 layout_hint: null
-variant: 4-fan-blades-leader-center
+variant: quadrant-fan
 page_number: 12
 template_name: training_team

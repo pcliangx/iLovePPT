@@ -32,6 +32,6 @@ native_elements:
   - 整体闭环 + 左右双角色注释
 
 layout_hint: null
-variant: 6-step-vertical-closed
+variant: process-cycle-6
 page_number: 23
 template_name: enterprise_skyline

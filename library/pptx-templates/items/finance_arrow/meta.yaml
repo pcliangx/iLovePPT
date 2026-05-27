@@ -18,7 +18,7 @@ extraction:
   failed_pages: []
 id: finance_arrow
 name: Finance Arrow · 财务数据分析报告专用模板
-category: finance
+category: enterprise-finance
 content_intent:
 - 年度财务数据汇报演讲(主营业务收入 / 利润 / 费用 / 投资收益 / 净利润)
 - 预算完成情况分析与方差解读

@@ -30,6 +30,6 @@ native_elements:
 - 右上金色城市天际线剪影
 - 整体留白干净
 layout_hint: null
-variant: null
+variant: section-divider-numbered
 page_number: 3
 template_name: enterprise_skyline

@@ -28,6 +28,6 @@ native_elements:
   - 标题上方小字"Speaker name and title" + 站点
   - 标题下方分割线 + spaced caps 副标题
 layout_hint: null
-variant: null
+variant: cover-geometric
 page_number: 1
 template_name: modern_stripes

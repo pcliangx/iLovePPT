@@ -28,6 +28,6 @@ native_elements:
   - 右上 LOGO 占位
 
 layout_hint: null
-variant: closing-thanks-illustration
+variant: closing-illustration
 page_number: 32
 template_name: training_team

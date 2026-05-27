@@ -27,6 +27,6 @@ native_elements:
   - 水平细灰线分隔 3 行
   - 整体留白宽松
 layout_hint: null
-variant: 3x3-with-photo-anchor
+variant: cards-grid-3x3
 page_number: 10
 template_name: modern_stripes

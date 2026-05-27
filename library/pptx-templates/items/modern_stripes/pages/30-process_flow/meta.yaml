@@ -28,6 +28,6 @@ native_elements:
   - 节点之间红色三角箭头(指向右)
   - 节点下方 supporting text 多行
 layout_hint: null
-variant: 3-hexagon-linear
+variant: process-arrow-3
 page_number: 30
 template_name: modern_stripes

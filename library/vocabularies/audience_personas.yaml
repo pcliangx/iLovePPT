@@ -1,0 +1,138 @@
+# library/vocabularies/audience_personas.yaml
+# 受众 persona 词典 · brief 引用 · audience evaluate 时用此 persona 模拟
+#
+# 用途:
+#   - brainstorm 阶段在 brief 里填 audience.persona = <key>(单选 / multi-select 待 P2-13)
+#   - audience agent 评分时按 persona.{concerns, decision_criteria, word_preference} 模拟
+#
+# 字段说明:
+#   name              persona 显名(中英混合可)
+#   role              一句话角色描述
+#   concerns          关心的事项(list[str])
+#   decision_criteria 做判断的标准(list[str])
+#   word_preference   语言偏好(可选)
+#     avoid           应避免的词(audience 命中 → 扣分)
+#     favor           偏好的词(命中 → 加分 / 视为信号)
+
+personas:
+  cfo:
+    name: CFO / 财务总监
+    role: 财务决策者
+    concerns:
+      - 数据真实性 · 单位精度
+      - 同比环比逻辑
+      - 利润 / 现金流影响
+      - 财务风险
+    decision_criteria:
+      - 数据有 source 引用
+      - 关键 KPI 突出
+      - 趋势 / 异常说明清楚
+    word_preference:
+      avoid:
+        - 大概
+        - 好像
+        - 差不多
+      favor:
+        - 同比 +N%
+        - 目标完成 N%
+        - 环比
+
+  engineer:
+    name: 工程师 / 技术决策者
+    role: 技术评审 / 架构判断
+    concerns:
+      - 技术可行性
+      - 架构清晰度
+      - trade-off 分析
+      - 实现细节
+    decision_criteria:
+      - 架构图清晰
+      - 数据支撑
+      - 反例 / 边界 case 考虑
+    word_preference:
+      avoid:
+        - 可能
+        - 应该
+        - 估计
+      favor:
+        - P99
+        - QPS
+        - throughput
+        - trade-off
+
+  sales:
+    name: 销售 / BD
+    role: 客户演示 / 成单推动
+    concerns:
+      - 客户痛点对齐
+      - 价值主张清晰
+      - 价格 / ROI 对比
+      - 行动号召 (CTA)
+    decision_criteria:
+      - 痛点 → 方案 → 价值清楚
+      - case study / 客户证言
+      - 价格透明
+    word_preference:
+      avoid:
+        - 可能
+      favor:
+        - ROI
+        - 客户收益
+        - 成功案例
+
+  hr:
+    name: HR / 培训师
+    role: 员工沟通 / 培训交付
+    concerns:
+      - 信息传递清楚
+      - 情感连接
+      - 行动指南
+    decision_criteria:
+      - 简洁 / 重点突出
+      - 互动性
+      - 落地可执行
+
+  investor:
+    name: 投资人 / VC
+    role: 投资判断
+    concerns:
+      - 市场规模
+      - 团队
+      - 商业模式
+      - 增长曲线
+    decision_criteria:
+      - 数据有据
+      - 故事完整
+      - 增长可信
+    word_preference:
+      avoid:
+        - 可能
+      favor:
+        - 市场规模
+        - 增长率
+        - 护城河
+        - 竞争优势
+
+  academic:
+    name: 学者 / 教授 / 学生
+    role: 学术评审
+    concerns:
+      - 论证严谨
+      - 引用规范
+      - 方法论 / 数据
+    decision_criteria:
+      - 文献引用
+      - 实验数据
+      - 限制 / 未来工作
+
+  general_public:
+    name: 一般观众 / 公众
+    role: 普通受众(讲座 / 大会)
+    concerns:
+      - 容易理解
+      - 故事感
+      - 启发性
+    decision_criteria:
+      - 不要专业术语堆叠
+      - 比喻 / 类比
+      - emotional hook

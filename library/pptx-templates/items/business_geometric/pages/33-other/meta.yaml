@@ -46,6 +46,6 @@ native_elements:
   - ALT+F9 快捷键标注
 
 # === 辅助(可选,不进 embedding) ===
-variant: null
+variant: other-islide-tool
 page_number: 33
 template_name: business_geometric

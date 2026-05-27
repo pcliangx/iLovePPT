@@ -27,6 +27,6 @@ native_elements:
   - 4 角文字标签:左上 / 左下 / 右上 / 右下 各 1 段(标题 + 2 行 + 省略号)
   - 中心点跟 4 卫星无显式连接线
 layout_hint: null
-variant: 1-center-4-corners
+variant: radial-hub-spoke
 page_number: 5
 template_name: modern_stripes

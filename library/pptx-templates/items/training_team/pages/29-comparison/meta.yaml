@@ -29,6 +29,6 @@ native_elements:
   - 右下 Text here + 2 段描述
 
 layout_hint: null
-variant: 2-chains-3plus3-diagonal
+variant: comparison-dual-persona
 page_number: 29
 template_name: training_team

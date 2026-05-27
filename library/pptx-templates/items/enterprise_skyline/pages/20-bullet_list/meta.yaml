@@ -32,6 +32,6 @@ native_elements:
   - 整体左右分屏:左文字右插画
 
 layout_hint: null
-variant: 3-items-with-illustration
+variant: bullet-numbered
 page_number: 20
 template_name: enterprise_skyline

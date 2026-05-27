@@ -28,6 +28,6 @@ native_elements:
   - 右上红色 Note 警示
 
 layout_hint: design-criteria-reference-page (模板自带说明,非内容页 enum 兜底)
-variant: instruction-color-palette
+variant: other-misc
 page_number: 33
 template_name: training_team

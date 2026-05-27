@@ -29,6 +29,6 @@ native_elements:
   - 漏斗每层左缘有圆形 icon:红 / navy / navy 描边
   - icon 内白色商务人 + 美元符
 layout_hint: "inverted_funnel_pyramid"
-variant: inverted-funnel-3-tier
+variant: pyramid-inverted
 page_number: 27
 template_name: modern_stripes

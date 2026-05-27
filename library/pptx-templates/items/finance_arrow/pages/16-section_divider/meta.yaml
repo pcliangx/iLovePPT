@@ -26,5 +26,6 @@ native_elements:
   - 子项小灰字列表(预算完成情况 / 收入收益类 / 成本费用类 / 预算分析)
   - 右侧 1/2 模板招牌"上升箭头 + megaphone 人物"插画
 layout_hint: null
+variant: section-divider-illustration
 page_number: 16
 template_name: finance_arrow

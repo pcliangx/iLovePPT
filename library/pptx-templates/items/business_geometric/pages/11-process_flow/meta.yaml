@@ -31,6 +31,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: stacked-arrow-banners
-variant: 4-steps-vertical
+variant: process-vertical-4
 page_number: 11
 template_name: business_geometric

@@ -28,6 +28,6 @@ native_elements:
   - 灰色横线分隔上下
 
 layout_hint: null
-variant: dual-mindset-brain
+variant: comparison-2col
 page_number: 31
 template_name: training_team

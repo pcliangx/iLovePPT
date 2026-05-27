@@ -21,7 +21,7 @@ keywords:
   - 收入分解
   - icon 卡片
   - timeline 卡片
-variant: 4-cols
+variant: cards-4-icon
 native_elements:
   - 左上深黑粗体小标题"主营业务收入"
   - 中部大号黑色标题"Unified fonts make reading more fluent."(英文 placeholder)

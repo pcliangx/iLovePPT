@@ -7,7 +7,7 @@ slots:
   capacity_chars: 12
   text_color_override: null
   font_size_pt: null
-- id: item_1_num
+- id: item_1_number
   shape_id: 40
   tree_path: 2.8.1
   capacity_chars: 4
@@ -19,7 +19,7 @@ slots:
   capacity_chars: 60
   text_color_override: null
   font_size_pt: null
-- id: item_2_num
+- id: item_2_number
   shape_id: 38
   tree_path: 2.9.1
   capacity_chars: 4
@@ -31,7 +31,7 @@ slots:
   capacity_chars: 60
   text_color_override: null
   font_size_pt: null
-- id: item_3_num
+- id: item_3_number
   shape_id: 36
   tree_path: 2.10.1
   capacity_chars: 4
@@ -43,7 +43,7 @@ slots:
   capacity_chars: 60
   text_color_override: null
   font_size_pt: null
-- id: item_4_num
+- id: item_4_number
   shape_id: 34
   tree_path: 2.11.1
   capacity_chars: 4
@@ -55,7 +55,7 @@ slots:
   capacity_chars: 60
   text_color_override: null
   font_size_pt: null
-- id: item_5_num
+- id: item_5_number
   shape_id: 32
   tree_path: 2.12.1
   capacity_chars: 4

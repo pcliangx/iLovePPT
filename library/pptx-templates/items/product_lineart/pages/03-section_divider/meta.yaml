@@ -25,5 +25,6 @@ native_elements:
 - 右侧巨大黄色加粗数字 "01"
 - 底部浅蓝色色块作为脚部装饰
 layout_hint: null
+variant: section-divider-illustration
 page_number: 3
 template_name: product_lineart

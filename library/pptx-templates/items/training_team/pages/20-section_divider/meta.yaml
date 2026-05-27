@@ -26,6 +26,6 @@ native_elements:
   - 右侧卡通团队 + TEAM 插画
 
 layout_hint: null
-variant: divider-with-illustration
+variant: section-divider-illustration
 page_number: 20
 template_name: training_team

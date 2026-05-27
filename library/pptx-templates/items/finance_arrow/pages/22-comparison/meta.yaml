@@ -21,7 +21,7 @@ keywords:
   - 改进建议
   - 现状 vs 目标
   - 此消彼长
-variant: dual-arrow-vertical
+variant: comparison-2col
 native_elements:
   - 左上深黑粗体标题"重要问题"
   - 左下大号黄色向下 arrow(警示 / 下行隐喻)

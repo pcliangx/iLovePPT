@@ -30,6 +30,6 @@ native_elements:
   - 中段灰色横条衬底强化对称
 
 layout_hint: null
-variant: 4-nodes-cycle
+variant: radial-4-spoke
 page_number: 12
 template_name: enterprise_skyline

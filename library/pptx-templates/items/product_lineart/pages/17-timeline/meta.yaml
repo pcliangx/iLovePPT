@@ -34,5 +34,6 @@ native_elements:
   - 底部 3 段 "Text here" + 描述对应中间 3 个节点
 
 layout_hint: null
+variant: timeline-h-5
 page_number: 17
 template_name: product_lineart

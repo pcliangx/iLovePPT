@@ -27,5 +27,6 @@ native_elements:
   - 右上方下灰色横线分割
   - 右下 2 行 收益 块,橙黄圆 icon(SALE 商店 / 房屋 + $) + 黑色粗 收益 标题 + 2 段 bullets
 layout_hint: null
+variant: single-focus-illustration
 page_number: 18
 template_name: finance_arrow

@@ -27,6 +27,6 @@ native_elements:
   - 每扇形外侧引出 Text here + 百分比 (93% / 56% / 76% / 30%)
 
 layout_hint: null
-variant: 4-fan-with-percentages
+variant: quadrant-fan
 page_number: 22
 template_name: training_team

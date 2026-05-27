@@ -28,6 +28,6 @@ native_elements:
   - 分隔灰线在每条之间
 
 layout_hint: null
-variant: vertical-5-diamonds
+variant: toc-5
 page_number: 2
 template_name: training_team

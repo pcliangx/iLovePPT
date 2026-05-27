@@ -28,6 +28,6 @@ native_elements:
   - 右侧每层 2 列 bullets(各 2-3 行 "Supporting text here")
   - 水平细灰线分隔层与层
 layout_hint: null
-variant: 3-tier-2col-bullets
+variant: pyramid-3
 page_number: 15
 template_name: modern_stripes

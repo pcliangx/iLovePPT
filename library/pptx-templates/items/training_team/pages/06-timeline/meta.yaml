@@ -29,6 +29,6 @@ native_elements:
   - 每节点下方 01-04 Text here 编号 + 描述
 
 layout_hint: null
-variant: 4-runners-growth-metaphor
+variant: timeline-h-4
 page_number: 6
 template_name: training_team

@@ -20,7 +20,7 @@ keywords:
   - 财务情况
   - 编号卡片
   - 圆环编号
-variant: 4-circle-numbered
+variant: cards-4-text
 native_elements:
   - 左上深黑粗体标题"基本财务情况分析"
   - 中部 4 个橙黄空心圆环横向并列,中心 01-04 黑色粗体数字

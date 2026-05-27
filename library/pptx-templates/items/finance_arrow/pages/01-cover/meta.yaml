@@ -31,6 +31,6 @@ native_elements:
   - 顶部 + 底部细灰水平分割线作框架
   - 底部小字"Speaker name and title" + "www.islide.cc"
 layout_hint: null
-variant: null
+variant: cover-illustration
 page_number: 1
 template_name: finance_arrow

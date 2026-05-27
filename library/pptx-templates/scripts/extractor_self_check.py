@@ -2,7 +2,7 @@
 
 Exit codes:
   0 = 全过
-  1 = 字段缺失 / enum / 格式 / list element type / shape_id resolve 问题
+  1 = 字段缺失 / enum / 格式 / list element type / shape_id resolve / variant enum / slot_id enum 问题
   2 = placeholder_map tree_path 不能 resolve(check #9)
   3 = YAML 语法错
   4 = 模板目录不存在
@@ -19,6 +19,9 @@ Checks:
   9.  PMAP_TREE_PATH_UNRESOLVABLE
   10. LIST_ELEMENT_TYPE_FAILED   list 字段每个 element 必须是 str
   11. SHAPE_ID_RESOLVE_FAILED    placeholder_map slots[].shape_id 必须能在 source pptx 里找到
+  12. VARIANT_ENUM_FAILED        page meta.yaml.variant 必须 ∈ library/vocabularies/layout_variants.yaml
+      VARIANT_LAYOUT_MISMATCH    vocab[variant].layout_type 必须 == meta.layout_type
+  13. SLOT_ID_ENUM_FAILED        placeholder_map slots[].id 必须 ∈ library/vocabularies/slot_ids.yaml
 """
 from __future__ import annotations
 
@@ -99,6 +102,202 @@ def _collect_shape_ids(shapes) -> set[int]:
             except (AttributeError, ValueError):
                 pass
     return ids
+
+
+# ─────────────────────────────────────────────────────────────────
+# check #13 — slot_id enum compliance
+# ─────────────────────────────────────────────────────────────────
+# library/vocabularies/slot_ids.yaml 是 SSOT;这里 expand 一次 cache。
+
+_SLOT_ID_ENUM_CACHE: set[str] | None = None
+_SLOT_ID_VOCAB_PATH = Path(__file__).resolve().parents[2] / "vocabularies" / "slot_ids.yaml"
+
+
+def _expand_slot_id(raw: str, n_range: list[int], sub_n_range: list[int], out: set[str]) -> None:
+    """Expand 'card_N_label' → card_1_label..card_8_label.
+    Supports up to two 'N' occurrences (first uses n_range, second uses sub_n_range)."""
+    n_count = raw.count("N")
+    if n_count == 0:
+        out.add(raw)
+        return
+    if n_count == 1:
+        for n in range(n_range[0], n_range[1] + 1):
+            out.add(raw.replace("N", str(n), 1))
+        return
+    if n_count == 2:
+        for n1 in range(n_range[0], n_range[1] + 1):
+            tmp = raw.replace("N", str(n1), 1)
+            for n2 in range(sub_n_range[0], sub_n_range[1] + 1):
+                out.add(tmp.replace("N", str(n2), 1))
+        return
+    # n_count > 2: skip (no such patterns expected)
+
+
+def _walk_slot_ids(node, default_range: list[int], scope_n: list[int] | None,
+                   scope_sub: list[int] | None, out: set[str]) -> None:
+    if isinstance(node, dict):
+        n_range = node.get("n_range") if isinstance(node.get("n_range"), list) else (scope_n or default_range)
+        sub_n_range = node.get("sub_n_range") if isinstance(node.get("sub_n_range"), list) else (scope_sub or default_range)
+        ids = node.get("ids")
+        if isinstance(ids, list):
+            for raw in ids:
+                if isinstance(raw, str):
+                    _expand_slot_id(raw, n_range, sub_n_range, out)
+        for k, v in node.items():
+            if k in ("ids", "n_range", "sub_n_range", "positions"):
+                continue
+            if isinstance(v, list) and v and all(isinstance(x, str) for x in v):
+                for raw in v:
+                    _expand_slot_id(raw, n_range, sub_n_range, out)
+            else:
+                _walk_slot_ids(v, default_range, n_range, sub_n_range, out)
+    elif isinstance(node, list):
+        for x in node:
+            _walk_slot_ids(x, default_range, scope_n, scope_sub, out)
+
+
+def load_slot_id_enum(vocab_path: Path = _SLOT_ID_VOCAB_PATH) -> set[str]:
+    """Load + expand library/vocabularies/slot_ids.yaml into a flat enum set.
+    Caches across calls. Empty set on failure."""
+    global _SLOT_ID_ENUM_CACHE
+    if _SLOT_ID_ENUM_CACHE is not None:
+        return _SLOT_ID_ENUM_CACHE
+    if not vocab_path.exists():
+        _SLOT_ID_ENUM_CACHE = set()
+        return _SLOT_ID_ENUM_CACHE
+    try:
+        with open(vocab_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+    except yaml.YAMLError:
+        _SLOT_ID_ENUM_CACHE = set()
+        return _SLOT_ID_ENUM_CACHE
+    if not isinstance(data, dict):
+        _SLOT_ID_ENUM_CACHE = set()
+        return _SLOT_ID_ENUM_CACHE
+    schema = data.get("schema", {}) or {}
+    default_range = schema.get("n_range_default", [1, 8])
+    if not (isinstance(default_range, list) and len(default_range) == 2):
+        default_range = [1, 8]
+    enum: set[str] = set()
+    skeleton = schema.get("skeleton_sentinel")
+    if isinstance(skeleton, str):
+        enum.add(skeleton)
+    for k, v in data.items():
+        if k in ("version", "schema", "meta"):
+            continue
+        # bare list-of-strings at top section (e.g. common: [title, subtitle, ...])
+        if isinstance(v, list) and v and all(isinstance(x, str) for x in v):
+            for raw in v:
+                _expand_slot_id(raw, default_range, default_range, enum)
+        else:
+            _walk_slot_ids(v, default_range, None, None, enum)
+    _SLOT_ID_ENUM_CACHE = enum
+    return enum
+
+
+def check_slot_id_enum_compliance(pmap: dict, file_path: Path, enum: set[str]) -> list[str]:
+    """check #13 — every slots[].id must be in the SSOT enum.
+
+    Empty enum (vocab file missing) skips check silently — extractor should never
+    rely on this side-effect though; CI / dev env should have vocab present."""
+    errors: list[str] = []
+    if not enum:
+        return errors
+    if not isinstance(pmap, dict):
+        return errors
+    for i, slot in enumerate(pmap.get("slots", []) or []):
+        if not isinstance(slot, dict):
+            continue
+        sid = slot.get("id")
+        if sid is None:
+            continue
+        if not isinstance(sid, str):
+            errors.append(
+                f"SLOT_ID_ENUM_FAILED: {file_path}: slots[{i}].id={sid!r} "
+                f"(type={type(sid).__name__}, expected str ∈ slot_ids.yaml enum)"
+            )
+            continue
+        if sid not in enum:
+            errors.append(
+                f"SLOT_ID_ENUM_FAILED: {file_path}: slots[{i}].id={sid!r} "
+                f"∉ slot_ids.yaml enum (扩 SSOT 或换 enum 内最接近值)"
+            )
+    return errors
+
+
+# ─────────────────────────────────────────────────────────────────
+# check #12 — variant enum compliance + variant↔layout_type 对账
+# ─────────────────────────────────────────────────────────────────
+# library/vocabularies/layout_variants.yaml 是 SSOT;每个 variant key
+# 关联到 layout_type;这里 cache 一份 {variant: layout_type} mapping。
+
+_VARIANT_VOCAB_CACHE: dict[str, str] | None = None
+_VARIANT_VOCAB_PATH = Path(__file__).resolve().parents[2] / "vocabularies" / "layout_variants.yaml"
+
+
+def load_variant_vocab(vocab_path: Path = _VARIANT_VOCAB_PATH) -> dict[str, str]:
+    """Load layout_variants.yaml → {variant_name: layout_type}.
+    Caches across calls. Empty dict on failure (silent skip)."""
+    global _VARIANT_VOCAB_CACHE
+    if _VARIANT_VOCAB_CACHE is not None:
+        return _VARIANT_VOCAB_CACHE
+    if not vocab_path.exists():
+        _VARIANT_VOCAB_CACHE = {}
+        return _VARIANT_VOCAB_CACHE
+    try:
+        with open(vocab_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+    except yaml.YAMLError:
+        _VARIANT_VOCAB_CACHE = {}
+        return _VARIANT_VOCAB_CACHE
+    if not isinstance(data, dict):
+        _VARIANT_VOCAB_CACHE = {}
+        return _VARIANT_VOCAB_CACHE
+    variants = data.get("variants", {}) or {}
+    out: dict[str, str] = {}
+    if isinstance(variants, dict):
+        for k, v in variants.items():
+            if isinstance(v, dict):
+                lt = v.get("layout_type")
+                if isinstance(lt, str):
+                    out[k] = lt
+    _VARIANT_VOCAB_CACHE = out
+    return out
+
+
+def check_variant_enum_compliance(meta: dict, file_path: Path, vocab: dict[str, str]) -> list[str]:
+    """check #12 — page meta.yaml.variant 必须 ∈ vocab,
+    且 vocab[variant].layout_type 必须 == meta.layout_type.
+
+    variant 缺失 / null 视为允许(向后兼容 · agent 应尽量补);
+    存在时必须 enum 合规 + layout_type 对账。
+    Empty vocab (file missing) skips check silently."""
+    errors: list[str] = []
+    if not vocab or not isinstance(meta, dict):
+        return errors
+    variant = meta.get("variant")
+    if variant is None or variant == "":
+        return errors  # missing variant tolerated (back-compat)
+    if not isinstance(variant, str):
+        errors.append(
+            f"VARIANT_ENUM_FAILED: {file_path}: variant={variant!r} "
+            f"(type={type(variant).__name__}, expected str ∈ layout_variants.yaml)"
+        )
+        return errors
+    if variant not in vocab:
+        errors.append(
+            f"VARIANT_ENUM_FAILED: {file_path}: variant={variant!r} "
+            f"∉ layout_variants.yaml enum (扩 SSOT 或换 enum 内最接近值)"
+        )
+        return errors
+    expected_lt = vocab[variant]
+    actual_lt = meta.get("layout_type")
+    if isinstance(actual_lt, str) and actual_lt and actual_lt != expected_lt:
+        errors.append(
+            f"VARIANT_LAYOUT_MISMATCH: {file_path}: variant={variant!r} "
+            f"declares layout_type={expected_lt!r} but meta.layout_type={actual_lt!r}"
+        )
+    return errors
 
 
 def check_list_element_types(data: dict, file_path: Path, fields: list[str]) -> list[str]:
@@ -245,13 +444,24 @@ def check(name: str, items_root: Path) -> int:
     for p, data in page_metas:
         errors.extend(check_list_element_types(data, p, PAGE_STR_LIST_FIELDS))
 
+    # 12. variant enum compliance + variant↔layout_type 对账
+    # (依赖 library/vocabularies/layout_variants.yaml;vocab 缺则 silently skip)
+    variant_vocab = load_variant_vocab()
+    if variant_vocab:
+        for p, data in page_metas:
+            errors.extend(check_variant_enum_compliance(data, p, variant_vocab))
+
     # 9. placeholder_map tree_path resolves (legacy scope: .draft only)
     # 11. shape_id resolves (new: applies to both .yaml AND .yaml.draft)
+    # 13. slot_id enum compliance (applies to both .yaml AND .yaml.draft;
+    #     不依赖 source pptx;直接对 library/vocabularies/slot_ids.yaml SSOT 校验)
     # Each check has its own error bucket and exit semantics:
     #   - tree_path errors alone → exit 2
     #   - shape_id errors → exit 1 (merged with general errors)
+    #   - slot_id enum errors → exit 1 (merged with general errors)
     pmap_errors: list[str] = []
     shape_id_errors: list[str] = []
+    slot_id_errors: list[str] = []
     source_pptx = items_root.parent / "_source" / f"{name}.pptx"
 
     # check #11 looks at every placeholder_map (approved + draft).
@@ -263,6 +473,15 @@ def check(name: str, items_root: Path) -> int:
     # pre-existing tree_path drift in approved templates here; that's a
     # separate cleanup sprint).
     pmap_paths_draft = sorted(tpl_dir.glob("pages/*/placeholder_map.yaml.draft"))
+
+    # check #13 — slot_id enum compliance (independent of source pptx existence)
+    slot_id_enum = load_slot_id_enum()
+    if slot_id_enum:
+        for p in pmap_paths_all:
+            pmap, err = load_yaml(p)
+            if err or not pmap:
+                continue
+            slot_id_errors.extend(check_slot_id_enum_compliance(pmap, p, slot_id_enum))
 
     if pmap_paths_all and not source_pptx.exists():
         # check #11 demands source .pptx to verify shape_id. Report it specifically.
@@ -312,8 +531,9 @@ def check(name: str, items_root: Path) -> int:
         except Exception as e:
             pmap_errors.append(f"PMAP_CHECK_FAILED: {e}")
 
-    # shape_id errors merge into general bucket (exit 1).
+    # shape_id + slot_id errors merge into general bucket (exit 1).
     errors.extend(shape_id_errors)
+    errors.extend(slot_id_errors)
     # If ONLY pmap (tree_path) errors (no other errors), exit 2 — preserves legacy semantics.
     if pmap_errors and not errors:
         for e in pmap_errors:

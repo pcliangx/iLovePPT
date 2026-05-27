@@ -26,6 +26,6 @@ native_elements:
   - 灰线在 row 之间分隔
 
 layout_hint: null
-variant: 6-spokes-3plus3
+variant: radial-6-spoke
 page_number: 4
 template_name: training_team

@@ -28,6 +28,6 @@ native_elements:
   - 每 icon 下 Supporting text here 标题文字
 
 layout_hint: null
-variant: 4-cols-team-icons-global
+variant: cards-4-icon
 page_number: 11
 template_name: training_team

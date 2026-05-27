@@ -34,6 +34,6 @@ native_elements:
 
 # === 辅助 ===
 layout_hint: null
-variant: null
+variant: closing-photo
 page_number: 11
 template_name: creative_aurora

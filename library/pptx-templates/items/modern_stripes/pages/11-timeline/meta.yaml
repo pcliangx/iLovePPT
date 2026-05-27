@@ -27,6 +27,6 @@ native_elements:
   - 4 行泳道,每行含 2 个错位的浅灰带箭头甘特条
   - 水平细灰线分隔 4 行
 layout_hint: null
-variant: gantt-3yr-4lane
+variant: timeline-gantt
 page_number: 11
 template_name: modern_stripes

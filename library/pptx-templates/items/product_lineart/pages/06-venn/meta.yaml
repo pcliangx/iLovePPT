@@ -32,5 +32,6 @@ native_elements:
   - 蓝色/黄色 icon 交错配色
 
 layout_hint: null
+variant: venn-4
 page_number: 6
 template_name: product_lineart

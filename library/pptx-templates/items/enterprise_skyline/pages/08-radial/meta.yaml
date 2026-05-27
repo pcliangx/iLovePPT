@@ -30,6 +30,6 @@ native_elements:
   - 整体三角分布
 
 layout_hint: null
-variant: 3-with-left-statement
+variant: radial-3-spoke
 page_number: 8
 template_name: enterprise_skyline

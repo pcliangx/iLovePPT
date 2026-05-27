@@ -32,6 +32,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: null
-variant: 3-percentage-kpi
+variant: data-kpi-grid
 page_number: 10
 template_name: business_geometric

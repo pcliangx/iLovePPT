@@ -30,6 +30,6 @@ native_elements:
   - 整体左右"形 + 文"对称
 
 layout_hint: null
-variant: 3-tier-with-bullets
+variant: pyramid-3
 page_number: 17
 template_name: enterprise_skyline

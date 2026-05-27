@@ -32,5 +32,6 @@ native_elements:
   - 顶部细线分隔 header
 
 layout_hint: null
+variant: radial-4-spoke
 page_number: 16
 template_name: product_lineart

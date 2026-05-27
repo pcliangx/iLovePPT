@@ -31,5 +31,6 @@ native_elements:
   - 每列独立成块
 
 layout_hint: null
+variant: cards-3-icon
 page_number: 30
 template_name: product_lineart

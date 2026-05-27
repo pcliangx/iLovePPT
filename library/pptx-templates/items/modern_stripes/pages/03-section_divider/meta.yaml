@@ -27,6 +27,6 @@ native_elements:
   - 右侧大尺寸蓝色 / navy / 浅灰几何拼贴块(跟封面共用)
   - 整体留白多
 layout_hint: null
-variant: null
+variant: section-divider-numbered
 page_number: 3
 template_name: modern_stripes

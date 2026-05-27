@@ -30,6 +30,6 @@ native_elements:
   - 整体对称构图
 
 layout_hint: null
-variant: 2-circle-with-8-bullets
+variant: venn-2
 page_number: 10
 template_name: enterprise_skyline

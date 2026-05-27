@@ -28,6 +28,6 @@ native_elements:
   - 灰色竖线分两 KPI
 
 layout_hint: null
-variant: 2-kpi-with-cogwheel-cluster
+variant: data-kpi-grid
 page_number: 30
 template_name: training_team

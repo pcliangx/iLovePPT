@@ -29,6 +29,6 @@ native_elements:
   - 底部强调引言 "Unified fonts make reading more fluent." 大字
 
 layout_hint: null
-variant: 1-hub-2-arc
+variant: radial-3-spoke
 page_number: 31
 template_name: enterprise_skyline

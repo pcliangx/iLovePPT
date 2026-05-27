@@ -1,7 +1,7 @@
 template_page_index: 25
 layout_class: section_divider
 slots:
-- id: section_num
+- id: section_number
   shape_id: 9
   tree_path: '2'
   capacity_chars: 4

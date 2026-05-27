@@ -26,6 +26,6 @@ native_elements:
   - Supporting text 两行
   - 右侧蓝 / navy / 浅灰几何拼贴
 layout_hint: null
-variant: null
+variant: section-divider-numbered
 page_number: 9
 template_name: modern_stripes

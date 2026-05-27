@@ -30,6 +30,6 @@ native_elements:
   - 整体象限对称分布
 
 layout_hint: null
-variant: brain-puzzle-with-4-kpi
+variant: quadrant-with-center
 page_number: 25
 template_name: enterprise_skyline

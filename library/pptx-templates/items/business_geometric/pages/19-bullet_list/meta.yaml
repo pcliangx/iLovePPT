@@ -32,6 +32,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: null
-variant: 3-items-with-photo
+variant: bullet-with-photo
 page_number: 19
 template_name: business_geometric

@@ -29,6 +29,6 @@ native_elements:
   - 大留白干净
 
 layout_hint: null
-variant: null
+variant: section-divider-numbered
 page_number: 15
 template_name: enterprise_skyline

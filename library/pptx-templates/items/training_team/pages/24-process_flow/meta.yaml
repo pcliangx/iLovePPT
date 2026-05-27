@@ -29,6 +29,6 @@ native_elements:
   - 文字交替左右
 
 layout_hint: null
-variant: 4-step-s-curve-journey
+variant: process-arrow-4
 page_number: 24
 template_name: training_team

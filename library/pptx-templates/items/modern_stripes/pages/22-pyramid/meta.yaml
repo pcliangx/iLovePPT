@@ -27,6 +27,6 @@ native_elements:
   - 3 个编号圆环节点 1 / 2 / 3 卡在金字塔三面位置(顶 red / 左底 navy / 右底 navy)
   - 右侧顶层:"Text Here" + bullets · 下方 2 列底层文字(底部含"Supporting text here" × 2 列)
 layout_hint: null
-variant: 3d-pyramid-with-numbered-nodes
+variant: pyramid-3
 page_number: 22
 template_name: modern_stripes

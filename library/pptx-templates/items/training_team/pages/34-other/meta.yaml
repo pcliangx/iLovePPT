@@ -26,6 +26,6 @@ native_elements:
   - 右侧浅灰渐变弧形装饰
 
 layout_hint: islide-promo-page (模板自带推广,非内容页 enum 兜底)
-variant: islide-promo
+variant: other-islide-promo
 page_number: 34
 template_name: training_team

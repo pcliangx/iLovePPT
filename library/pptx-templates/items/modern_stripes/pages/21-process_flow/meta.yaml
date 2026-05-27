@@ -28,6 +28,6 @@ native_elements:
   - 4 角文字 block:左上 / 右上 / 左下 / 右下 配"Text Here" + bullets
   - 横向浅灰背景条贯穿中部
 layout_hint: null
-variant: 4-step-cycle
+variant: process-cycle-4
 page_number: 21
 template_name: modern_stripes

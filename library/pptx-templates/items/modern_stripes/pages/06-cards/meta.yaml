@@ -27,6 +27,6 @@ native_elements:
   - 卡片顶部白色 paper-plane icon · 中间 "Text here" 白字 · 下方白字 supporting
   - 气泡尾巴下方对应编号圆圈 01 / 02 / 03(描边 + 中心编号)
 layout_hint: null
-variant: 3-cols-bubble-icons
+variant: cards-3-icon
 page_number: 6
 template_name: modern_stripes

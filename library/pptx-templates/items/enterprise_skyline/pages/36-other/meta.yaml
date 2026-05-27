@@ -27,6 +27,6 @@ native_elements:
   - 中间深灰箭头连接 3 步
   - 右上红色 Note 警告框
 
-variant: null
+variant: other-islide-library
 page_number: 36
 template_name: enterprise_skyline

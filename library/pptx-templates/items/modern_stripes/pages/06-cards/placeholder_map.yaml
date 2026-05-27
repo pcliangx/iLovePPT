@@ -25,7 +25,7 @@ slots:
   capacity_chars: 28
   text_color_override: null
   font_size_pt: null
-- id: card_1_num
+- id: card_1_number
   shape_id: 28
   tree_path: 3.2.3
   capacity_chars: 4
@@ -43,7 +43,7 @@ slots:
   capacity_chars: 28
   text_color_override: null
   font_size_pt: null
-- id: card_2_num
+- id: card_2_number
   shape_id: 21
   tree_path: 3.3.3
   capacity_chars: 4
@@ -61,7 +61,7 @@ slots:
   capacity_chars: 28
   text_color_override: null
   font_size_pt: null
-- id: card_3_num
+- id: card_3_number
   shape_id: 14
   tree_path: 3.4.3
   capacity_chars: 4

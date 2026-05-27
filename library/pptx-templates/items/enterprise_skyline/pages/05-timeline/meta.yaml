@@ -31,6 +31,6 @@ native_elements:
   - 底部 www.islide.cc + 页码 5
 
 layout_hint: null
-variant: 7-zigzag
+variant: timeline-zigzag
 page_number: 5
 template_name: enterprise_skyline

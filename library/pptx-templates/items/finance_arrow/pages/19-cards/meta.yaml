@@ -20,7 +20,7 @@ keywords:
   - 成本费用
   - 中心 image
   - 椭圆遮罩
-variant: 2x2-grid-with-center-image
+variant: cards-grid-2x2
 native_elements:
   - 左上深黑粗体标题"成本费用类"
   - 中心椭圆形遮罩 + 商业大厦 city image(深色调)

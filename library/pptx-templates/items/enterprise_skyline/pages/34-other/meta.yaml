@@ -28,6 +28,6 @@ native_elements:
   - 底部 "免费下载 / Download for FREE" + 橙色链接 "www.islide.cc"
   - 右侧浅灰胶囊装饰
 
-variant: null
+variant: other-islide-promo
 page_number: 34
 template_name: enterprise_skyline

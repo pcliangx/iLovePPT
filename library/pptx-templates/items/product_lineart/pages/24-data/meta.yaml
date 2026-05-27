@@ -34,5 +34,6 @@ native_elements:
   - 卡片间细灰横线分隔
 
 layout_hint: null
+variant: data-kpi-grid
 page_number: 24
 template_name: product_lineart

@@ -33,5 +33,6 @@ native_elements:
   - 底部浅灰色透视梯形装饰
 
 layout_hint: null
+variant: cards-4-icon
 page_number: 20
 template_name: product_lineart

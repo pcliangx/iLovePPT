@@ -31,6 +31,6 @@ native_elements:
   - 树状层级清晰
 
 layout_hint: null
-variant: org-tree-3-branches
+variant: cards-3-icon
 page_number: 22
 template_name: enterprise_skyline

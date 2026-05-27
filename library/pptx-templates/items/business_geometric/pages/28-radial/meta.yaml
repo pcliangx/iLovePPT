@@ -33,6 +33,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: china-map-with-pins
-variant: 6-cities-china-map
+variant: radial-map-anchor
 page_number: 28
 template_name: business_geometric

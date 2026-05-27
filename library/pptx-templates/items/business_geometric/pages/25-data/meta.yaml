@@ -32,6 +32,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: multi-peak-chart
-variant: 13-series-growth
+variant: data-chart-line
 page_number: 25
 template_name: business_geometric

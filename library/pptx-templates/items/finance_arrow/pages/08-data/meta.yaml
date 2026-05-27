@@ -21,7 +21,7 @@ keywords:
   - 2 元对比
   - 圆环图
   - 中心文本
-variant: donut-2-segments
+variant: data-chart-pie
 native_elements:
   - 左上深黑粗体标题"投资收益"
   - 中部大号橙黄 donut(85% 主体)+ 右上蓝色 15% 切片(凸出)

@@ -20,7 +20,7 @@ keywords:
   - 利息汇兑
   - icon 卡片
   - timeline
-variant: 3-cols
+variant: cards-3-icon
 native_elements:
   - 左上深黑粗体标题"财务费用"
   - 中部副标题"Unified fonts make reading more fluent." 1 行 + "Theme color..." 加粗 1 行 + 灰色描述 1 行

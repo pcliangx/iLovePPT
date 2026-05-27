@@ -21,7 +21,7 @@ keywords:
   - 资产经营
   - 渐进流程
   - 折线路径
-variant: 4-node-zigzag
+variant: process-zigzag
 native_elements:
   - 左上深黑粗体标题"资产经营状况及变动原因"
   - 4 节点 1-4 zigzag 折线路径(左下 → 右上,逐级上升)

@@ -22,7 +22,7 @@ keywords:
   - 增减额度
   - 增减幅度
   - 5 列表格
-variant: 5-cols-7-rows
+variant: data-table
 native_elements:
   - 左上深黑粗体标题 主营业务利润
   - 5 列横向表头 业务利润 / 报告期(橙黄高亮)/ 去年同期 / 增减额度 / 增减幅度

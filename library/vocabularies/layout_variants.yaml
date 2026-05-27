@@ -1,0 +1,193 @@
+# library/vocabularies/layout_variants.yaml
+# layout_variants · 受控词典 · variant 跟 layout_type 同级
+# extractor / author / build / RAG 都引用此 SSOT
+# 改动这个文件 = 影响 RAG 索引,需要 re-embed
+#
+# Schema:
+#   variant: enum         # 见下面 variants 字段(key 即 enum)
+#   layout_type: enum     # 关联的 17 enum,self_check #12 验证一致
+#   description: str      # 中文描述,自然语言,供 LLM extractor 参考
+#
+# 选 variant 启发(从粗到细):
+#   1. 先定 layout_type(看页面整体结构)
+#   2. 在该 layout_type 桶里选元素数(N)最接近的
+#   3. 看 native_elements 是否含 "icon" / "image/photo/图片" → 选含/不含 icon/photo 的子枚举
+#   4. 若桶里无 N=该数,选最接近的(如 7 项 → 6;或归到 -other 兜底)
+#   5. 若实在不匹配,可用 "<layout_type>-other"(每个 layout_type 自带 -other 兜底)
+
+variants:
+
+  # === cover (封面) ===
+  cover-text-only:           { layout_type: cover, description: "封面 · 纯文字标题 + 副标" }
+  cover-illustration:        { layout_type: cover, description: "封面 · 含人物/物件插画" }
+  cover-photo:               { layout_type: cover, description: "封面 · 含真实图片" }
+  cover-geometric:           { layout_type: cover, description: "封面 · 含几何/抽象装饰" }
+  cover-other:               { layout_type: cover, description: "封面 · 其他变体" }
+
+  # === toc (目录) ===
+  toc-3:                     { layout_type: toc, description: "目录 · 3 项章节" }
+  toc-4:                     { layout_type: toc, description: "目录 · 4 项章节" }
+  toc-5:                     { layout_type: toc, description: "目录 · 5 项章节" }
+  toc-6:                     { layout_type: toc, description: "目录 · 6 项章节" }
+  toc-7:                     { layout_type: toc, description: "目录 · 7 项章节" }
+  toc-8:                     { layout_type: toc, description: "目录 · 8 项章节" }
+  toc-other:                 { layout_type: toc, description: "目录 · 其他变体" }
+
+  # === section_divider (章节分隔) ===
+  section-divider-numbered:  { layout_type: section_divider, description: "章节分隔 · 大数字编号(01/02/...)" }
+  section-divider-text:      { layout_type: section_divider, description: "章节分隔 · 纯文字标题" }
+  section-divider-illustration: { layout_type: section_divider, description: "章节分隔 · 含插画装饰" }
+  section-divider-photo:     { layout_type: section_divider, description: "章节分隔 · 含真实图片" }
+  section-divider-other:     { layout_type: section_divider, description: "章节分隔 · 其他变体" }
+
+  # === summary (总结) ===
+  summary-bullet:            { layout_type: summary, description: "总结 · bullet 形式收尾" }
+  summary-cards:             { layout_type: summary, description: "总结 · 卡片形式收尾" }
+  summary-other:             { layout_type: summary, description: "总结 · 其他变体" }
+
+  # === closing (致谢 / 结束) ===
+  closing-text-only:         { layout_type: closing, description: "致谢 · 纯文字 Thanks/Q&A" }
+  closing-illustration:      { layout_type: closing, description: "致谢 · 含人物/物件插画" }
+  closing-photo:             { layout_type: closing, description: "致谢 · 含真实图片" }
+  closing-other:             { layout_type: closing, description: "致谢 · 其他变体" }
+
+  # === quote (引言) ===
+  quote-large:               { layout_type: quote, description: "引言 · 大字 quote 居中" }
+  quote-with-photo:          { layout_type: quote, description: "引言 · 含说话人头像" }
+  quote-other:               { layout_type: quote, description: "引言 · 其他变体" }
+
+  # === single_focus (单一焦点) ===
+  single-focus-kpi:          { layout_type: single_focus, description: "单一焦点 · KPI 大数字居中" }
+  single-focus-percentage:   { layout_type: single_focus, description: "单一焦点 · 大百分比 + 说明" }
+  single-focus-image:        { layout_type: single_focus, description: "单一焦点 · 单一焦点图" }
+  single-focus-illustration: { layout_type: single_focus, description: "单一焦点 · 大插画 + 标语" }
+  single-focus-quote:        { layout_type: single_focus, description: "单一焦点 · 大字 quote / 标语" }
+  single-focus-text-image:   { layout_type: single_focus, description: "单一焦点 · 左图右文 / 左文右图" }
+  single-focus-other:        { layout_type: single_focus, description: "单一焦点 · 其他变体" }
+
+  # === cards (卡片) ===
+  cards-2-text:              { layout_type: cards, description: "2 张卡片 · 纯文字" }
+  cards-2-icon:              { layout_type: cards, description: "2 张卡片 · 每张含 icon" }
+  cards-2-photo:             { layout_type: cards, description: "2 张卡片 · 每张含真实图片" }
+  cards-2-mixed:             { layout_type: cards, description: "2 张卡片 · 图文混排(部分含图)" }
+  cards-3-text:              { layout_type: cards, description: "3 张卡片 · 纯文字" }
+  cards-3-icon:              { layout_type: cards, description: "3 张卡片 · 含 icon" }
+  cards-3-photo:             { layout_type: cards, description: "3 张卡片 · 含真实图片" }
+  cards-3-mixed:             { layout_type: cards, description: "3 张卡片 · 图文混排" }
+  cards-4-text:              { layout_type: cards, description: "4 张卡片 · 纯文字" }
+  cards-4-icon:              { layout_type: cards, description: "4 张卡片 · 含 icon" }
+  cards-4-photo:             { layout_type: cards, description: "4 张卡片 · 含真实图片" }
+  cards-4-mixed:             { layout_type: cards, description: "4 张卡片 · 图文混排" }
+  cards-5-icon:              { layout_type: cards, description: "5 张卡片 · 含 icon" }
+  cards-6-text:              { layout_type: cards, description: "6 张卡片 · 纯文字" }
+  cards-6-icon:              { layout_type: cards, description: "6 张卡片 · 含 icon" }
+  cards-6-photo:             { layout_type: cards, description: "6 张卡片 · 含真实图片" }
+  cards-6-mixed:             { layout_type: cards, description: "6 张卡片 · 图文混排" }
+  cards-grid-2x2:            { layout_type: cards, description: "2x2 网格卡片(4 项)" }
+  cards-grid-3x2:            { layout_type: cards, description: "3x2 网格卡片(6 项)" }
+  cards-grid-3x3:            { layout_type: cards, description: "3x3 网格卡片(9 项)" }
+  cards-other:               { layout_type: cards, description: "卡片 · 其他变体 / 非常规数量(7+)" }
+
+  # === bullet_list (要点列表) ===
+  bullet-3:                  { layout_type: bullet_list, description: "3 项 bullet" }
+  bullet-4:                  { layout_type: bullet_list, description: "4 项 bullet" }
+  bullet-5:                  { layout_type: bullet_list, description: "5 项 bullet" }
+  bullet-6:                  { layout_type: bullet_list, description: "6 项 bullet" }
+  bullet-numbered:           { layout_type: bullet_list, description: "编号列表(01 02 03)" }
+  bullet-checkbox:           { layout_type: bullet_list, description: "复选框列表" }
+  bullet-with-icons:         { layout_type: bullet_list, description: "含 icon 的要点列表" }
+  bullet-with-photo:         { layout_type: bullet_list, description: "含真实图片的要点列表" }
+  bullet-other:              { layout_type: bullet_list, description: "要点列表 · 其他变体" }
+
+  # === data (数据) ===
+  data-chart-bar:            { layout_type: data, description: "条形图" }
+  data-chart-line:           { layout_type: data, description: "折线图" }
+  data-chart-pie:            { layout_type: data, description: "饼图 / donut" }
+  data-chart-area:           { layout_type: data, description: "面积图 / 多系列堆叠" }
+  data-table:                { layout_type: data, description: "数据表格" }
+  data-kpi-grid:             { layout_type: data, description: "多 KPI 数字网格(2/3/4+ 个)" }
+  data-mixed-chart-kpi:      { layout_type: data, description: "图表 + KPI 数字混排" }
+  data-other:                { layout_type: data, description: "数据 · 其他变体" }
+
+  # === timeline (时间轴) ===
+  timeline-h-3:              { layout_type: timeline, description: "横向 3 阶段" }
+  timeline-h-4:              { layout_type: timeline, description: "横向 4 阶段" }
+  timeline-h-5:              { layout_type: timeline, description: "横向 5 阶段" }
+  timeline-h-6:              { layout_type: timeline, description: "横向 6 阶段" }
+  timeline-h-7:              { layout_type: timeline, description: "横向 7+ 阶段" }
+  timeline-v-3:              { layout_type: timeline, description: "纵向 3 阶段" }
+  timeline-v-4:              { layout_type: timeline, description: "纵向 4 阶段" }
+  timeline-v-5:              { layout_type: timeline, description: "纵向 5 阶段" }
+  timeline-v-6:              { layout_type: timeline, description: "纵向 6 阶段" }
+  timeline-zigzag:           { layout_type: timeline, description: "Z 字曲线时间轴(节点 zigzag 排列)" }
+  timeline-gantt:            { layout_type: timeline, description: "甘特图样式(多 lane / 跨年)" }
+  timeline-staircase:        { layout_type: timeline, description: "阶梯上升时间轴" }
+  timeline-other:            { layout_type: timeline, description: "时间轴 · 其他变体" }
+
+  # === pyramid (金字塔) ===
+  pyramid-3:                 { layout_type: pyramid, description: "3 层金字塔" }
+  pyramid-4:                 { layout_type: pyramid, description: "4 层金字塔" }
+  pyramid-5:                 { layout_type: pyramid, description: "5 层金字塔 · Maslow" }
+  pyramid-inverted:          { layout_type: pyramid, description: "倒金字塔 / 倒漏斗式(从大到小)" }
+  pyramid-other:             { layout_type: pyramid, description: "金字塔 · 其他变体" }
+
+  # === venn (维恩图) ===
+  venn-2:                    { layout_type: venn, description: "2 圆相交" }
+  venn-3:                    { layout_type: venn, description: "3 圆相交" }
+  venn-4:                    { layout_type: venn, description: "4 圆相交" }
+  venn-other:                { layout_type: venn, description: "维恩图 · 其他变体" }
+
+  # === radial (辐射) ===
+  radial-3-spoke:            { layout_type: radial, description: "3 辐射(中心 + 3 节点)" }
+  radial-4-spoke:            { layout_type: radial, description: "4 辐射(中心 + 4 节点)" }
+  radial-5-spoke:            { layout_type: radial, description: "5 辐射(中心 + 5 节点)" }
+  radial-6-spoke:            { layout_type: radial, description: "6 辐射(中心 + 6 节点)" }
+  radial-tree:               { layout_type: radial, description: "树形发散 / org-tree(非环形)" }
+  radial-hub-spoke:          { layout_type: radial, description: "Hub-and-spoke(1 中心 + 卫星节点)" }
+  radial-map-anchor:         { layout_type: radial, description: "地图锚定 + 分支(地理辐射)" }
+  radial-other:              { layout_type: radial, description: "辐射 · 其他变体" }
+
+  # === process_flow (流程) ===
+  process-arrow-3:           { layout_type: process_flow, description: "3 步箭头链" }
+  process-arrow-4:           { layout_type: process_flow, description: "4 步箭头链" }
+  process-arrow-5:           { layout_type: process_flow, description: "5 步箭头链" }
+  process-arrow-6:           { layout_type: process_flow, description: "6 步箭头链" }
+  process-funnel-3:          { layout_type: process_flow, description: "3 层漏斗" }
+  process-funnel-4:          { layout_type: process_flow, description: "4 层漏斗" }
+  process-funnel-5:          { layout_type: process_flow, description: "5 层漏斗" }
+  process-cycle-3:           { layout_type: process_flow, description: "3 节点环形循环" }
+  process-cycle-4:           { layout_type: process_flow, description: "4 节点环形循环 · PDCA" }
+  process-cycle-5:           { layout_type: process_flow, description: "5 节点环形循环" }
+  process-cycle-6:           { layout_type: process_flow, description: "6 节点环形循环" }
+  process-vertical-3:        { layout_type: process_flow, description: "纵向 3 步流程" }
+  process-vertical-4:        { layout_type: process_flow, description: "纵向 4 步流程" }
+  process-vertical-5:        { layout_type: process_flow, description: "纵向 5 步流程" }
+  process-vertical-6:        { layout_type: process_flow, description: "纵向 6 步流程" }
+  process-zigzag:            { layout_type: process_flow, description: "Z 字弯折流程(节点 zigzag)" }
+  process-branching:         { layout_type: process_flow, description: "分支流程(1 源 → N 分支)" }
+  process-other:             { layout_type: process_flow, description: "流程 · 其他变体" }
+
+  # === quadrant (象限) ===
+  quadrant-swot:             { layout_type: quadrant, description: "SWOT 4 象限(优势/劣势/机会/威胁)" }
+  quadrant-2x2-generic:      { layout_type: quadrant, description: "通用 2x2 矩阵" }
+  quadrant-priority-matrix:  { layout_type: quadrant, description: "优先级矩阵(重要/紧急)" }
+  quadrant-with-center:      { layout_type: quadrant, description: "2x2 + 中心元素(4+1)" }
+  quadrant-fan:              { layout_type: quadrant, description: "扇形 4 区(风扇叶/团队职能)" }
+  quadrant-other:            { layout_type: quadrant, description: "象限 · 其他变体" }
+
+  # === comparison (对比) ===
+  comparison-2col:           { layout_type: comparison, description: "左右双栏对比" }
+  comparison-tier-3:         { layout_type: comparison, description: "3 级对比(中间高亮)" }
+  comparison-tier-4:         { layout_type: comparison, description: "4 级对比" }
+  comparison-before-after:   { layout_type: comparison, description: "前后对比" }
+  comparison-pros-cons:      { layout_type: comparison, description: "优缺点对比" }
+  comparison-arrow-transition: { layout_type: comparison, description: "左 → 右 箭头过渡(A 转化为 B)" }
+  comparison-dual-persona:   { layout_type: comparison, description: "双 persona / 双角色对比" }
+  comparison-other:          { layout_type: comparison, description: "对比 · 其他变体" }
+
+  # === other (兜底 · 需 needs_manual_review) ===
+  other-islide-tool:         { layout_type: other, description: "iSlide 工具说明页(色板/字体/参考线)" }
+  other-islide-promo:        { layout_type: other, description: "iSlide 工具广告 / promo 页" }
+  other-islide-library:      { layout_type: other, description: "iSlide 库说明(icon / picture / vector / diagram)" }
+  other-tree-hierarchy:      { layout_type: other, description: "层级树结构(组织架构图等非纯 radial)" }
+  other-misc:                { layout_type: other, description: "其他 · 不归任何已知类(需 needs_manual_review)" }

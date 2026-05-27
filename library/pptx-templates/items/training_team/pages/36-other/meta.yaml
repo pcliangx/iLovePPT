@@ -27,6 +27,6 @@ native_elements:
   - 右上红色 Note 警示
 
 layout_hint: islide-tool-instruction (模板自带工具说明,enum 兜底)
-variant: islide-instruction-icon-library
+variant: other-islide-library
 page_number: 36
 template_name: training_team

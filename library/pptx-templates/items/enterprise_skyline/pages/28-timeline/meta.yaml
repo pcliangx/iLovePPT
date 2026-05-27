@@ -31,6 +31,6 @@ native_elements:
   - 整体强烈方向感
 
 layout_hint: null
-variant: 3-step-staircase
+variant: timeline-staircase
 page_number: 28
 template_name: enterprise_skyline

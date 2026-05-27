@@ -33,6 +33,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: w-shape-flow
-variant: 6-steps-wave
+variant: process-cycle-6
 page_number: 16
 template_name: business_geometric

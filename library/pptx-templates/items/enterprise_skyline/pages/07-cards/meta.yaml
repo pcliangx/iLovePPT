@@ -30,6 +30,6 @@ native_elements:
   - 底部 www.islide.cc + 页码 7
 
 layout_hint: null
-variant: 2-cols-3-rows
+variant: cards-6-icon
 page_number: 7
 template_name: enterprise_skyline

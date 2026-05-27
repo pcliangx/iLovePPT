@@ -33,6 +33,6 @@ native_elements:
   - 右下 LOGO HERE 占位框
 
 layout_hint: null
-variant: null
+variant: cover-illustration
 page_number: 1
 template_name: enterprise_skyline

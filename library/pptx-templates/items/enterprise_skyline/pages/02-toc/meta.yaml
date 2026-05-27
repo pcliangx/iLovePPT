@@ -31,6 +31,6 @@ native_elements:
   - 顶部横线分隔
 
 layout_hint: null
-variant: null
+variant: toc-5
 page_number: 2
 template_name: enterprise_skyline

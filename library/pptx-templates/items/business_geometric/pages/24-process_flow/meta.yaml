@@ -33,6 +33,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: leaf-zigzag-flow
-variant: 6-steps-horizontal-zigzag
+variant: process-zigzag
 page_number: 24
 template_name: business_geometric

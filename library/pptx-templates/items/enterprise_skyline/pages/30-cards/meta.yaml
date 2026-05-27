@@ -31,6 +31,6 @@ native_elements:
   - 底部 www.islide.cc + 页码 30
 
 layout_hint: null
-variant: 3-cards-with-photo
+variant: cards-3-mixed
 page_number: 30
 template_name: enterprise_skyline

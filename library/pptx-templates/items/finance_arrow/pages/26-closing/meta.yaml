@@ -30,5 +30,6 @@ native_elements:
   - 副标语下方"www.islide.cc"小字
   - 顶部 + 底部细灰横线作框架(跟 cover 一致)
 layout_hint: null
+variant: closing-illustration
 page_number: 26
 template_name: finance_arrow

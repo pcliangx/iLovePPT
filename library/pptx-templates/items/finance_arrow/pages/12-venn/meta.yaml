@@ -20,7 +20,7 @@ keywords:
   - 资产分析
   - 交叉分析
   - 3 维度
-variant: 3-circle
+variant: venn-3
 native_elements:
   - 左上深黑粗体标题"资产情况分析"
   - 中部 3 个浅灰半透明圆相交(上左 + 上右 + 下方)

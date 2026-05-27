@@ -19,7 +19,7 @@ keywords:
   - 预算完成
   - 数据 + 汇总
   - 占比 + 评语
-variant: 3-circles-plus-summary
+variant: cards-3-text
 native_elements:
   - 左上深黑粗体标题"预算完成情况"
   - 左侧 3 大圆百分比横向并列(30% 橙黄 / 60% 浅灰 / 20% 橙黄)

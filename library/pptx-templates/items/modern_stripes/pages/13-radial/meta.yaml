@@ -28,6 +28,6 @@ native_elements:
   - 中心 icon:商务人 + 美元符号 + "...text" 字
   - 4 角文字:左上 / 右上 / 左下 / 右下 各"Text here"标题 + supporting text + 省略号
 layout_hint: null
-variant: 4-quarter-ring
+variant: radial-4-spoke
 page_number: 13
 template_name: modern_stripes

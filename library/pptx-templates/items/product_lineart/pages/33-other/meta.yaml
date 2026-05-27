@@ -51,6 +51,6 @@ keywords:
   - instruction slide
 
 # === Auxiliary fields ===
-variant: islide_tool_instruction
+variant: other-islide-tool
 page_number: 33
 template_name: product_lineart

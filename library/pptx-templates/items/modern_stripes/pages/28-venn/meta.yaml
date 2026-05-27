@@ -28,6 +28,6 @@ native_elements:
   - 4 角"Text here"标题 + supporting text(左上 / 左下 / 右上 / 右下)
   - 横向细灰线穿过两圆中心
 layout_hint: null
-variant: 2-circles-overlap-4-labels
+variant: venn-4
 page_number: 28
 template_name: modern_stripes

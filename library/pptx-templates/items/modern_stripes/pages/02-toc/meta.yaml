@@ -27,6 +27,6 @@ native_elements:
   - 编号块右侧灰色细线分隔的章节描述行
   - 红色作为偶数项 accent(02 / 04 红色,01 / 03 / 05 navy)
 layout_hint: null
-variant: vertical-5-teardrop
+variant: toc-5
 page_number: 2
 template_name: modern_stripes

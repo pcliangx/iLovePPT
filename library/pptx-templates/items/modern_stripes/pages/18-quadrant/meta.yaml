@@ -27,6 +27,6 @@ native_elements:
   - 4 角文字 block:左上 / 右上 / 左下 / 右下 各"Text here"标题 + 2 行 bullets
   - 横向细灰线分隔上下两组
 layout_hint: null
-variant: 4-corners-3d-globe
+variant: quadrant-with-center
 page_number: 18
 template_name: modern_stripes

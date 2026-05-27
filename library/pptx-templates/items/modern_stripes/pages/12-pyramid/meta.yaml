@@ -28,6 +28,6 @@ native_elements:
   - 左侧 3 行:地球 icon + "...text" 小标题 + navy 竖线分隔
   - 右侧 3 行:每行 2 条 bullet 描述对应金字塔层
 layout_hint: null
-variant: 3-tier-with-people
+variant: pyramid-3
 page_number: 12
 template_name: modern_stripes

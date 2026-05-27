@@ -28,6 +28,6 @@ native_elements:
   - 节点下方"Supporting text here" + 省略号
   - 节点之间灰色虚线连接
 layout_hint: null
-variant: 5-step-horizontal-focus-center
+variant: timeline-h-5
 page_number: 25
 template_name: modern_stripes

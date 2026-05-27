@@ -31,6 +31,6 @@ native_elements:
   - 整体对角斜向流动
 
 layout_hint: null
-variant: 6-step-diagonal
+variant: process-cycle-6
 page_number: 29
 template_name: enterprise_skyline

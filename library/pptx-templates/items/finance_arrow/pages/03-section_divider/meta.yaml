@@ -27,6 +27,6 @@ native_elements:
   - 右侧 1/2 区域是模板招牌"上升箭头 + 蓝衣 megaphone 人物 + target + 红心"插画
   - 整体无标题栏 / 无页脚装饰,纯插画 + 大号数字
 layout_hint: null
-variant: null
+variant: section-divider-illustration
 page_number: 3
 template_name: finance_arrow

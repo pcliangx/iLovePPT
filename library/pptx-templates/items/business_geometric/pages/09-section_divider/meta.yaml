@@ -29,6 +29,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: null
-variant: chapter-02
+variant: section-divider-illustration
 page_number: 9
 template_name: business_geometric

@@ -32,5 +32,6 @@ native_elements:
   - 右侧 2 段 "Text here" + 描述详细说明
 
 layout_hint: null
+variant: radial-6-spoke
 page_number: 11
 template_name: product_lineart

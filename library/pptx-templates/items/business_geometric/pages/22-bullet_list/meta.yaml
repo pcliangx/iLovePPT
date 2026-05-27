@@ -32,6 +32,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: null
-variant: 2-numbered-with-silhouette
+variant: bullet-numbered
 page_number: 22
 template_name: business_geometric

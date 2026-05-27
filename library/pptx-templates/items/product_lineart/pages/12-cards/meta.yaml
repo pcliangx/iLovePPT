@@ -32,5 +32,6 @@ native_elements:
   - 4 角各 "Text here" + supporting text 描述
 
 layout_hint: null
+variant: cards-4-icon
 page_number: 12
 template_name: product_lineart

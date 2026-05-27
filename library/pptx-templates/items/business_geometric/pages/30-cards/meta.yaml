@@ -32,6 +32,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: null
-variant: 4-cards-with-header-image
+variant: cards-4-mixed
 page_number: 30
 template_name: business_geometric

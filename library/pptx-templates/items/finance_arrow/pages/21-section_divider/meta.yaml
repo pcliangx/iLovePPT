@@ -26,5 +26,6 @@ native_elements:
   - 子项小灰字列表(重要问题 / 收入增长分析 / 国债跌价幅度大 / 管理费用和财务费用的期间影响)
   - 右侧 1/2 模板招牌"上升箭头 + megaphone 人物"插画
 layout_hint: null
+variant: section-divider-illustration
 page_number: 21
 template_name: finance_arrow

@@ -32,5 +32,6 @@ native_elements:
   - 左上 / 左下 / 右下 3 个 "Text here" 标题 + 描述
 
 layout_hint: null
+variant: venn-3
 page_number: 19
 template_name: product_lineart

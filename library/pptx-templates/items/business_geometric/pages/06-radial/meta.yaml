@@ -32,6 +32,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: tree-bubble-cloud
-variant: 6-items-tree
+variant: radial-6-spoke
 page_number: 6
 template_name: business_geometric

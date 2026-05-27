@@ -31,6 +31,6 @@ native_elements:
   - 底部 www.islide.cc + 页码 26
 
 layout_hint: null
-variant: 4-square-icons-numbered
+variant: cards-4-mixed
 page_number: 26
 template_name: enterprise_skyline

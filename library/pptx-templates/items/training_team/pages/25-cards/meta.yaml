@@ -28,6 +28,6 @@ native_elements:
   - 灰底色块分上下
 
 layout_hint: null
-variant: 3-cols-with-leader-silhouette
+variant: cards-3-icon
 page_number: 25
 template_name: training_team

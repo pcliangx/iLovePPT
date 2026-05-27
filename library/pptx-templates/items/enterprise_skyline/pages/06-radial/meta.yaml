@@ -32,6 +32,6 @@ native_elements:
   - 整体居中对称构图
 
 layout_hint: null
-variant: 3-radial
+variant: radial-3-spoke
 page_number: 6
 template_name: enterprise_skyline

@@ -27,6 +27,6 @@ native_elements:
   - 每列"Text here"标题 + 3 行平行 supporting text + 省略号(行间留白)
   - 灰色细线分隔列(部分)
 layout_hint: null
-variant: 4-cols-team-icon-stacked-text
+variant: cards-4-icon
 page_number: 29
 template_name: modern_stripes

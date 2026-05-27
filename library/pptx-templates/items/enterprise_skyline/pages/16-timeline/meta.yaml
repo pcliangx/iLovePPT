@@ -31,6 +31,6 @@ native_elements:
   - 整体水平 5-step 阶段视觉
 
 layout_hint: null
-variant: 5-arrow-zigzag
+variant: timeline-zigzag
 page_number: 16
 template_name: enterprise_skyline

@@ -31,6 +31,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: null
-variant: swot
+variant: quadrant-swot
 page_number: 5
 template_name: business_geometric

@@ -34,5 +34,6 @@ native_elements:
   - '底部两条灰色长梯子 "To B: ... ..." / "To C: ... ..." (后续分流)'
 
 layout_hint: null
+variant: timeline-h-6
 page_number: 14
 template_name: product_lineart

@@ -26,5 +26,6 @@ native_elements:
   - 子项小灰字列表(基本财务情况分析 / 资产情况分析 / 资产状况分类 / 资产构成 / 资产质量 / 资产经营状况及变动原因)
   - 右侧 1/2 模板招牌"上升箭头 + megaphone 人物"插画
 layout_hint: null
+variant: section-divider-illustration
 page_number: 10
 template_name: finance_arrow

@@ -32,5 +32,6 @@ native_elements:
   - 强调"输入端 → 输出端"的方向
 
 layout_hint: null
+variant: comparison-arrow-transition
 page_number: 29
 template_name: product_lineart

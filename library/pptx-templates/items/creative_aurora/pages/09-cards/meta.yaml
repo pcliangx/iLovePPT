@@ -33,6 +33,6 @@ native_elements:
 
 # === 辅助 ===
 layout_hint: null
-variant: "3-cols-image-with-caption"
+variant: cards-3-photo
 page_number: 9
 template_name: creative_aurora

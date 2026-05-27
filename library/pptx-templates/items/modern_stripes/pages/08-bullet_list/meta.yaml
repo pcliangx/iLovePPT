@@ -25,6 +25,6 @@ native_elements:
   - 中间:手机 icon 圆盘 + 箭头指向灰色灯泡轮廓 + 底部铅笔涂鸦线条
   - 右 2/3:6 行平行列表(交替 navy 圆 / 红色勾)+ 每行 supporting text + 灰色分隔线
 layout_hint: null
-variant: 6-rows-alternating-icons
+variant: bullet-with-icons
 page_number: 8
 template_name: modern_stripes

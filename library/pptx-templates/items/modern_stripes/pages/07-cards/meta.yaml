@@ -26,6 +26,6 @@ native_elements:
   - 中央装饰:倾斜叠加的红色 / navy / 浅灰矩形块(交错"X"形构图)
   - 顶部细灰线分隔
 layout_hint: null
-variant: 6-cells-symmetric-3plus3
+variant: cards-6-icon
 page_number: 7
 template_name: modern_stripes

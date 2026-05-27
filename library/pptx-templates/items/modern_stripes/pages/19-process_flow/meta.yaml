@@ -28,6 +28,6 @@ native_elements:
   - 每个分支节点右侧"Text here"标题 + supporting + 省略号
   - 主节点尖端朝右指向 3 分支
 layout_hint: null
-variant: source-to-3-branches
+variant: process-branching
 page_number: 19
 template_name: modern_stripes

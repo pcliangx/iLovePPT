@@ -27,6 +27,6 @@ native_elements:
   - 左上 / 中部左侧小型蓝白条纹斜切方块组
   - 右侧大尺寸 navy / 亮蓝 / 浅灰几何拼贴块(跟封面共用)
 layout_hint: null
-variant: null
+variant: closing-text-only
 page_number: 32
 template_name: modern_stripes

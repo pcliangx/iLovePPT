@@ -1,19 +1,19 @@
 template_page_index: 11
 layout_class: pyramid
 slots:
-- id: tier_1_num
+- id: tier_1_number
   shape_id: 27
   tree_path: 3.0.2
   capacity_chars: 2
   text_color_override: null
   font_size_pt: null
-- id: tier_2_num
+- id: tier_2_number
   shape_id: 25
   tree_path: 3.0.0
   capacity_chars: 2
   text_color_override: null
   font_size_pt: null
-- id: tier_3_num
+- id: tier_3_number
   shape_id: 26
   tree_path: 3.0.1
   capacity_chars: 2

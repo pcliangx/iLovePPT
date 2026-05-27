@@ -33,5 +33,6 @@ native_elements:
   - 黄色 www.islide.cc 网址 footer
 
 layout_hint: null
+variant: cover-illustration
 page_number: 1
 template_name: product_lineart

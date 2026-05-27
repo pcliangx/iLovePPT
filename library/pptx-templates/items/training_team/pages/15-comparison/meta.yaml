@@ -28,6 +28,6 @@ native_elements:
   - 灰色竖虚线连接 icons
 
 layout_hint: null
-variant: dual-persona-3plus3
+variant: comparison-dual-persona
 page_number: 15
 template_name: training_team

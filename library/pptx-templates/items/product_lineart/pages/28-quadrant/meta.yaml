@@ -34,5 +34,6 @@ native_elements:
   - 铅笔下方有灰色波浪 "书写痕迹"装饰
 
 layout_hint: null
+variant: quadrant-2x2-generic
 page_number: 28
 template_name: product_lineart

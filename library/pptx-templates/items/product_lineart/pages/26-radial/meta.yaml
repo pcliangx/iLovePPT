@@ -34,5 +34,6 @@ native_elements:
   - 整体形成"1 父 4 子"树状结构
 
 layout_hint: null
+variant: radial-tree
 page_number: 26
 template_name: product_lineart

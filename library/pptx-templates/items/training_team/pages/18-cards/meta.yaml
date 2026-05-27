@@ -28,6 +28,6 @@ native_elements:
   - 灰色横线分上下两 row
 
 layout_hint: null
-variant: 4-cards-center-suit
+variant: cards-4-icon
 page_number: 18
 template_name: training_team

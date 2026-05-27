@@ -31,6 +31,6 @@ native_elements:
   - 右上方延伸出折线尾部(暗示继续)
 
 layout_hint: null
-variant: 6-zigzag-line-chart
+variant: timeline-zigzag
 page_number: 24
 template_name: enterprise_skyline

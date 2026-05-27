@@ -32,5 +32,6 @@ native_elements:
   - 每卡片含 "Text here" 标题 + supporting text
 
 layout_hint: null
+variant: timeline-h-6
 page_number: 23
 template_name: product_lineart

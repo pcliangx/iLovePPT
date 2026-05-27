@@ -31,6 +31,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: gantt-chart
-variant: 2-column-4-tasks
+variant: data-mixed-chart-kpi
 page_number: 12
 template_name: business_geometric

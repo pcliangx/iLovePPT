@@ -97,17 +97,21 @@ def embed_text(text: str, *, api_key: str | None = None, retry: int = 3) -> list
     raise RuntimeError(f"embed_text failed after {retry} retries: {last_err}")
 
 
-def embed_image(image_path: Path | str, *, api_key: str | None = None, retry: int = 3) -> list[float]:
-    api_key = api_key or get_api_key()
+def _image_to_arg(image_path: Path | str) -> str:
+    """把 image path 转成 API 接受的 data URL 或直接 URL。"""
     if isinstance(image_path, Path) or not str(image_path).startswith(("http://", "https://")):
         path = Path(image_path)
         if not path.exists():
             raise FileNotFoundError(f"image not found: {path}")
         mime = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
         b64 = base64.b64encode(path.read_bytes()).decode("ascii")
-        image_arg = f"data:{mime};base64,{b64}"
-    else:
-        image_arg = str(image_path)
+        return f"data:{mime};base64,{b64}"
+    return str(image_path)
+
+
+def embed_image(image_path: Path | str, *, api_key: str | None = None, retry: int = 3) -> list[float]:
+    api_key = api_key or get_api_key()
+    image_arg = _image_to_arg(image_path)
 
     payload = {"model": MODEL, "input": {"contents": [{"image": image_arg}]}}
     last_err = None
@@ -122,6 +126,99 @@ def embed_image(image_path: Path | str, *, api_key: str | None = None, retry: in
     raise RuntimeError(f"embed_image failed after {retry} retries: {last_err}")
 
 
+def _embed_batch_request(
+    contents: list[dict], *, api_key: str, retry: int = 3
+) -> list[list[float]]:
+    """单次 batch API 调用,返回 contents 顺序对应的 embedding 列表。
+
+    DashScope tongyi-embedding-vision-plus 支持 contents 内多 item batch,
+    返回 output.embeddings[i].embedding(i 跟 contents 顺序对齐)。
+    """
+    payload = {"model": MODEL, "input": {"contents": contents}}
+    last_err = None
+    for attempt in range(retry):
+        try:
+            r = _post_json(payload, api_key, timeout=60)
+            embs = r["output"]["embeddings"]
+            # API 可能不保序,按 text_index 排;若没有该字段则按返回顺序
+            if embs and "text_index" in embs[0]:
+                embs = sorted(embs, key=lambda x: x.get("text_index", 0))
+            elif embs and "index" in embs[0]:
+                embs = sorted(embs, key=lambda x: x.get("index", 0))
+            return [e["embedding"] for e in embs]
+        except RuntimeError as e:
+            last_err = e
+            if attempt < retry - 1:
+                time.sleep(2**attempt)
+    raise RuntimeError(f"_embed_batch_request failed after {retry} retries: {last_err}")
+
+
+def embed_text_batch(
+    texts: list[str],
+    *,
+    api_key: str | None = None,
+    batch_size: int = 8,
+    retry: int = 3,
+) -> list[list[float]]:
+    """批量计算 text embedding,返回 [embedding, ...] 顺序对齐 texts。
+
+    阿里云 tongyi-embedding-vision-plus 单请求上限按 contents 长度切分(默认 8)。
+    若 batch 整个失败 → fallback 退化为单 item 重试(保证可用,只是退化为串行)。
+    """
+    api_key = api_key or get_api_key()
+    if not texts:
+        return []
+    out: list[list[float]] = []
+    for i in range(0, len(texts), batch_size):
+        chunk = texts[i : i + batch_size]
+        contents = [{"text": t} for t in chunk]
+        try:
+            embs = _embed_batch_request(contents, api_key=api_key, retry=retry)
+            if len(embs) != len(chunk):
+                raise RuntimeError(
+                    f"batch returned {len(embs)} embeddings, expected {len(chunk)}"
+                )
+            out.extend(embs)
+        except RuntimeError as e:
+            # batch 失败 → fallback 单条
+            print(f"[embed_text_batch] batch {i}-{i+len(chunk)} failed: {e}; fallback single", flush=True)
+            for t in chunk:
+                out.append(embed_text(t, api_key=api_key, retry=retry))
+    return out
+
+
+def embed_image_batch(
+    image_paths: list[Path | str],
+    *,
+    api_key: str | None = None,
+    batch_size: int = 4,
+    retry: int = 3,
+) -> list[list[float]]:
+    """批量计算 image embedding,返回 [embedding, ...] 顺序对齐 image_paths。
+
+    image batch_size 默认更小(base64 payload 大),实测 4 是稳妥值。
+    """
+    api_key = api_key or get_api_key()
+    if not image_paths:
+        return []
+    out: list[list[float]] = []
+    for i in range(0, len(image_paths), batch_size):
+        chunk = image_paths[i : i + batch_size]
+        contents = [{"image": _image_to_arg(p)} for p in chunk]
+        try:
+            embs = _embed_batch_request(contents, api_key=api_key, retry=retry)
+            if len(embs) != len(chunk):
+                raise RuntimeError(
+                    f"batch returned {len(embs)} embeddings, expected {len(chunk)}"
+                )
+            out.extend(embs)
+        except RuntimeError as e:
+            print(f"[embed_image_batch] batch {i}-{i+len(chunk)} failed: {e}; fallback single", flush=True)
+            for p in chunk:
+                out.append(embed_image(p, api_key=api_key, retry=retry))
+    return out
+
+
 def open_db(db_path: Path | None = None) -> sqlite3.Connection:
     """打开 sqlite-vec DB, 创建 schema 若不存在。"""
     try:
@@ -134,9 +231,16 @@ def open_db(db_path: Path | None = None) -> sqlite3.Connection:
         )
         sys.exit(1)
 
-    db = sqlite3.connect(db_path or DB_PATH)
+    db = sqlite3.connect(db_path or DB_PATH, timeout=30)
     db.enable_load_extension(True)
     sqlite_vec.load(db)
+    # P1-7 parallel_embed.sh 让 text + image 两进程同时写 db.sqlite,WAL 模式才能 multi-writer
+    # 旧 rollback 模式 + 30s busy_timeout 也能勉强(SQLite 写锁串行),但 WAL 更稳
+    try:
+        db.execute("PRAGMA journal_mode=WAL")
+        db.execute("PRAGMA busy_timeout=30000")
+    except sqlite3.OperationalError:
+        pass
 
     # 1. visual-patterns items(扁平)
     db.execute(
@@ -244,15 +348,22 @@ def build_text_doc_tpl_template(p: dict) -> str:
 
 
 def build_text_doc_tpl_page(p: dict) -> str:
-    """pptx-templates 页级 text_doc · 自然语言拼接。"""
+    """pptx-templates 页级 text_doc · 自然语言拼接。
+
+    variant 字段(P1-1)与 layout_type 同级拼到 head,提升 RAG separation —
+    e.g. cards-3-icon vs cards-4-photo 可区分。
+    """
     name = p.get("name", "")
     lt = p.get("layout_type", "")
+    variant = p.get("variant", "")
     sentences: list[str] = []
     head_bits = []
     if name:
         head_bits.append(name)
     if lt:
         head_bits.append(f"layout 类型为 {lt}")
+    if variant:
+        head_bits.append(f"variant 为 {variant}")
     if head_bits:
         sentences.append("。".join(head_bits) + "。")
     if cat := p.get("category"):

@@ -31,6 +31,6 @@ native_elements:
   - 右侧 GUIDES (Office 2016 and later) 参考线截图
   - 右上红色 Note 警告框 "本页为说明页,使用时请删除本页内容"
 
-variant: null
+variant: other-islide-tool
 page_number: 33
 template_name: enterprise_skyline

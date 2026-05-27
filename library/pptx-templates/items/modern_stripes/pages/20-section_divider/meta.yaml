@@ -24,6 +24,6 @@ native_elements:
   - Section Header Here 章节标题 + 副描述两行
   - 右侧蓝 / navy / 浅灰几何拼贴
 layout_hint: null
-variant: null
+variant: section-divider-numbered
 page_number: 20
 template_name: modern_stripes

@@ -21,7 +21,7 @@ keywords:
   - building icon
   - 4 编号 + 4 描述
   - 2x2 quadrant
-variant: 2x2-with-center-numbers
+variant: quadrant-with-center
 native_elements:
   - 左上深黑粗体标题"管理费用和财务费用的期间影响"
   - 中心 4 数字编号(01-04)+ 每数字下"Text here"灰色小字

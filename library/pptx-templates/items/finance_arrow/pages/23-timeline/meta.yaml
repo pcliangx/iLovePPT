@@ -21,7 +21,7 @@ keywords:
   - 上下交替
   - 季度节点
   - 阶段发展
-variant: 4-nodes-horizontal-zigzag-labels
+variant: timeline-zigzag
 native_elements:
   - 左上深黑粗体标题"收入增长分析"
   - 水平细灰线贯穿,4 个圆形节点等距分布

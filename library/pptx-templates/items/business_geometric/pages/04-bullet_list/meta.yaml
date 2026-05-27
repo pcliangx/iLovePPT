@@ -31,6 +31,6 @@ native_elements:
 
 # === 辅助(不进 embedding)===
 layout_hint: null
-variant: 4-rows-icons
+variant: bullet-with-icons
 page_number: 4
 template_name: business_geometric

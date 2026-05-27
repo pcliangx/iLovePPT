@@ -21,7 +21,7 @@ keywords:
   - 费用分类
   - radial
   - 中心编号
-variant: 6-hex
+variant: radial-6-spoke
 native_elements:
   - 左上深黑粗体标题"管理费用"
   - 中部左侧"Unified fonts make reading more fluent."大号黑色副标题 + 灰色小字描述

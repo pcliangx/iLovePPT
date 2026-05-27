@@ -27,6 +27,6 @@ native_elements:
   - 颜色:第 1 / 4 列 navy,第 2 / 3 列 red(中间双红)
   - 横向浅灰背景条贯穿卡片
 layout_hint: null
-variant: 4-cols-persona-icons
+variant: cards-4-icon
 page_number: 4
 template_name: modern_stripes

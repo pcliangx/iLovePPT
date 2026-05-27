@@ -28,6 +28,6 @@ native_elements:
   - 灰色椭圆形底座阴影
 
 layout_hint: null
-variant: 4-tier-3d-multicolor
+variant: pyramid-4
 page_number: 9
 template_name: training_team

@@ -27,6 +27,6 @@ native_elements:
   - 步骤 1 / 2 编号说明
   - 右上红色 Note 警告框
 
-variant: null
+variant: other-islide-library
 page_number: 35
 template_name: enterprise_skyline

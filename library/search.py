@@ -31,27 +31,30 @@ DEFAULT_FALLBACK_THRESHOLD = 0.55
 DEFAULT_TOP_K = 5
 QUERY_LOG_PATH = SCRIPT_DIR / "_rag" / "query_log.jsonl"
 INVERSE_CATEGORY_PENALTY = 0.85
+EXPANSION_HINTS_PATH = SCRIPT_DIR / "_rag" / "expansion_hints.yaml"
+
+
+def _load_expansion_hints() -> dict[str, list[str]]:
+    """加载静态 query 扩展词典(yaml SSOT · library/_rag/expansion_hints.yaml)。
+
+    文件缺失 → 空 dict, silent fallback;yaml 解析 / 字段缺失 → 打 stderr warn 后返空 dict。
+    """
+    if not EXPANSION_HINTS_PATH.exists():
+        return {}
+    try:
+        import yaml  # 延迟导入,避免 yaml 缺失时模块整体导入失败
+        with EXPANSION_HINTS_PATH.open(encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        return data.get("hints", {}) or {}
+    except Exception as e:
+        print(f"[search.py] WARN: load expansion_hints failed — {type(e).__name__}: {e}", file=sys.stderr)
+        return {}
+
 
 # 静态查询扩展表 · 短 query 经常召回不准,撞到关键词触发同领域补词
 # 触发词必须是 query 的子串。每次最多补 8 个补词
-EXPANSION_HINTS: dict[str, list[str]] = {
-    "财务汇报": ["财报", "财务报告", "净利润", "营收", "预算", "CFO", "年度财务"],
-    "财务":     ["财报", "营收", "利润", "净利润", "现金流", "ROI", "CFO"],
-    "财报":     ["财务报告", "财务数据", "会计", "预算", "CFO"],
-    "团队培训": ["团建", "OKR kickoff", "入职", "on-boarding", "讲师", "workshop"],
-    "团建":     ["团队建设", "团队培训", "OKR", "入职", "团队精神"],
-    "培训":     ["团队培训", "入职", "on-boarding", "课件", "讲师", "workshop"],
-    "极光":     ["渐变", "创意", "黑底", "高级感", "aurora", "gradient", "creative"],
-    "工作汇报": ["述职", "项目复盘", "季度汇报", "OKR review", "工作总结"],
-    "汇报":     ["工作汇报", "述职", "项目复盘", "总结", "PPT"],
-    "年报":     ["年度报告", "annual report", "路演", "投资人", "IPO"],
-    "年度报告": ["年报", "annual report", "路演", "投资人", "IPO"],
-    "路演":     ["投资人", "IPO", "招股", "投融资", "executive briefing"],
-    "产品":     ["产品介绍", "feature", "白皮书", "whitepaper", "技术架构", "SaaS"],
-    "SaaS":     ["产品", "feature deck", "互联网", "技术", "工具产品"],
-    "条纹":     ["几何", "工业", "现代", "硬朗", "斜切", "diagonal"],
-    "SWOT":     ["quadrant", "战略分析", "四象限", "工作汇报"],
-}
+# SSOT: library/_rag/expansion_hints.yaml (yaml-loaded · 改词典不改代码)
+EXPANSION_HINTS: dict[str, list[str]] = _load_expansion_hints()
 
 
 def expand_query(q: str, enabled: bool = True) -> str:
@@ -80,36 +83,86 @@ def expand_query(q: str, enabled: bool = True) -> str:
 
 # Category 触发词表 · query 含明确 category 信号时,非该 category 的 hit 软降权(× 0.85)
 # 跟 EXPANSION_HINTS 互补:EXPANSION 解决"召回不准",CATEGORY 解决"召回到但排序不对"
+#
+# category 取值必须跟 library/vocabularies/categories.yaml 一致(12 个 enum):
+#   enterprise-finance / enterprise-corporate-report / enterprise-strategy /
+#   enterprise-product / enterprise-sales / enterprise-postmortem /
+#   training-onboarding / training-workshop / training-academic /
+#   creative-brand / creative-event / nonprofit
 CATEGORY_HINTS: dict[str, str] = {
-    "财务汇报":   "finance",
-    "财务":       "finance",
-    "财报":       "finance",
-    "财务数据":   "finance",
-    "财务分析":   "finance",
-    "净利润":     "finance",
-    "团建":       "training",
-    "团队培训":   "training",
-    "培训":       "training",
-    "员工培训":   "training",
-    "OKR kickoff": "training",
-    "极光":       "creative-modern",
-    "创意":       "creative-modern",
-    "黑底高级感": "creative-modern",
-    "渐变":       "creative-modern",
-    "高端":       "creative-modern",
-    "工作汇报":   "enterprise-modern",
-    "述职":       "enterprise-modern",
-    "项目复盘":   "enterprise-modern",
-    "年报":       "enterprise-modern",
-    "年度报告":   "enterprise-modern",
-    "路演":       "enterprise-modern",
-    "SWOT":       "enterprise-modern",
-    "战略分析":   "enterprise-modern",
-    "产品介绍":   "enterprise-modern",
-    "技术架构":   "enterprise-modern",
-    "SaaS":       "enterprise-modern",
-    "斜切条纹":   "enterprise-modern",
-    "几何工业":   "enterprise-modern",
+    # --- enterprise-finance ---
+    "财务汇报":   "enterprise-finance",
+    "财务":       "enterprise-finance",
+    "财报":       "enterprise-finance",
+    "财务数据":   "enterprise-finance",
+    "财务分析":   "enterprise-finance",
+    "净利润":     "enterprise-finance",
+    "预算路演":   "enterprise-finance",
+    "CFO":        "enterprise-finance",
+    # --- enterprise-corporate-report ---
+    "年报":       "enterprise-corporate-report",
+    "年度报告":   "enterprise-corporate-report",
+    "上市路演":   "enterprise-corporate-report",
+    "投资人路演": "enterprise-corporate-report",
+    "招股":       "enterprise-corporate-report",
+    "路演":       "enterprise-corporate-report",
+    # --- enterprise-strategy ---
+    "工作汇报":   "enterprise-strategy",
+    "述职":       "enterprise-strategy",
+    "SWOT":       "enterprise-strategy",
+    "战略分析":   "enterprise-strategy",
+    "战略路线图": "enterprise-strategy",
+    "OKR 规划":   "enterprise-strategy",
+    "工作计划":   "enterprise-strategy",
+    "斜切条纹":   "enterprise-strategy",
+    "几何工业":   "enterprise-strategy",
+    # --- enterprise-product ---
+    "产品介绍":   "enterprise-product",
+    "技术架构":   "enterprise-product",
+    "SaaS":       "enterprise-product",
+    "feature deck": "enterprise-product",
+    "白皮书":     "enterprise-product",
+    # --- enterprise-sales ---
+    "销售提案":   "enterprise-sales",
+    "客户演示":   "enterprise-sales",
+    "商业方案":   "enterprise-sales",
+    # --- enterprise-postmortem ---
+    "项目复盘":   "enterprise-postmortem",
+    "回顾总结":   "enterprise-postmortem",
+    "retrospective": "enterprise-postmortem",
+    # --- training-onboarding ---
+    "新员工入职": "training-onboarding",
+    "on-boarding": "training-onboarding",
+    "新人培训":   "training-onboarding",
+    "员工培训":   "training-onboarding",
+    "员工手册":   "training-onboarding",
+    # --- training-workshop ---
+    "团建":       "training-workshop",
+    "OKR kickoff": "training-workshop",
+    "团队建设":   "training-workshop",
+    "团队培训":   "training-workshop",
+    "workshop":   "training-workshop",
+    "培训":       "training-workshop",  # 默认 workshop · onboarding 由"新员工/on-boarding"等更具体词覆盖
+    # --- training-academic ---
+    "学术报告":   "training-academic",
+    "讲座":       "training-academic",
+    "毕业答辩":   "training-academic",
+    # --- creative-brand ---
+    "极光":       "creative-brand",
+    "创意":       "creative-brand",
+    "黑底高级感": "creative-brand",
+    "渐变":       "creative-brand",
+    "高端":       "creative-brand",
+    "品牌发布":   "creative-brand",
+    "moodboard":  "creative-brand",
+    "设计师 pitch": "creative-brand",
+    # --- creative-event ---
+    "产品发布会": "creative-event",
+    "新品 launch": "creative-event",
+    # --- nonprofit ---
+    "公益项目":   "nonprofit",
+    "NGO":        "nonprofit",
+    "社会企业":   "nonprofit",
 }
 
 
