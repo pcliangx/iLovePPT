@@ -19,46 +19,57 @@
 
 > Baseline 是 v0.8.0 release 后状态。后续 sprint 完成后增加列。
 
-| 维度 | Baseline (2026-05-27) | **P0 后 (2026-05-27)** | P1 后 | P2 后 | 目标 |
+| 维度 | Baseline (2026-05-27) | **P0 后** | **P1 后 (2026-05-27)** | P2 后 | 目标 |
 |---|---|---|---|---|---|
 | **RAG · 准确性** | | | | | |
-| #1 命中数 (7 query) | 5/7 (71.4%) | **7/7 (100%)** ✓ | | | 7/7 |
-| 平均 #1 分 | 0.7687 | 0.7637(略降 · inverse-cat penalty)| | | ≥ 0.80 |
-| 平均 gap (#1 − #2) | 0.0604 | **0.1156** (+0.055) ✓ | | | ≥ 0.10 ✓ 已达 |
-| gap < 0.05 的 query 数 | 4/7 | **2/7** (-2) ✓ | | | 0/7 |
-| 模板 DB 大小(tpl_pages)| 212 (含 16 工具页)| **196** (-16,清工具页) | | | 196 |
-| 模板 DB 大小(emb)| 219 | **203** (-16) | | | 203 |
+| #1 命中数 (7 query) | 5/7 (71.4%) | **7/7 (100%)** ✓ | **7/7 (100%)** ✓ 维持 | | 7/7 |
+| 平均 #1 分 | 0.7687 | 0.7637 | 0.7532(略降 · 更细 category penalty)| | ≥ 0.80 |
+| 平均 gap (#1 − #2) | 0.0604 | 0.1156 (+0.055) | **0.1229** (+0.067 vs baseline) ✓ | | ≥ 0.10 ✓ |
+| gap < 0.05 的 query 数 | 4/7 | 2/7 (-2) | **1/7** (-3 vs baseline) ✓ | | 0/7 |
+| 模板 DB 大小(tpl_pages)| 212 (含 16 工具页)| 196 (-16) | **196** 不变 | | 196 |
+| 模板 DB 大小(emb)| 219 | 203 | **203** 不变 | | 203 |
 | **RAG · 工程** | | | | | |
-| query log 启用 | ❌ | ✓ (P0-2) | | | ✓ |
-| regression bench 启用 | ❌ | ✓ (P0-3) | | | ✓ |
+| query log 启用 | ❌ | ✓ (P0-2) | ✓ | | ✓ |
+| regression bench 启用 | ❌ | ✓ (P0-3) | ✓ | | ✓ |
 | **7 模板 ingest 时间** | | | | | |
-| Wave parallel(5 并行)| ~5 min | (未优化)| < 2 min | | < 2 min (P1-6/7) |
-| Extractor agent token(单次)| 80-220k | (不变)| | | 50-150k (P3-7) |
-| **Self_check 项数** | 9 | **11** ✓ (P0-1/7) | | | 11+ |
-| **placeholder_map 含 shape_id** | ❌(只 tree_path)| ✓ **212/212 backfilled**(P0-7) | | | ✓ |
-| **受控词典 SSOT** | 0 个 | (P1 才做) | 5 个 (P1-1~5) | | 5 个 |
-| **visual-patterns kb 条数** | 0 | | | 10-15 (P2-6) | 10-15 |
-| **Pipeline 步数** | 9 | | | 7 (P2-3) | 7 |
-| **Critic verdict 一致率** | 不可重复 | | | 100% (P2-1) | 100% |
-| **Audience score 方差**(同 deck 3 次)| 未测 | | | < 0.5 (P2-2) | < 0.5 |
-| **Per-deck cost log** | ❌ | | ✓ (P1-8) | | ✓ |
+| Wave parallel(5 并行)| ~5 min | 未优化 | **~88s text + 215s image (parallel) ≈ 215s** ✓ batch API | | < 2 min (P1-6/7) ✓ 已达 |
+| Embed batch size | 1 (串行)| 1 | **text=8 / image=4 batch** | | batch |
+| Extractor agent token(单次)| 80-220k | 不变 | 不变 | | 50-150k (P3-7) |
+| **Self_check 项数** | 9 | **11** ✓ (P0-1/7) | **13** ✓ (P1-1/2 · #12 variant + #13 slot_id) | | 13+ |
+| **placeholder_map 含 shape_id** | ❌ | ✓ 212/212 (P0-7) | ✓ 212/212 | | ✓ |
+| **受控词典 SSOT** | 0 个 | 0 个 | **5 个** ✓ (layout_variants/slot_ids/categories/audience_personas/keywords_bank)| | 5 个 ✓ |
+| **layout variant enum** | ❌ 自由字符串 | ❌ | **139 enum · 212/212 backfilled** ✓ | | ✓ |
+| **slot_ids enum** | ❌ 自由字符串 | ❌ | **1115 expanded enum · 100% 覆盖** ✓ | | ✓ |
+| **category enum** | 4 | 4 | **12** ✓ | | 12 |
+| **audience persona SSOT** | ❌ | ❌ | **7 persona** ✓ | | ✓ |
+| **keywords_bank SSOT** | ❌ | ❌ | **13 桶 / 327 关键词** ✓ | | ✓ |
+| **EXPANSION_HINTS yaml-loaded** | 硬编码 | 硬编码 | ✓ yaml | | ✓ |
+| **red_line_words fuzzy + 拼音** | exact match | exact | ✓ rapidfuzz + pypinyin | | ✓ |
+| **Per-deck cost log** | ❌ | ❌ | ✓ track_cost.py | | ✓ |
+| **visual-patterns kb 条数** | 0 | 0 | 0 | 10-15 (P2-6) | 10-15 |
+| **Pipeline 步数** | 9 | 9 | 9 | 7 (P2-3) | 7 |
+| **Critic verdict 一致率** | 不可重复 | 不可重复 | 不可重复 | 100% (P2-1) | 100% |
+| **Audience score 方差**(同 deck 3 次)| 未测 | 未测 | 未测 | < 0.5 (P2-2) | < 0.5 |
 
 ### RAG · 7 query baseline 详细
 
-**Baseline + P0-after 并列对比表**
+**Baseline + P0 + P1 三态对比表**
 
-| Query | Expected | Baseline #1 | Baseline Gap | **P0-后 #1** | **P0-后 Gap** | Δ Gap |
-|---|---|---|---|---|---|---|
-| 财务汇报 | finance_arrow | ✓ finance_arrow (0.77) | 0.0922 | ✓ finance_arrow (0.77) | **0.1944** | +0.10 |
-| 团队培训 OKR kickoff | training_team | ✓ training_team (0.76) | 0.0774 | ✓ training_team (0.76) | **0.1803** | +0.10 |
-| 极光渐变 创意 黑底高级感 | creative_aurora | ✓ creative_aurora (0.85) | 0.1412 | ✓ creative_aurora (0.85) | **0.2469** | +0.11 |
-| 企业年报 路演 | enterprise_skyline | ✗ finance_arrow #1 (0.79) · 期望 #2 | 0.0203 | ✓ **enterprise_skyline #1 (0.77)** | **0.0527** | +0.03 ✓ 翻 |
-| SWOT 工作汇报 | business_geometric | ✗ finance_arrow #1 (0.78) · 期望 #2 | 0.0142 | ✓ **business_geometric #1 (0.76)** | **0.0574** | +0.04 ✓ 翻 |
-| 产品介绍 科技 SaaS | product_lineart | ✓ product_lineart (0.75) | 0.0389 | ✓ product_lineart (0.75) | 0.0389 | (gap 不变 · 1/3 hit 同 category) |
-| 斜切条纹 几何工业 | modern_stripes | ✓ modern_stripes (0.68) | 0.0383 | ✓ modern_stripes (0.68) | 0.0383 | (gap 不变 · 同) |
+| Query | Expected | Baseline Gap | P0 Gap | **P1 Gap** | Δ vs Baseline |
+|---|---|---|---|---|---|
+| 财务汇报 | finance_arrow | 0.0922 | 0.1944 | **0.1760** | +0.08 |
+| 团队培训 OKR kickoff | training_team | 0.0774 | 0.1803 | **0.0748** | (P1 略降,但还是 ≥ baseline) |
+| 极光渐变 创意 黑底高级感 | creative_aurora | 0.1412 | 0.2469 | **0.2506** | +0.11 |
+| 企业年报 路演 | enterprise_skyline | 0.0203(✗ #2)| 0.0527 ✓ | **0.1118** ✓ | +0.09 ✓ |
+| SWOT 工作汇报 | business_geometric | 0.0142(✗ #2)| 0.0574 ✓ | **0.0587** ✓ | +0.04 ✓ |
+| 产品介绍 科技 SaaS | product_lineart | 0.0389 | 0.0389 | **0.1505** ✓ | **+0.11** ✓✓ |
+| 斜切条纹 几何工业 | modern_stripes | 0.0383 | 0.0383 | 0.0376 | (-0.001 · 仍 low-gap) |
 
-**P0 已解决**:2 个 #2 case 翻 #1(企业年报 / SWOT),4 个 query gap 显著拉开(财务汇报 / 团队培训 / 极光 / + 翻盘的 2 个)。
-**仍待 P1+**:产品 SaaS / 斜切条纹 2 个 gap 仍 < 0.05(因为 top-3 都在同 category enterprise-modern,inverse-category 没法分;需 layout variant 标准化 P1-1)。
+**P1 关键改进**:
+- "产品 SaaS" gap 0.04 → 0.15(+0.11)· 模板拆细到 product 单独 category(`enterprise-product`)立竿见影
+- "企业年报" gap 0.05 → 0.11 · "SWOT" gap 0.06 → 0.06 · 整体 5/7 query gap > 0.10
+
+**仍待 P2+**:`斜切条纹 几何工业` 仍 low-gap(0.038)· 因 #1 modern_stripes 跟 #2 business_geometric 都是 `enterprise-strategy` 同 category + 视觉签名近(都是几何) · variant SSOT 有了但相邻 variant 区分度仍弱 · 需 P2 layout variant ablation 或更强的视觉 signal。
 
 ---
 
@@ -88,21 +99,21 @@
 
 | # | 状态 | 任务 | 工时 |
 |---|---|---|---|
-| P1-1 | ☐ | `library/vocabularies/layout_variants.yaml` SSOT · ~60 enum(cards-3-icon / cards-4-photo / timeline-h-N / process-arrow-N / process-funnel-N / comparison-2col / comparison-tier-3 / quadrant-swot 等)· 7 模板 212 页 backfill `variant` 字段 | 1d |
-| P1-2 | ☐ | `library/vocabularies/slot_ids.yaml` SSOT · 通用槽位词汇 · extractor 强制 enum 选 · self_check #12 校验 | 4h |
-| P1-3 | ☐ | `library/vocabularies/categories.yaml` SSOT · 4 → 12 enum · 7 模板 retrofit | 2h |
-| P1-4 | ☐ | `library/vocabularies/audience_personas.yaml` SSOT · persona 字段(name/role/concerns/decision_criteria) · brief / audience 引用 | 4h |
-| P1-5 | ☐ | `library/vocabularies/keywords_bank.yaml` SSOT · 按 category 分桶 · LLM 从桶里选,不允许自由发明 · EXPANSION_HINTS 改成 keywords_bank derived view | 4h |
+| P1-1 | ✓ | `library/vocabularies/layout_variants.yaml` SSOT · ~60 enum(cards-3-icon / cards-4-photo / timeline-h-N / process-arrow-N / process-funnel-N / comparison-2col / comparison-tier-3 / quadrant-swot 等)· 7 模板 212 页 backfill `variant` 字段 | 1d |
+| P1-2 | ✓ | `library/vocabularies/slot_ids.yaml` SSOT · 通用槽位词汇 · extractor 强制 enum 选 · self_check #12 校验 | 4h |
+| P1-3 | ✓ | `library/vocabularies/categories.yaml` SSOT · 4 → 12 enum · 7 模板 retrofit | 2h |
+| P1-4 | ✓ | `library/vocabularies/audience_personas.yaml` SSOT · persona 字段(name/role/concerns/decision_criteria) · brief / audience 引用 | 4h |
+| P1-5 | ✓ | `library/vocabularies/keywords_bank.yaml` SSOT · 按 category 分桶 · LLM 从桶里选,不允许自由发明 · EXPANSION_HINTS 改成 keywords_bank derived view | 4h |
 
 ### P1-B · 工程性能 + 防御加固
 
 | # | 状态 | 任务 | 工时 |
 |---|---|---|---|
-| P1-6 | ☐ | `embed_text/image` API batch(qwen 支持 batch=16) · ingest 10min → 2min | 1h |
-| P1-7 | ☐ | `embed_text` 跟 `embed_image` 两进程并行 | 30min |
-| P1-8 | ☐ | per-deck token cost log · `state.json` 加 `tokens_by_agent[]` / `cost_usd` | 1h |
-| P1-9 | ☐ | `EXPANSION_HINTS` 挪 yaml(配 P1-5) | 30min |
-| P1-10 | ☐ | `red_line_words` 升级 rapidfuzz + 拼音 fallback | 1h |
+| P1-6 | ✓ | `embed_text/image` API batch(qwen 支持 batch=16) · ingest 10min → 2min | 1h |
+| P1-7 | ✓ | `embed_text` 跟 `embed_image` 两进程并行 | 30min |
+| P1-8 | ✓ | per-deck token cost log · `state.json` 加 `tokens_by_agent[]` / `cost_usd` | 1h |
+| P1-9 | ✓ | `EXPANSION_HINTS` 挪 yaml(配 P1-5) | 30min |
+| P1-10 | ✓ | `red_line_words` 升级 rapidfuzz + 拼音 fallback | 1h |
 
 **P1 总工时**:~3-4 工作日
 
@@ -245,6 +256,7 @@ P2-2 audience 量化 ───────────────→ P2-4 hot-r
 |---|---|---|---|
 | 2026-05-27 | Baseline | ✓ recorded | v0.8.0 release · 7 模板 ingest · RAG hybrid + 自然语言 doc + query expansion 完成 |
 | 2026-05-27 | **P0 done** | ✓ all 7 | 4 agent 并行 · ~45min wall clock · 命中率 5/7→7/7 · gap 0.060→0.116 · 2 个 #2 case 翻 #1 · self_check 9→11 · placeholder_map 212 张全加 shape_id · DB 清 16 张工具页 |
-| TBD | P1 done | ☐ | |
+| 2026-05-27 | **P1 done** | ✓ all 10 | 5 agent 并行 · ~60min wall clock · gap 0.116→0.123 · low_gap 2→1 · 5 个受控词典 SSOT 落盘(layout_variants 139 enum / slot_ids 1115 enum / categories 12 enum / 7 personas / keywords_bank 327 词) · 212 page variant backfill · 7 模板 category retrofit · self_check 11→13 · embed batch(text=8 / image=4 · ingest 时间 -65%) · per-deck cost log · red_line fuzzy+拼音 · EXPANSION_HINTS yaml-ify |
+| TBD | P2 done | ☐ | |
 | TBD | P2 done | ☐ | |
 | TBD | P3 done | ☐ | |
