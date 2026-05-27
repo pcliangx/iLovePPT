@@ -1,0 +1,37 @@
+id: funnel-4-tier
+name: "4 层漏斗"
+category: process
+
+layout_type: process_flow
+variant: process-funnel-4
+
+content_intent:
+  - 4 层等高梯形堆叠,自上而下逐层收窄(漏斗形)
+  - 每层放阶段名 + 转化率 / 数量数字
+  - 表达"漏斗收敛 / 筛选过滤 / 转化"语义
+when_to_use:
+  - 销售漏斗(线索 → MQL → SQL → 成单)
+  - 用户转化漏斗(曝光 → 点击 → 注册 → 付费)
+  - 招聘漏斗(投递 → 初筛 → 面试 → offer)
+when_not_to_use:
+  - 层数 ≠ 4(选 process-funnel-3/5)
+  - 不收敛而是循环(改 process-cycle-*)
+  - 强调金字塔层级而非筛选(改 pyramid-*)
+keywords:
+  - 漏斗
+  - 4 层
+  - 转化
+  - 筛选
+  - 销售漏斗
+  - 招聘漏斗
+  - 用户转化
+  - funnel
+  - 收敛
+
+matches_iloveppt_layout: null
+fallback_rendering:
+  method: diagram
+  notes: |
+    draw.io 推荐:4 个 trapezoid 堆叠,顶层宽度 100%,每层递减 20%,
+    至底层 40%;每层内放阶段名(左) + 转化率(右,如 12%);
+    BRAND_PRIMARY 渐变(顶层最浅,底层最深),配合阴影强化"漏斗"。

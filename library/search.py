@@ -279,8 +279,8 @@ def search(
     top_k: int,
     fallback_threshold: float,
     mode: str,
-    text_weight: float = 0.6,
-    image_weight: float = 0.4,
+    text_weight: float = 0.8,
+    image_weight: float = 0.2,
     inverse_category: bool = True,
 ) -> list[dict]:
     api_key = get_api_key()
@@ -427,7 +427,7 @@ USAGE_EPILOG = """\
      适用:author 拓写时给当前 brief.theme 选具体页
 
 Query 静态扩展:短 query 自动撞库补词(财务 → +财报+营收+CFO 等),--no-expand 关。
-权重调:--text-weight 0.6 --image-weight 0.4(默认),hybrid 模式生效。
+权重调:--text-weight 0.8 --image-weight 0.2(默认 · P2-9 ablation 选定),hybrid 模式生效。
 """
 
 
@@ -441,8 +441,10 @@ def main():
     p.add_argument("--query-image")
     p.add_argument("--mode", default="text", choices=["text", "image", "hybrid"],
                    help="text(默认 · 语义查询最稳)/ image(纯图)/ hybrid(text+image 融合 · 视觉风格查询用)")
-    p.add_argument("--text-weight", type=float, default=0.6, help="hybrid 模式 text 权重(默认 0.6)")
-    p.add_argument("--image-weight", type=float, default=0.4, help="hybrid 模式 image 权重(默认 0.4)")
+    p.add_argument("--text-weight", type=float, default=0.8,
+                   help="hybrid 模式 text 权重(默认 0.8 · P2-9 ablation 选定)")
+    p.add_argument("--image-weight", type=float, default=0.2,
+                   help="hybrid 模式 image 权重(默认 0.2 · P2-9 ablation 选定)")
     p.add_argument("--no-expand", action="store_true", help="关闭 query 静态扩展(默认开)")
     p.add_argument("--no-inverse-category", action="store_true",
                    help="关闭 inverse-category 软降权(默认开 · 仅 text/hybrid mode 生效)")

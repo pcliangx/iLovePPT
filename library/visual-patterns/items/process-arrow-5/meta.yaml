@@ -1,0 +1,37 @@
+id: process-arrow-5
+name: "5 步箭头流程链"
+category: process
+
+layout_type: process_flow
+variant: process-arrow-5
+
+content_intent:
+  - 5 个步骤以箭头形 chevron 串联,从左到右递进
+  - 每箭头内放步骤编号 + 短标题
+  - 形成"流水线 / 工作流"视觉
+when_to_use:
+  - 5 步工作流(input → 处理 → 分析 → 输出 → 复盘)
+  - 5 阶段招聘 / 销售 / 转化漏斗的串行版
+  - 流程图需"方向感强"的场景
+when_not_to_use:
+  - 步骤数 ≠ 5(选 process-arrow-3/4/6)
+  - 步骤是循环(改 process-cycle-*)
+  - 步骤是漏斗收敛(改 process-funnel-*)
+keywords:
+  - 流程
+  - 5 步
+  - 5 步骤
+  - 箭头
+  - chevron
+  - 工作流
+  - 流水线
+  - 步骤链
+  - process arrow
+
+matches_iloveppt_layout: null
+fallback_rendering:
+  method: diagram
+  notes: |
+    draw.io 推荐:5 个 step shape (chevron / arrow) 水平连续排列,
+    宽度均分,稍有重叠形成"链"感;每箭头内放编号 + 短标题;
+    BRAND_PRIMARY 主色,逐步加深(渐变)强化方向感。

@@ -1,0 +1,41 @@
+id: single-focus-kpi
+name: "单大数字 KPI"
+category: data
+
+layout_type: single_focus
+variant: single-focus-kpi
+
+content_intent:
+  - 整页焦点一个超大数字(KPI / metric / 百分比)
+  - 数字下方 1 行说明 + 可选小字注脚
+  - 数字本身就是核心结论,不容错过
+when_to_use:
+  - 单一关键指标(净利润 / DAU / GMV / 留存率)
+  - 一句话结论 + 大数字证据
+  - 高密度数据 deck 中的"sticky"页(强调单一数字)
+when_not_to_use:
+  - 需要多指标对比(改 cards-* / bullet)
+  - 数字需要趋势线 / 时间维度(改 timeline / data chart)
+  - 内容是文字描述不是数字(改 single-focus-quote)
+keywords:
+  - KPI
+  - 大数字
+  - 单一数字
+  - metric
+  - 百分比
+  - 净利润
+  - 增长率
+  - DAU
+  - GMV
+  - 留存率
+  - single focus
+  - 核心指标
+  - sticky
+
+matches_iloveppt_layout: null
+fallback_rendering:
+  method: diagram
+  notes: |
+    draw.io 推荐:slide 中央放一个超大字号(180-280pt)的数字 / 百分比,
+    用 BRAND_PRIMARY 色 + 衬线粗体;数字下方 1 行小字(24-32pt)说明,
+    再下方更小注脚;留出大量空白强化"focus"。

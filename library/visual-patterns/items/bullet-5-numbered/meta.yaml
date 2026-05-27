@@ -1,0 +1,39 @@
+id: bullet-5-numbered
+name: "5 项编号列表"
+category: comparison
+
+layout_type: bullet_list
+variant: bullet-numbered
+
+content_intent:
+  - 5 条带编号(01 02 03 04 05)的 bullet
+  - 每条编号 + 短标题 + 1-2 行说明
+  - 适合"5 个要点 / 5 个步骤 / 5 个原则"罗列
+when_to_use:
+  - 5 个核心原则 / 5 个方法论 / 5 个关键点
+  - 5 步行动指南(快速参考,无需 timeline 视觉)
+  - 任何需要"明确编号" 的列表场景
+when_not_to_use:
+  - 列表项数 ≠ 5(选 bullet-3/4/6)
+  - 步骤有强时间序列(改 timeline / process-arrow-*)
+  - 列表需要视觉强对比(改 cards-* / quadrant)
+keywords:
+  - bullet
+  - 编号
+  - 5 项
+  - 5 条
+  - 5 点
+  - 5 要点
+  - numbered
+  - 列表
+  - 01 02 03
+  - 5 个原则
+  - 5 个步骤
+
+matches_iloveppt_layout: null
+fallback_rendering:
+  method: native_pptx
+  notes: |
+    pptx native 渲染:slide 内一个左对齐文本区域,5 行 bullet,每行结构:
+    [大号编号 01-05 用 ACCENT 色 + 粗体] + [短标题粗体] + [说明小字];
+    行间距宽松(line spacing 1.5),与左边距 0.6 inch;BRAND_PRIMARY 主色。

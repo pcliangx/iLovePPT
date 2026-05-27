@@ -1,0 +1,37 @@
+id: swot-quadrant
+name: "SWOT 4 象限"
+category: comparison
+
+layout_type: quadrant
+variant: quadrant-swot
+
+content_intent:
+  - 2x2 矩阵 4 象限,Strengths / Weaknesses / Opportunities / Threats
+  - 每象限放 3-5 条 bullet
+  - 经典 SWOT 战略分析图
+when_to_use:
+  - SWOT 战略分析(优势 / 劣势 / 机会 / 威胁)
+  - 4 象限对比(内部 vs 外部 × 正面 vs 负面)
+  - 战略汇报 / 工作汇报需要"框架感"
+when_not_to_use:
+  - 象限数 ≠ 4(改 cards-* / bullet)
+  - 不是对比而是流程(改 process-* / timeline)
+  - 强调单一焦点(改 single-focus-*)
+keywords:
+  - SWOT
+  - 4 象限
+  - 优势劣势机会威胁
+  - 2x2
+  - 战略分析
+  - quadrant
+  - swot 分析
+  - 内外部分析
+
+matches_iloveppt_layout: null
+fallback_rendering:
+  method: diagram
+  notes: |
+    draw.io 推荐:slide 中央 2x2 网格,4 个圆角矩形 cell;
+    每 cell 左上角标签 S/W/O/T + 全称(粗体);cell 内部 3-5 条 bullet;
+    4 象限配色用 4 种区分色(BRAND_PRIMARY 绿 / 红 / 蓝 / 橙)
+    并加图标(箭头 / 警告 / 灯泡 / 闪电)强化语义。
