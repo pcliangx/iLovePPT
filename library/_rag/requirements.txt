@@ -1,5 +1,7 @@
 # library/_rag/requirements.txt
 sqlite-vec>=0.1.0
 pyyaml>=6.0
-# test deps(跑 tests/library/ 需要)
+# pptx-templates/scripts/ deps(inspect_placeholders.py 用)
+python-pptx>=1.0.0
+# test deps(跑 tests/library/ + scripts/tests/ 需要)
 pytest>=7.0
