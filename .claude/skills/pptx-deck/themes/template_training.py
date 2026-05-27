@@ -1,4 +1,4 @@
-"""template_training 主题 —— iSlide 商业模板的全 13 layout 复刻(培训 / 内训场景)
+"""template_training 主题 —— 商业培训模板的全 13 layout 复刻(培训 / 内训场景)
 
 # 设计原则
 - 双主色:橙红 #EF5938(强调 / 章节号 / accent 条) + 深蓝 #0B2A4A(标题 / VS 圆)
@@ -9,7 +9,7 @@
 # 复刻范围 vs native template
 - Tier 1 重写:cover/toc/section_divider/cards/closing(含 TEAM 插画 + LOGO 位)
 - Tier 2 切色:single_focus/compare/compare_pk/matrix_2x2/bullet_list/table/pic_text/summary
-- 不复刻:SmartArt 装饰图(辐射 / 4 象限带剪影)、iSlide footer 水印
+- 不复刻:SmartArt 装饰图(辐射 / 4 象限带剪影)、模板原始 footer 水印
 
 # 适用场景
 - 企业内训 / 课程开训 / 团队培训 / 复盘汇报 / 入职引导

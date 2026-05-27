@@ -1,0 +1,99 @@
+# Theme YAML Schema — 文档化 themes/<name>.yaml 格式
+#
+# 用法:user 想自定义品牌色 / 字体 → 在 themes/<name>.yaml 写一份(参考下例),
+# 不需要改 Python。layout 渲染逻辑(make_<layout>)是 Python · 由 _base.py
+# 按 layouts mapping 动态加载,user 不感知 Python module 名。
+#
+# 字段约定:
+# - name(str, required): theme id · 跟文件名一致(去 .yaml 后缀)
+# - description(str): 一句话说明
+# - colors(dict, required): design token 色板
+#     - brand_primary(hex, required): 品牌主色 · cover/章节号/accent 用
+#     - brand_dark(hex, required): 深色品牌色 · 标题/footer/暗背景用
+#     - brand_tint(hex, required): 浅色品牌底 · 填充/卡片底用 · 不承载文字
+#     - accent(hex, required): 第二色 · 警示/CTA/badge 用
+#     - 其他可选 muted_*/gray_* 系列 · 按需扩展
+# - fonts(dict, required):
+#     - ea(str, required): 中文 East Asian 字体 · 默认 "Microsoft YaHei"
+#                          (项目不变量 · 不变更 lxml 路径会跨平台 fallback 丑字体)
+#     - latin(str): 英文 / Latin 字体 · 默认 "Helvetica Neue"
+#     - num(str): 数字 / 西文标号字体 · 默认 "Helvetica Neue"
+#     - title_size_pt(int): 标题 default 字号 · 默认 28
+#     - body_size_pt(int): 正文 default 字号 · 默认 18
+# - layouts(dict, required): layout_type → Python make_<func> 函数名映射
+#     - 17 enum 全列 · `null` 表示该 theme 不实现这 layout(build 时 fail-loud)
+#     - layout function 必须在对应 _legacy/<name>.py 里定义 · _base.py 按 yaml
+#       的 module_path 字段去加载 · 默认从 _legacy/<name>.py 找
+# - implementation(dict): 实现细节
+#     - tier1(bool): 是否支持 tier1 模板复用(从 .pptx 直接复制 slide + 替换文字)
+#     - tier2(bool): 是否支持 tier2 Python make_<layout> 调用
+#     - tier3_fallback(str): tier3 兜底用哪个 theme · default "tech_blue"
+#     - module_path(str): _base.py 从哪 import make_<layout> · 默认 "_legacy.<name>"
+#                         (即 `themes._legacy.<name>`)
+#     - source_pptx(str): 若 tier1=true · 指向 library/pptx-templates/_source/<file>.pptx 短名
+#
+# 完整范例 — 见 themes/tech_blue.yaml
+
+name: example_theme
+description: "(示例) 一句话描述这个 theme 的视觉风格 + 适用场景"
+
+colors:
+  # 必填四件套
+  brand_primary: "#0A52BF"      # 品牌主色 · 推荐 WCAG AA 7:1(白底)
+  brand_dark:    "#0B2A4A"      # 深品牌色 · 标题用
+  brand_tint:    "#E6F0FC"      # 浅底 · 填充用
+  accent:        "#007A6D"      # 第二色 · 强调用 · 推荐 AA 5:1(白底)
+  # 可选 muted palette(quadrant / 多色对比用)
+  muted_blue:    "#4A7AB5"
+  muted_sand:    "#C9B68E"
+  muted_sage:    "#7E9D91"
+  muted_terra:   "#B56F5C"
+  muted_lavender: "#9B8CBA"
+  muted_ochre:   "#C99E4F"
+  # 灰阶 SSOT 在 helpers.py · 这里 override 才声明(默认沿用)
+  # gray_50: "#FAFAFA"
+  # gray_100: "#F2F2F2"
+  # gray_300: "#D9D9D9"
+  # gray_500: "#6F6F6F"
+  # gray_700: "#4A4A4A"
+  # gray_900: "#1A1A1A"
+
+fonts:
+  ea: "Microsoft YaHei"         # ★ 必填 · 中文跨平台不 fallback 的不变量
+  latin: "Helvetica Neue"
+  num: "Helvetica Neue"
+  title_size_pt: 28
+  body_size_pt: 18
+
+layouts:
+  # 17 enum · null 表示该 theme 不实现(deck_plan 用到这 layout 会 fail-loud)
+  cover: make_cover
+  toc: make_toc
+  section_divider: make_section_divider
+  summary: make_summary
+  closing: make_closing
+  quote: null
+  single_focus: make_single_focus
+  cards: make_cards
+  bullet_list: make_bullet_list
+  data: null                    # 数据图 layout · 多数 theme 用 make_table 代替
+  timeline: null
+  pyramid: null                 # 仅 template_golden 提供
+  venn: null
+  radial: null                  # 仅 template_golden 提供
+  process_flow: null            # 仅 template_golden 提供
+  quadrant: make_matrix_2x2     # alias: quadrant → make_matrix_2x2
+  comparison: make_compare
+  # 兼容 historical layout 名(non-enum · cherry-pick)
+  compare: make_compare
+  compare_pk: make_compare_pk
+  matrix_2x2: make_matrix_2x2
+  table: make_table
+  pic_text: make_pic_text
+
+implementation:
+  tier1: false
+  tier2: true
+  tier3_fallback: tech_blue
+  module_path: "_legacy.example_theme"  # 默认 `_legacy.<name>` · 可改
+  # source_pptx: example_theme           # tier1=true 时填 · 不带 .pptx 后缀

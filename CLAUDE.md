@@ -70,7 +70,7 @@ library/search.sh --query "<本页意图>" --preferred-template <name> --type pa
 
 ### 主线程派发规则
 
-"做 PPT" 意图 → 先 `TeamCreate(brainstorm)` 跑 Phase A;`dispatch_author` 后关 team,转 `Task` 依次调 author/critic/iloveppt-builder/audience(**不要**自己写 brief / content / 跑视觉 QA)。改仓库代码(helpers.py / themes / build.py / tests / agent prompts / 协议)时 → 主线程直接干。完整派发表:[pipeline protocol §1](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md#1-主线程派发表)。
+"做 PPT" 意图 → 先 `TeamCreate(brainstorm)` 跑 Phase A;`dispatch_author` 后关 team,转 `Task` 依次调 author/critic/iloveppt-builder/audience(**不要**自己写 brief / content / 跑视觉 QA)。改仓库代码(helpers/ / themes / build.py / tests / agent prompts / 协议)时 → 主线程直接干。完整派发表:[pipeline protocol §1](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md#1-主线程派发表)。
 
 **Pattern 注释 + cherry-pick**:
 - **前缀强制**:author 写 content.md 的 pattern 注释必须带 kb 前缀 — `<!-- pattern: vp:<id> -->`(visual-patterns)或 `<!-- pattern: tpl:<theme>__<NN-slug> -->`(pptx-templates)。iloveppt-builder Step 2 按前缀路由查对应 kb,**无前缀 hard_stop**
@@ -82,7 +82,7 @@ library/search.sh --query "<本页意图>" --preferred-template <name> --type pa
 
 ```
 pptx-deck  ── 编排者:brief.md → outline.md → content.md → deck_plan.json → 完整 .pptx
-   ├── 调用 → pptx      (helpers.py / office 脚本 / render 流水线)
+   ├── 调用 → pptx      (helpers/ / layout / office 脚本 / render 流水线)
    └── 调用 → diagram   (draw.io / mermaid / matplotlib → PNG)
 pptx       ── 底层 .pptx 读写;也可独立使用
 diagram    ── 图表生成;也可独立使用
@@ -98,16 +98,37 @@ diagram    ── 图表生成;也可独立使用
 
 提升生成**质量**改 prompt 文档(`content-writing.md` / `visual-qa.md`),**不要**改 `build.py`。
 
-### SSOT 标准 —— helpers.py 是唯一真实源
+### SSOT 标准 —— helpers/ 是底层原语 · theme yaml 是 token · layout plugin 是渲染单元
 
-`${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/helpers.py` 是权威源,下游只能引用或扩展,**不允许重定义**:
+**三层 SSOT**(P3-2 后):
 
-1. **底层 pptx 原语** —— 字体/形状/表格(`set_font` / `_fix_ph_font` / `card` / `bullets` / `table_modern` / `section_header`)。Theme 在此基础上写 `make_*` layout 函数,绝不复制字体/形状逻辑
-2. **设计 token** —— `FONT_CN` / `FONT_NUM` / `BRAND_PRIMARY` / `BRAND_DARK` / `BRAND_TINT` / `ACCENT` / 灰阶 / `SLIDE_W` / `SLIDE_H`。`tech_blue.py` 用 alias(`PRIMARY = H.BRAND_PRIMARY`),不重定义;`build.py` 用 `H.SLIDE_W/H` 不写死 `Inches(...)`
+1. **底层原语 SSOT** —— [`${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/helpers/__init__.py`](${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/helpers/__init__.py) 是权威源,下游只能引用或扩展,**不允许重定义**:
+   - **底层 pptx 原语** —— 字体/形状/表格(`set_font` / `_fix_ph_font` / `card` / `bullets` / `table_modern` / `section_header` / `icon` / `connector` / `progress_bar` 等)
+   - **底层 default token** —— `FONT_CN` / `FONT_NUM` / `BRAND_PRIMARY` / `BRAND_DARK` / `BRAND_TINT` / `ACCENT` / 灰阶 / `SLIDE_W` / `SLIDE_H`。任何 theme 没声明的 token 自动从这里继承
+   - **`import helpers as H`** 入口不变(`helpers.py` → `helpers/__init__.py`,Python package 优先);所有 `H.set_font(...)` / `H.BRAND_PRIMARY` 保持向后兼容
 
-`${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/layout.py` 提供**几何原语**(`Box` / `content_region` / `columns` / `rows` / `stack` / `split` / `inset`),主题无关,跟 `helpers.py` 并列。
+2. **Theme token SSOT** —— [`${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/themes/<name>.yaml`](${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/themes/):每个 theme 的 design token 在此 **yaml** 声明(P3-1)。Python `.py` 文件仍提供 theme-specific `make_<layout>` 渲染函数,但 `colors` / `fonts` 不再硬编码:
+   - `themes/_base.py:load_theme('tech_blue')` → 加载 yaml + 解析 ThemeConfig
+   - `themes/_base.py:apply_theme(module, cfg)` → 把 yaml token 推到 module 常量(`PRIMARY = brand_primary` / `FONT_HEADER = ea` 等)
+   - `themes/_base.py:get_layout_func(cfg, mod, layout_type)` → 按 yaml `layouts:` mapping 返回 `make_<layout>` 引用
+   - 文档化 schema:[`themes/_schema.yaml`](${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/themes/_schema.yaml)
+   - 老代码 `from themes._legacy.tech_blue import BRAND_PRIMARY` 仍可工作(compat shim re-export helpers + tech_blue.py)
 
-改色 / 改字体 = **只**改 `helpers.py` 一处。markdown 文档里的 hex 是标注过的拷贝(`design-system.md` / `diagram/*.md`),色板变了要手动同步。规则禁的是重述**同一个**值,不是禁止新 theme(如未来的 `party_red.py`)定义自己色板。
+3. **Layout plugin SSOT(P3-2)** —— [`${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/helpers/<layout>.py`](${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/helpers/) · 17 个 layout 类型的**theme-agnostic 标准实现**,通过 `@register_layout("<type>")` decorator 自动注册到全局 `LayoutRegistry`:
+   - `from helpers import LayoutRegistry; fn = LayoutRegistry.get("cover")` → 取标准实现(`fn(prs, theme=mod, **fields)`)
+   - 加新 layout = 写 `helpers/<name>.py` + `@register_layout("<name>")` 即可,**不改 helpers/__init__.py / build.py / themes/**
+   - `helpers/__init__.py` 用 `pkgutil.iter_modules` 自动 import 所有非下划线开头模块,触发 decorator 副作用注册
+   - **优先级**:`get_layout_func()` 先查 theme module(theme-specific override)→ 没有时 fall back 到 `LayoutRegistry.get()`(plugin 标准实现)
+   - 添加新 layout 完整流程:[`docs/adding-new-layout.md`](${CLAUDE_PROJECT_DIR}/docs/adding-new-layout.md)
+
+`${CLAUDE_PROJECT_DIR}/.claude/skills/pptx/layout.py` 提供**几何原语**(`Box` / `content_region` / `columns` / `rows` / `stack` / `split` / `inset`),主题无关,跟 `helpers/` 并列。
+
+**改色 / 改字体规则**:
+- 改单个 theme 的色板 / 字体 → 改对应 `themes/<name>.yaml`(P3-1 后的主流路径)
+- 改 helpers default token(影响 fallback / 没 yaml 的代码路径)→ 改 `helpers/__init__.py` 顶部常量
+- 加新 layout type → 新建 `helpers/<name>.py` + `@register_layout("<name>")`(不动 helpers/__init__.py / build.py / themes/)
+- markdown 文档里的 hex 是标注过的拷贝(`design-system.md` / `diagram/*.md`),色板变了要手动同步
+- 规则禁的是重述**同一个**值,不是禁止新 theme(如未来的 `party_red.yaml`)定义自己色板
 
 ### Skill 文档就是产品
 
@@ -119,7 +140,7 @@ diagram    ── 图表生成;也可独立使用
 
 ## 关键不变量
 
-- **中文字体必须通过 lxml 写 `<a:ea>` + `<a:cs>`**(`helpers.py:set_font`)。python-pptx 的默认 `font.name` 只写 `<a:latin>`,中文文字跨平台会 fallback 成丑字体。**这是 #1 的产物破损源**
+- **中文字体必须通过 lxml 写 `<a:ea>` + `<a:cs>`**(`helpers/__init__.py:set_font`)。python-pptx 的默认 `font.name` 只写 `<a:latin>`,中文文字跨平台会 fallback 成丑字体。**这是 #1 的产物破损源**
 - **默认字体是 Microsoft YaHei**(项目的有意决定)。`PingFang SC` / `Heiti SC` 只在 fallback 链;macOS 需装 Microsoft YaHei 让 LibreOffice 渲染跟 Windows PowerPoint 一致
 - **占位符字体用 `_fix_ph_font`,不是 `set_font`**。占位符从 slide master 继承 `<a:ea>`,run 级别 `set_font` 够不到
 - **测试验证的是结构,不是视觉**。检查 shape 数量和字体属性 —— layout 可能渲染破了但测试照样通过;改完 layout / helper **必须**渲染 PNG 人审

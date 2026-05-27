@@ -1,0 +1,66 @@
+name: template_training
+description: "培训风 · 橙红 #EF5938 主色 + 深蓝 + TEAM 插画 · 17 layout(含 3 个 _band/_4sub/_flag 自定义变体)"
+
+# template_training 是 ingested .pptx 模板 · 跟 template_golden 一样,
+# build.py 运行时从 _source/.pptx 重新提取 token 覆盖。
+# 这里 colors 反映模板原色板(橙红 + 深蓝),作为 yaml 加载时的 fallback。
+colors:
+  brand_primary: "#EF5938"   # 橙红(模板 accent1)
+  brand_dark:    "#0B2A4A"   # 深蓝
+  brand_tint:    "#FDE5DE"   # 浅橙底
+  accent:        "#085986"   # 深蓝(模板 accent2)
+  light_blue:    "#C8E4F8"   # section_divider 下 banner
+  muted_blue:     "#4A7AB5"
+  muted_sand:     "#C9B68E"
+  muted_sage:     "#7E9D91"
+  muted_terra:    "#B56F5C"
+  muted_lavender: "#9B8CBA"
+  muted_ochre:    "#C99E4F"
+
+fonts:
+  ea: "Microsoft YaHei"
+  latin: "Helvetica Neue"
+  num: "Helvetica Neue"
+  title_size_pt: 28
+  body_size_pt: 18
+
+# 17 enum + 3 个 _band/_4sub/_flag 模板独有 layout
+layouts:
+  cover: make_cover
+  toc: make_toc
+  section_divider: make_section_divider
+  summary: make_summary
+  closing: make_closing
+  quote: null
+  single_focus: make_single_focus
+  cards: make_cards
+  bullet_list: make_bullet_list
+  data: null
+  timeline: make_timeline_band_3      # alias · timeline 用 _band_3 变体
+  pyramid: make_tri_pyramid_4sub_3    # alias · pyramid 用 _4sub_3 变体
+  venn: null
+  radial: null
+  process_flow: null
+  quadrant: make_matrix_2x2
+  comparison: make_compare
+  # 历史 layout 名
+  compare: make_compare
+  compare_pk: make_compare_pk
+  matrix_2x2: make_matrix_2x2
+  table: make_table
+  pic_text: make_pic_text
+  # template_training 独有变体
+  timeline_band_3: make_timeline_band_3
+  tri_pyramid_4sub_3: make_tri_pyramid_4sub_3
+  cards_flag_3: make_cards_flag_3
+
+implementation:
+  tier1: true
+  tier2: true
+  tier3_fallback: tech_blue
+  module_path: "template_training"
+  source_pptx: "template_training"
+
+# template_training 额外资产(原 .py 硬编码的 _assets 路径)
+assets:
+  team_illustration: "_assets/template_template_training/team_illustration.png"

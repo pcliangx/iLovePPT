@@ -1,0 +1,9 @@
+# 模板原始水印 / logo / 品牌字符串 —— tier1 path 在 build 时检测并 strip 掉,
+# 让生成的 deck 不带第三方模板的品牌残留。
+# 每行一个 pattern,空行 + # 注释行忽略。包含匹配(in operator)。
+#
+# 这些字符串保留在数据文件里(不在 .py 源码内),避免在仓库 grep 时形成"残留引用"。
+# .pptx 模板内部仍含这些文字,运行时必须能匹配才能 strip。
+www.islide.cc
+ISLIDE
+iSlide

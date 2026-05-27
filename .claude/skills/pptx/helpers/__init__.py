@@ -663,3 +663,41 @@ def source_citation(slide: Slide, text: str) -> None:
     prefix = "" if text.startswith(("Source:", "来源:", "来源：")) else "Source: "
     r.text = f"{prefix}{text}"
     set_font(r, name=FONT_CN, size=9, color=GRAY_500, italic=True)
+
+
+# ============================================================================
+# 5. Layout plugin registry — auto-discover
+# ============================================================================
+#
+# 把 17 个 layout 类型(cover / toc / cards / pyramid / ...)的标准 make_<layout>
+# 函数拆到独立 plugin 文件:`helpers/<layout>.py`。每个文件用 @register_layout
+# decorator 把自己注册到 LayoutRegistry。
+#
+# build.py / themes 用 `from helpers import LayoutRegistry; fn = LayoutRegistry.get("cover")`
+# 取标准实现;themes/<theme>.py 可以保留自己 make_<layout> override。
+#
+# 加新 layout = 写一个 helpers/<name>.py 文件 + @register_layout("<name>") 完事,
+# 不改 helpers/__init__.py / build.py / themes/。详见 docs/adding-new-layout.md。
+
+from ._base import LayoutRegistry, register_layout  # noqa: E402  (after defs intentional)
+
+
+def _auto_discover_layouts() -> None:
+    """Walk helpers/ dir,import 所有非下划线开头模块,触发 @register_layout decorator。
+
+    跳过:`_base.py` / `_internals.py` / `__init__.py` / 其他下划线开头(包内 helper)。
+    其他文件无论叫什么都会被 import,只要在文件里调用 `@register_layout`
+    decorator 就会注册进来。
+    """
+    import importlib
+    import pkgutil
+    from pathlib import Path
+
+    _pkg_path = Path(__file__).parent
+    for _, mod_name, _ in pkgutil.iter_modules([str(_pkg_path)]):
+        if mod_name.startswith("_"):
+            continue
+        importlib.import_module(f".{mod_name}", package=__name__)
+
+
+_auto_discover_layouts()

@@ -1,0 +1,57 @@
+name: template_golden
+description: "黄金商务模板 · 38 page native · 3 独有 layout(process_flow/pyramid/radial)· 其他 14 layout 共享 tech_blue SSOT"
+
+# template_golden 是 ingested .pptx 模板 · color/font 在 build.py 运行时
+# 从 _source/template_golden.pptx 提取覆盖(_extract_theme_from_pptx)。
+# 这里的 colors 是 fallback(token 提取失败时用),非权威 — 跟 tech_blue 一致。
+colors:
+  brand_primary: "#0A52BF"
+  brand_dark:    "#0B2A4A"
+  brand_tint:    "#E6F0FC"
+  accent:        "#007A6D"
+  muted_blue:     "#4A7AB5"
+  muted_sand:     "#C9B68E"
+  muted_sage:     "#7E9D91"
+  muted_terra:    "#B56F5C"
+  muted_lavender: "#9B8CBA"
+  muted_ochre:    "#C99E4F"
+
+fonts:
+  ea: "Microsoft YaHei"
+  latin: "Helvetica Neue"
+  num: "Helvetica Neue"
+  title_size_pt: 28
+  body_size_pt: 18
+
+# 17 enum · 共享 tech_blue 14 + 独有 3(process_flow/pyramid/radial)
+layouts:
+  cover: make_cover
+  toc: make_toc
+  section_divider: make_section_divider
+  summary: make_summary
+  closing: make_closing
+  quote: null
+  single_focus: make_single_focus
+  cards: make_cards
+  bullet_list: make_bullet_list
+  data: null
+  timeline: null
+  pyramid: make_pyramid       # ★ template_golden 独有
+  venn: null
+  radial: make_radial         # ★ template_golden 独有
+  process_flow: make_process_flow  # ★ template_golden 独有
+  quadrant: make_matrix_2x2
+  comparison: make_compare
+  # 历史 layout 名
+  compare: make_compare
+  compare_pk: make_compare_pk
+  matrix_2x2: make_matrix_2x2
+  table: make_table
+  pic_text: make_pic_text
+
+implementation:
+  tier1: true
+  tier2: true
+  tier3_fallback: tech_blue
+  module_path: "template_golden"      # themes/template_golden.py
+  source_pptx: "template_golden"      # library/pptx-templates/_source/template_golden.pptx

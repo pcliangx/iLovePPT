@@ -1,0 +1,56 @@
+name: tech_blue
+description: "BCG 风深蓝商务模板 · 13 layout · default theme · WCAG AAA 7:1"
+
+# Design tokens — 跟 helpers.py SSOT 对齐
+# 改色 → 改这里(不影响 helpers.py;helpers.py 是底层原语 SSOT,这里是 theme override)
+colors:
+  brand_primary: "#0A52BF"   # 科技蓝(白底 7:1 AAA)
+  brand_dark:    "#0B2A4A"   # 深海蓝(白底 14:1)
+  brand_tint:    "#E6F0FC"   # 浅蓝底 · 填充 · 不承载文字
+  accent:        "#007A6D"   # 深青 · 白底 5.2:1 AA pass
+  # muted palette · matrix/compare 多色区分用
+  muted_blue:     "#4A7AB5"
+  muted_sand:     "#C9B68E"
+  muted_sage:     "#7E9D91"
+  muted_terra:    "#B56F5C"
+  muted_lavender: "#9B8CBA"
+  muted_ochre:    "#C99E4F"
+
+fonts:
+  ea: "Microsoft YaHei"
+  latin: "Helvetica Neue"
+  num: "Helvetica Neue"
+  title_size_pt: 28
+  body_size_pt: 18
+
+# 17 enum + 兼容老 layout 名(make_compare / make_compare_pk / make_matrix_2x2)
+layouts:
+  cover: make_cover
+  toc: make_toc
+  section_divider: make_section_divider
+  summary: make_summary
+  closing: make_closing
+  quote: null
+  single_focus: make_single_focus
+  cards: make_cards
+  bullet_list: make_bullet_list
+  data: null
+  timeline: null
+  pyramid: null              # tech_blue 不实现 · 用 template_golden
+  venn: null
+  radial: null               # tech_blue 不实现 · 用 template_golden
+  process_flow: null         # tech_blue 不实现 · 用 template_golden
+  quadrant: make_matrix_2x2  # quadrant → make_matrix_2x2(命名 alias)
+  comparison: make_compare
+  # 历史 layout 名 cherry-pick
+  compare: make_compare
+  compare_pk: make_compare_pk
+  matrix_2x2: make_matrix_2x2
+  table: make_table
+  pic_text: make_pic_text
+
+implementation:
+  tier1: false               # tech_blue 是 built-in · 无源 .pptx
+  tier2: true
+  tier3_fallback: tech_blue  # 本身就是 fallback
+  module_path: "tech_blue"   # 直接从 themes/tech_blue.py 加载(top-level · 不从 _legacy/)

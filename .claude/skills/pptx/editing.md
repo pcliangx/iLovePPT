@@ -22,7 +22,7 @@
 
 ## Step 1 — 模板分析三件套（先看再动）
 
-**不要在没有分析模板的情况下直接写代码。** 模板可能有不可见的 iSlide 工具页、不能渲染的特殊 slide、名称误导的 layout。先分析清楚，再动手。
+**不要在没有分析模板的情况下直接写代码。** 模板可能有不可见的工具说明页、不能渲染的特殊 slide、名称误导的 layout。先分析清楚，再动手。
 
 > 💡 如果该模板是 [[pptx-deck]] 生成的（或要用 [[pptx-deck]] 提取风格再生成），可以跳过手动 dump：
 > [[pptx-deck]]/template-extract.md 流程会自动输出 layout 映射与 design token JSON。
