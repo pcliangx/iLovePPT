@@ -48,22 +48,19 @@ def test_vp_and_tpl_ids_coexist(db):
 
 
 def test_template_id_with_double_underscore_rejected(tmp_path, monkeypatch):
-    """ingest_tpl_template 应在 id 含 __ 时 raise ValueError (在 embed API 之前)。"""
+    """_collect_tpl_tasks 应在模板目录名含 __ 时 raise ValueError (P1-6 batch refactor 后路径)。"""
     import qwen_embedding as q
     monkeypatch.setattr(q, "DB_PATH", tmp_path / "test.sqlite")
     monkeypatch.setenv("DASHSCOPE_API_KEY", "test-key")
 
     import embed_text as et
-    item_dir = tmp_path / "bad__name"
-    item_dir.mkdir()
-    (item_dir / "meta.yaml").write_text("id: bad__name\nname: x\n", encoding="utf-8")
+    items_dir = tmp_path / "items"
+    bad = items_dir / "bad__name"
+    bad.mkdir(parents=True)
+    (bad / "meta.yaml").write_text("id: bad__name\nname: x\n", encoding="utf-8")
 
-    db = q.open_db()
-    try:
-        with pytest.raises(ValueError, match="__"):
-            et.ingest_tpl_template(db, item_dir, api_key="test")
-    finally:
-        db.close()
+    with pytest.raises(ValueError, match="__"):
+        et._collect_tpl_tasks(items_dir, target_id=None)
 
 
 def test_page_id_format(db):

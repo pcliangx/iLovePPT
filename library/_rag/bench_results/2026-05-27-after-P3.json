@@ -1,0 +1,396 @@
+{
+  "label": "after-P3",
+  "date": "2026-05-27",
+  "ts": "2026-05-27T09:32:54Z",
+  "mode": "text",
+  "settings": {
+    "top_k": 5,
+    "kb": "pptx-templates",
+    "type": "template",
+    "no_expand": false,
+    "no_inverse_category": false,
+    "low_gap_threshold": 0.05
+  },
+  "summary": {
+    "query_count": 7,
+    "top1_hit_rate": 7,
+    "top1_hit_rate_pct": 1.0,
+    "avg_top1_score": 0.7528,
+    "avg_gap": 0.1283,
+    "low_gap_count": 1,
+    "low_gap_threshold": 0.05
+  },
+  "queries": [
+    {
+      "query": "财务汇报",
+      "expanded_query": "财务汇报 财报 财务报告 净利润 营收 预算 CFO 年度财务 现金流",
+      "expected_top1": "finance_arrow",
+      "expected_top1_id": "tpl:finance_arrow",
+      "actual_top1": "finance_arrow",
+      "actual_top1_id": "tpl:finance_arrow",
+      "top1_score": 0.7639,
+      "top2_score": 0.5745,
+      "gap_to_2": 0.1894,
+      "low_gap": false,
+      "expected_match": true,
+      "rank_of_expected": 1,
+      "category_hint": "finance",
+      "notes": "财务报告专用模板查询",
+      "hits": [
+        {
+          "rank": 1,
+          "id": "tpl:finance_arrow",
+          "score": 0.7639,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-finance"
+        },
+        {
+          "rank": 2,
+          "id": "tpl:enterprise_skyline",
+          "score": 0.5745,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-corporate-report"
+        },
+        {
+          "rank": 3,
+          "id": "tpl:business_geometric",
+          "score": 0.5703,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-strategy"
+        },
+        {
+          "rank": 4,
+          "id": "tpl:product_lineart",
+          "score": 0.548,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-product"
+        },
+        {
+          "rank": 5,
+          "id": "tpl:modern_stripes",
+          "score": 0.535,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-strategy"
+        }
+      ]
+    },
+    {
+      "query": "团队培训 OKR kickoff",
+      "expanded_query": "团队培训 OKR kickoff 团建 OKR kickoff 入职 on-boarding 讲师 workshop 课件",
+      "expected_top1": "training_team",
+      "expected_top1_id": "tpl:training_team",
+      "actual_top1": "training_team",
+      "actual_top1_id": "tpl:training_team",
+      "top1_score": 0.6621,
+      "top2_score": 0.5793,
+      "gap_to_2": 0.0828,
+      "low_gap": false,
+      "expected_match": true,
+      "rank_of_expected": 1,
+      "category_hint": "training",
+      "notes": null,
+      "hits": [
+        {
+          "rank": 1,
+          "id": "tpl:training_team",
+          "score": 0.6621,
+          "row_type": "tpl_template",
+          "category_or_layout": "training-workshop"
+        },
+        {
+          "rank": 2,
+          "id": "tpl:product_lineart",
+          "score": 0.5793,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-product"
+        },
+        {
+          "rank": 3,
+          "id": "tpl:business_geometric",
+          "score": 0.5788,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-strategy"
+        },
+        {
+          "rank": 4,
+          "id": "tpl:modern_stripes",
+          "score": 0.5664,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-strategy"
+        },
+        {
+          "rank": 5,
+          "id": "tpl:enterprise_skyline",
+          "score": 0.5656,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-corporate-report"
+        }
+      ]
+    },
+    {
+      "query": "极光渐变 创意 黑底高级感",
+      "expanded_query": "极光渐变 创意 黑底高级感 aurora gradient creative",
+      "expected_top1": "creative_aurora",
+      "expected_top1_id": "tpl:creative_aurora",
+      "actual_top1": "creative_aurora",
+      "actual_top1_id": "tpl:creative_aurora",
+      "top1_score": 0.8462,
+      "top2_score": 0.5956,
+      "gap_to_2": 0.2506,
+      "low_gap": false,
+      "expected_match": true,
+      "rank_of_expected": 1,
+      "category_hint": "creative-modern",
+      "notes": null,
+      "hits": [
+        {
+          "rank": 1,
+          "id": "tpl:creative_aurora",
+          "score": 0.8462,
+          "row_type": "tpl_template",
+          "category_or_layout": "creative-brand"
+        },
+        {
+          "rank": 2,
+          "id": "tpl:enterprise_skyline",
+          "score": 0.5956,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-corporate-report"
+        },
+        {
+          "rank": 3,
+          "id": "tpl:modern_stripes",
+          "score": 0.5836,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-strategy"
+        },
+        {
+          "rank": 4,
+          "id": "tpl:product_lineart",
+          "score": 0.5835,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-product"
+        },
+        {
+          "rank": 5,
+          "id": "tpl:finance_arrow",
+          "score": 0.5689,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-finance"
+        }
+      ]
+    },
+    {
+      "query": "企业年报 路演",
+      "expanded_query": "企业年报 路演 年度报告 annual report 投资人 IPO 招股 投融资 executive briefing",
+      "expected_top1": "enterprise_skyline",
+      "expected_top1_id": "tpl:enterprise_skyline",
+      "actual_top1": "enterprise_skyline",
+      "actual_top1_id": "tpl:enterprise_skyline",
+      "top1_score": 0.7765,
+      "top2_score": 0.6651,
+      "gap_to_2": 0.1114,
+      "low_gap": false,
+      "expected_match": true,
+      "rank_of_expected": 1,
+      "category_hint": "enterprise-modern",
+      "notes": "已知难点 · baseline 时被 finance_arrow 抢",
+      "hits": [
+        {
+          "rank": 1,
+          "id": "tpl:enterprise_skyline",
+          "score": 0.7765,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-corporate-report"
+        },
+        {
+          "rank": 2,
+          "id": "tpl:finance_arrow",
+          "score": 0.6651,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-finance"
+        },
+        {
+          "rank": 3,
+          "id": "tpl:product_lineart",
+          "score": 0.6091,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-product"
+        },
+        {
+          "rank": 4,
+          "id": "tpl:business_geometric",
+          "score": 0.6055,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-strategy"
+        },
+        {
+          "rank": 5,
+          "id": "tpl:modern_stripes",
+          "score": 0.6008,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-strategy"
+        }
+      ]
+    },
+    {
+      "query": "SWOT 工作汇报",
+      "expanded_query": "SWOT 工作汇报 述职 项目复盘 季度汇报 OKR review 工作总结 PPT quadrant 战略分析",
+      "expected_top1": "business_geometric",
+      "expected_top1_id": "tpl:business_geometric",
+      "actual_top1": "business_geometric",
+      "actual_top1_id": "tpl:business_geometric",
+      "top1_score": 0.7715,
+      "top2_score": 0.7153,
+      "gap_to_2": 0.0562,
+      "low_gap": false,
+      "expected_match": true,
+      "rank_of_expected": 1,
+      "category_hint": "enterprise-modern",
+      "notes": "已知难点 · baseline 时被 finance_arrow 抢",
+      "hits": [
+        {
+          "rank": 1,
+          "id": "tpl:business_geometric",
+          "score": 0.7715,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-strategy"
+        },
+        {
+          "rank": 2,
+          "id": "tpl:modern_stripes",
+          "score": 0.7153,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-strategy"
+        },
+        {
+          "rank": 3,
+          "id": "tpl:finance_arrow",
+          "score": 0.6487,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-finance"
+        },
+        {
+          "rank": 4,
+          "id": "tpl:training_team",
+          "score": 0.618,
+          "row_type": "tpl_template",
+          "category_or_layout": "training-workshop"
+        },
+        {
+          "rank": 5,
+          "id": "tpl:product_lineart",
+          "score": 0.5986,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-product"
+        }
+      ]
+    },
+    {
+      "query": "产品介绍 科技 SaaS",
+      "expanded_query": "产品介绍 科技 SaaS feature 白皮书 whitepaper 技术架构 feature deck 互联网 工具产品",
+      "expected_top1": "product_lineart",
+      "expected_top1_id": "tpl:product_lineart",
+      "actual_top1": "product_lineart",
+      "actual_top1_id": "tpl:product_lineart",
+      "top1_score": 0.7631,
+      "top2_score": 0.6043,
+      "gap_to_2": 0.1588,
+      "low_gap": false,
+      "expected_match": true,
+      "rank_of_expected": 1,
+      "category_hint": "enterprise-modern",
+      "notes": null,
+      "hits": [
+        {
+          "rank": 1,
+          "id": "tpl:product_lineart",
+          "score": 0.7631,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-product"
+        },
+        {
+          "rank": 2,
+          "id": "tpl:business_geometric",
+          "score": 0.6043,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-strategy"
+        },
+        {
+          "rank": 3,
+          "id": "tpl:creative_aurora",
+          "score": 0.6021,
+          "row_type": "tpl_template",
+          "category_or_layout": "creative-brand"
+        },
+        {
+          "rank": 4,
+          "id": "tpl:modern_stripes",
+          "score": 0.5863,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-strategy"
+        },
+        {
+          "rank": 5,
+          "id": "tpl:enterprise_skyline",
+          "score": 0.5856,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-corporate-report"
+        }
+      ]
+    },
+    {
+      "query": "斜切条纹 几何工业",
+      "expanded_query": "斜切条纹 几何工业 现代 硬朗 diagonal",
+      "expected_top1": "modern_stripes",
+      "expected_top1_id": "tpl:modern_stripes",
+      "actual_top1": "modern_stripes",
+      "actual_top1_id": "tpl:modern_stripes",
+      "top1_score": 0.6864,
+      "top2_score": 0.6378,
+      "gap_to_2": 0.0486,
+      "low_gap": true,
+      "expected_match": true,
+      "rank_of_expected": 1,
+      "category_hint": "enterprise-modern",
+      "notes": null,
+      "hits": [
+        {
+          "rank": 1,
+          "id": "tpl:modern_stripes",
+          "score": 0.6864,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-strategy"
+        },
+        {
+          "rank": 2,
+          "id": "tpl:business_geometric",
+          "score": 0.6378,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-strategy"
+        },
+        {
+          "rank": 3,
+          "id": "tpl:creative_aurora",
+          "score": 0.5174,
+          "row_type": "tpl_template",
+          "category_or_layout": "creative-brand"
+        },
+        {
+          "rank": 4,
+          "id": "tpl:enterprise_skyline",
+          "score": 0.5073,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-corporate-report"
+        },
+        {
+          "rank": 5,
+          "id": "tpl:product_lineart",
+          "score": 0.5026,
+          "row_type": "tpl_template",
+          "category_or_layout": "enterprise-product"
+        }
+      ]
+    }
+  ]
+}
