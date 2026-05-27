@@ -1,4 +1,4 @@
-"""Generate placeholder_map.yaml.draft skeleton · script computes tree_path, LLM fills semantics.
+"""Generate placeholder_map.yaml.draft skeleton · script computes tree_path + shape_id, LLM fills semantics.
 
 Usage:
     inspect_placeholders.py <pptx_path> <page_idx>      # page_idx 0-indexed
@@ -8,7 +8,8 @@ Output (stdout, YAML):
     layout_class: "?"          # extractor sets to match meta.yaml.draft.layout_type
     slots:
       - id: "?"                # extractor fills with "title" / "tier_1" / "card_1_body"
-        tree_path: '3'
+        shape_id: 17           # python-pptx sp.shape_id (stable within template)
+        tree_path: '3'         # depth-first index, kept as fallback / human-readable
         raw_text_sample: "深蓝主标题"
         bbox: { left: 1.0, top: 2.0, width: 8.0, height: 1.0 }   # inches
         font_size_pt: 44
@@ -28,6 +29,19 @@ from pathlib import Path
 import yaml
 from pptx import Presentation
 from pptx.util import Emu
+
+
+def _safe_shape_id(shape) -> int | None:
+    """Return python-pptx sp.shape_id if available, else None.
+
+    Group child shapes also expose shape_id. Some custom shapes / picture
+    placeholders may raise AttributeError if the underlying XML is unusual.
+    """
+    try:
+        sid = shape.shape_id
+        return int(sid) if sid is not None else None
+    except (AttributeError, ValueError, TypeError):
+        return None
 
 
 def walk_shapes(shapes, prefix: str = "") -> list[dict]:
@@ -56,6 +70,7 @@ def walk_shapes(shapes, prefix: str = "") -> list[dict]:
                 pass
             out.append({
                 "tree_path": path,
+                "shape_id": _safe_shape_id(shape),
                 "raw_text_sample": text[:60],
                 "bbox": {
                     "left": round(Emu(shape.left).inches, 2) if shape.left is not None else 0.0,
@@ -65,6 +80,24 @@ def walk_shapes(shapes, prefix: str = "") -> list[dict]:
                 },
                 "font_size_pt": font_size,
             })
+    return out
+
+
+def walk_all_shape_ids(shapes, prefix: str = "") -> dict[str, int | None]:
+    """Walk every shape (text or not, group children included), return {tree_path: shape_id}.
+
+    Used by backfill / self-check to look up shape_id from an existing tree_path
+    without filtering on has_text_frame.
+    """
+    out: dict[str, int | None] = {}
+    for i, shape in enumerate(shapes):
+        path = f"{prefix}{i}" if not prefix else f"{prefix}.{i}"
+        out[path] = _safe_shape_id(shape)
+        if shape.shape_type == 6:  # group
+            try:
+                out.update(walk_all_shape_ids(shape.shapes, prefix=path))
+            except (AttributeError, ValueError):
+                pass
     return out
 
 
@@ -91,6 +124,7 @@ def inspect(pptx_path: Path, page_idx: int) -> dict:
     for leaf in leaves:
         slots.append({
             "id": "?",
+            "shape_id": leaf["shape_id"],
             "tree_path": leaf["tree_path"],
             "raw_text_sample": leaf["raw_text_sample"],
             "bbox": leaf["bbox"],

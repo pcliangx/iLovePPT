@@ -62,3 +62,21 @@ def test_slots_sorted_top_to_bottom():
     data = yaml.safe_load(out)
     tops = [s["bbox"]["top"] for s in data["slots"]]
     assert tops == sorted(tops), f"slots not sorted top-to-bottom: {tops}"
+
+
+def test_shape_id_present_in_each_slot():
+    """Every slot must expose a `shape_id` field (int or null)."""
+    code, out, _ = run(SAMPLE_PPTX, 0)
+    data = yaml.safe_load(out)
+    for slot in data["slots"]:
+        assert "shape_id" in slot, f"slot missing shape_id: {slot}"
+        sid = slot["shape_id"]
+        assert sid is None or isinstance(sid, int), f"shape_id must be int|null, got {sid!r}"
+
+
+def test_shape_ids_unique_within_slide():
+    """python-pptx sp.shape_id is unique within a slide. Inspect output should reflect that."""
+    code, out, _ = run(SAMPLE_PPTX, 0)
+    data = yaml.safe_load(out)
+    ids = [s["shape_id"] for s in data["slots"] if s["shape_id"] is not None]
+    assert len(ids) == len(set(ids)), f"shape_ids should be unique within a slide: {ids}"

@@ -205,5 +205,16 @@ library/_rag/.venv/bin/python \
   library/pptx-templates/scripts/extractor_self_check.py <name>
 ```
 
-Exit code: 0=全过 / 1=字段 enum 错 / 2=pmap tree_path 错 / 3=YAML 语法 / 4=目录不存在。
-脚本会校验 9 项(YAML 语法 / 模板字段 / 页字段 / enum / id 格式 + 唯一 / confidence 数字+范围 / embedding_dim==1152 / extraction 算式 / pmap tree_path resolve)。
+Exit code: 0=全过 / 1=字段 enum / list element type / shape_id resolve 错 / 2=pmap tree_path 错 / 3=YAML 语法 / 4=目录不存在。
+脚本会校验 11 项:
+1. YAML 语法
+2. 模板字段必填
+3. 页字段必填
+4. enum(`layout_type` 17 种 + `other`)
+5. id 格式 + 唯一
+6. confidence 数字 + 范围 [0,1]
+7. `provenance.embedding_dim == 1152`
+8. extraction 算式自洽(`declared - rendered == discrepancy`)
+9. pmap tree_path resolve(**仅 `.draft` 文件**;approved `.yaml` 文件由 #11 兜底)
+10. **list element type**(`keywords / content_intent / when_to_use / native_elements / recommended_for / visual_signature` 每个 element 必须是 `str`,防 `[..., 1]` int 混入导致下游 embed crash)
+11. **shape_id resolve**(`.yaml` + `.yaml.draft` 都查;每个 slot `shape_id`(非 null)必须能在 source `.pptx` 对应 slide 找到;`shape_id: null` 允许作 fallback,但若 source `.pptx` 缺失则报 `SOURCE_PPTX_MISSING`)
