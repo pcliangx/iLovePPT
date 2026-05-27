@@ -60,19 +60,32 @@ color: yellow
 ## 入参契约
 
 ```yaml
-working_dir: /abs/path/to/deck-工作目录    # 必填 (用于错误日志)
-template_path: /abs/path/to/company_a.pptx # 必填 — 用户给的模板源文件
-name: company_a                            # 可选, 默认 = Path(template_path).stem
+working_dir: /abs/path/to/deck-工作目录    # 必填
+template_path: /abs/path/to/company_a.pptx # 入参 mode=full / re_render_only / dry_run 必填;mode=placeholder_map_only 可省
+name: company_a                            # 可选, 默认 = Path(template_path).stem;mode=placeholder_map_only 必填
+mode: full                                 # 可选: full(默认) | placeholder_map_only | dry_run | re_render_only
+overwrite: false                           # 可选 · items/<name>/meta.yaml 已存在时是否允许覆盖
 ```
+
+**mode 语义**:
+- `full` — Step 0 → 5 全跑
+- `placeholder_map_only` — 跳 Step 1/2/2.5/3.1/3.2,**只**对每页跑 Step 3.1.5 生成 placeholder_map.yaml.draft(回填工程用,要求 meta.yaml 已存在)
+- `dry_run` — Step 0 → 2.5,return 数字 + 预估时间,不写任何 .draft 文件
+- `re_render_only` — Step 0 → 2.5,**保留** items/<name>/pages/*/meta.yaml,只重渲染 PNG(LibreOffice 升级 / dpi 调整)
 
 ## 流程
 
 ### Step 0 · 校验
 
-1. 验证 `template_path` 文件存在
-2. 计算 `<name>`(若入参没给则 `Path(template_path).stem`)
-3. **reject 含 `__` 的 name**(会跟 page id 分隔符冲突)→ return error
-4. 检查 `library/pptx-templates/items/<name>/meta.yaml` 是否已存在 → 若存在 + 用户没明确 overwrite,return 提示已入库
+1. 入参 mode 校验:`mode in {full, placeholder_map_only, dry_run, re_render_only}` · 否则 return `code: INVALID_MODE`
+2. 入参 path 校验:
+   - mode != placeholder_map_only:`template_path` 文件存在
+   - 任何 mode:`<name>` 不含 `__` / `/` / `..` / 空格(reject `code: NAME_INVALID_CHARS`)
+3. 计算 `<name>`(若入参没给则 `Path(template_path).stem`)
+4. disk space precheck:`df -k library/pptx-templates/items` 可用 ≥ 500MB · 否则 return `code: DISK_LOW`
+5. 已入库检查:
+   - `items/<name>/meta.yaml`(无 .draft 后缀)已存在 + mode=full + overwrite=false → return `code: ALREADY_INGESTED`,提示用户加 `overwrite: true` 或换 name
+   - `items/<name>/meta.yaml` 不存在 + mode=placeholder_map_only → return `code: META_NOT_FOUND`(回填工程需要已 ingest 的模板)
 
 ### Step 1 · 复制 .pptx 到 _source/
 
