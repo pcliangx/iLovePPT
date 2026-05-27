@@ -1,0 +1,51 @@
+# bench_queries.yaml · RAG 7 query golden set · 修改 query 集 = baseline 失效
+#
+# 用途:RAG regression bench 的 SSOT。
+#   - bench.py 读此文件 → 跑 search → 输出 JSON/Markdown
+#   - 改动 search.py / embed_*.py / kb 之后:重跑 bench,对比 baseline
+#   - 修改 query 集(增/删/改 query 或 expected)= 之前 baseline 失效,需重新跑 baseline
+#
+# Field 说明:
+#   query            · 检索词,跟用户实际输入风格一致(短词 / 关键词混合)
+#   expected_top1    · 期望 #1 命中的模板 short id(无 tpl: 前缀;bench.py 自动加)
+#   category_hint    · 模板所属 category(用于 P0-4 inverse-category penalty 之后的回归)
+#   notes            · 备注,标注已知难点 / 历史问题
+
+queries:
+  - query: "财务汇报"
+    expected_top1: "finance_arrow"
+    category_hint: finance
+    notes: 财务报告专用模板查询
+
+  - query: "团队培训 OKR kickoff"
+    expected_top1: "training_team"
+    category_hint: training
+
+  - query: "极光渐变 创意 黑底高级感"
+    expected_top1: "creative_aurora"
+    category_hint: creative-modern
+
+  - query: "企业年报 路演"
+    expected_top1: "enterprise_skyline"
+    category_hint: enterprise-modern
+    notes: 已知难点 · baseline 时被 finance_arrow 抢 #1
+
+  - query: "SWOT 工作汇报"
+    expected_top1: "business_geometric"
+    category_hint: enterprise-modern
+    notes: 已知难点 · baseline 时被 finance_arrow 抢 #1
+
+  - query: "产品介绍 科技 SaaS"
+    expected_top1: "product_lineart"
+    category_hint: enterprise-modern
+
+  - query: "斜切条纹 几何工业"
+    expected_top1: "modern_stripes"
+    category_hint: enterprise-modern
+
+settings:
+  top_k: 5
+  kb: pptx-templates
+  type: template
+  modes: ["text"]   # 至少跑 text · 可拓展 ["text", "hybrid"]
+  low_gap_threshold: 0.05

@@ -26,6 +26,18 @@ def _blob(v: list[float]) -> bytes:
     return struct.pack(f"{len(v)}f", *v)
 
 
+def _should_skip_page(page_data: dict) -> bool:
+    """跳过 iSlide 工具说明页(layout_type == 'other' AND needs_manual_review == true)。
+
+    这类 page 的 keywords 含通用词(design criteria / template reference 等),
+    embed 入库会污染 RAG 检索结果。
+    """
+    return (
+        page_data.get("layout_type") == "other"
+        and page_data.get("needs_manual_review") is True
+    )
+
+
 def _embed_one(db, item_id: str, preview: Path, api_key: str) -> bool:
     if not preview.exists():
         print(f"  skip(无 preview.png): {item_id}")
@@ -75,6 +87,13 @@ def run(kb: str | None, target_id: str | None) -> None:
                             continue
                         pg_data = _yaml.safe_load(m.read_text(encoding="utf-8"))
                         pg_id = f"tpl:{pg_data['id']}"
+                        if _should_skip_page(pg_data):
+                            print(f"[tpl-page] SKIPPED (tool page): {pg_id}", flush=True)
+                            # 清理已 embed 的旧数据(tpl_pages + text_emb + image_emb)
+                            db.execute("DELETE FROM tpl_pages WHERE id = ?", (pg_id,))
+                            db.execute("DELETE FROM text_emb WHERE id = ?", (pg_id,))
+                            db.execute("DELETE FROM image_emb WHERE id = ?", (pg_id,))
+                            continue
                         print(f"[tpl-page] {pg_id}", flush=True)
                         if _embed_one(db, pg_id, pg, api_key):
                             done += 1

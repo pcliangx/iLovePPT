@@ -20,6 +20,7 @@ import argparse
 import json
 import struct
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
@@ -28,6 +29,8 @@ from qwen_embedding import embed_image, embed_text, get_api_key, open_db  # noqa
 
 DEFAULT_FALLBACK_THRESHOLD = 0.55
 DEFAULT_TOP_K = 5
+QUERY_LOG_PATH = SCRIPT_DIR / "_rag" / "query_log.jsonl"
+INVERSE_CATEGORY_PENALTY = 0.85
 
 # 静态查询扩展表 · 短 query 经常召回不准,撞到关键词触发同领域补词
 # 触发词必须是 query 的子串。每次最多补 8 个补词
@@ -73,6 +76,51 @@ def expand_query(q: str, enabled: bool = True) -> str:
         if len(deduped) >= 8:
             break
     return q + " " + " ".join(deduped) if deduped else q
+
+
+# Category 触发词表 · query 含明确 category 信号时,非该 category 的 hit 软降权(× 0.85)
+# 跟 EXPANSION_HINTS 互补:EXPANSION 解决"召回不准",CATEGORY 解决"召回到但排序不对"
+CATEGORY_HINTS: dict[str, str] = {
+    "财务汇报":   "finance",
+    "财务":       "finance",
+    "财报":       "finance",
+    "财务数据":   "finance",
+    "财务分析":   "finance",
+    "净利润":     "finance",
+    "团建":       "training",
+    "团队培训":   "training",
+    "培训":       "training",
+    "员工培训":   "training",
+    "OKR kickoff": "training",
+    "极光":       "creative-modern",
+    "创意":       "creative-modern",
+    "黑底高级感": "creative-modern",
+    "渐变":       "creative-modern",
+    "高端":       "creative-modern",
+    "工作汇报":   "enterprise-modern",
+    "述职":       "enterprise-modern",
+    "项目复盘":   "enterprise-modern",
+    "年报":       "enterprise-modern",
+    "年度报告":   "enterprise-modern",
+    "路演":       "enterprise-modern",
+    "SWOT":       "enterprise-modern",
+    "战略分析":   "enterprise-modern",
+    "产品介绍":   "enterprise-modern",
+    "技术架构":   "enterprise-modern",
+    "SaaS":       "enterprise-modern",
+    "斜切条纹":   "enterprise-modern",
+    "几何工业":   "enterprise-modern",
+}
+
+
+def infer_category(query: str) -> str | None:
+    """扫触发词,返回首个 match 的 category(按 dict 插入序)。无 match → None。"""
+    if not query:
+        return None
+    for trigger, cat in CATEGORY_HINTS.items():
+        if trigger in query:
+            return cat
+    return None
 
 
 def _blob(v: list[float]) -> bytes:
@@ -147,6 +195,27 @@ def _row_dict(r: tuple, row_type: str) -> dict:
     }
 
 
+def _apply_inverse_category(results: list[dict], inferred_cat: str | None, mode: str) -> None:
+    """对 hits 做 in-place 软降权:非 inferred_cat 的 score × 0.85,distance 反算。
+
+    仅 text / hybrid mode 生效(image mode 走视觉相似,category 信号无意义)。
+    只比对 tpl_template 这类带 category 字段的 row;tpl_page 用 layout_type 不参与。
+    """
+    if not inferred_cat or mode == "image":
+        return
+    for h in results:
+        # tpl_page 的 category_or_layout 是 layout_type(不是 category),跳过
+        if h.get("row_type") == "tpl_page":
+            continue
+        hit_cat = h.get("category_or_layout") or ""
+        if not hit_cat or hit_cat == inferred_cat:
+            continue
+        new_score = h["score"] * INVERSE_CATEGORY_PENALTY
+        h["score"] = round(new_score, 4)
+        h["distance"] = round(1.0 - new_score, 4)
+        h["inverse_category_applied"] = True
+
+
 def search(
     query: str | None,
     query_image: str | None,
@@ -159,6 +228,7 @@ def search(
     mode: str,
     text_weight: float = 0.6,
     image_weight: float = 0.4,
+    inverse_category: bool = True,
 ) -> list[dict]:
     api_key = get_api_key()
     db = open_db()
@@ -179,6 +249,8 @@ def search(
         return _query_table(db, kb_table, emb_table, q_blob, where, params, k)
 
     pref_id = f"tpl:{preferred_template}" if preferred_template else None
+
+    inferred_cat = infer_category(query) if (inverse_category and query) else None
 
     def _do_query(target_kb: str, target_type: str, filter_parent: str | None, k: int):
         out: list[dict] = []
@@ -213,6 +285,7 @@ def search(
 
     if pref_id:
         primary = _do_query("pptx-templates", "page", pref_id, top_k)
+        _apply_inverse_category(primary, inferred_cat, mode)
         primary.sort(key=lambda x: x["distance"])
         for r in primary:
             r["source"] = "preferred-template"
@@ -221,6 +294,7 @@ def search(
             db.close()
             return primary[:top_k]
         fallback = _do_query("visual-patterns", "item", None, top_k)
+        _apply_inverse_category(fallback, inferred_cat, mode)
         for r in fallback:
             r["source"] = "visual-patterns"
         combined = primary + fallback
@@ -236,11 +310,45 @@ def search(
         return deduped[:top_k]
     else:
         out = _do_query(kb, type_, None, top_k * 3)
+        _apply_inverse_category(out, inferred_cat, mode)
         out.sort(key=lambda x: x["distance"])
         for r in out:
             r["source"] = "preferred-template" if r["row_type"].startswith("tpl_") else "visual-patterns"
         db.close()
         return out[:top_k]
+
+
+def _log_query(args, expanded_query: str | None, results: list[dict]) -> None:
+    """append 一行 JSONL 到 query_log.jsonl。失败 silent,只打 stderr warn。"""
+    try:
+        hits_brief = [
+            {
+                "rank": i + 1,
+                "id": h.get("id"),
+                "row_type": h.get("row_type"),
+                "category_or_layout": h.get("category_or_layout") or "",
+                "score": h.get("score"),
+            }
+            for i, h in enumerate(results)
+        ]
+        record = {
+            "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "query": args.query,  # 注意:此时 args.query 已被 expand_query 覆写过(若启用)
+            "query_image": args.query_image,
+            "expanded_query": expanded_query,
+            "mode": args.mode,
+            "kb": args.kb,
+            "type": args.type_,
+            "preferred_template": args.preferred_template,
+            "top_k": args.top_k,
+            "results_count": len(results),
+            "hits": hits_brief,
+        }
+        QUERY_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(QUERY_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except Exception as e:
+        print(f"[search.py] WARN: query_log 写失败 — {type(e).__name__}: {e}", file=sys.stderr)
 
 
 USAGE_EPILOG = """\
@@ -283,6 +391,9 @@ def main():
     p.add_argument("--text-weight", type=float, default=0.6, help="hybrid 模式 text 权重(默认 0.6)")
     p.add_argument("--image-weight", type=float, default=0.4, help="hybrid 模式 image 权重(默认 0.4)")
     p.add_argument("--no-expand", action="store_true", help="关闭 query 静态扩展(默认开)")
+    p.add_argument("--no-inverse-category", action="store_true",
+                   help="关闭 inverse-category 软降权(默认开 · 仅 text/hybrid mode 生效)")
+    p.add_argument("--no-log", action="store_true", help="关闭 query 日志写入(便于 batch 测试不污染)")
     p.add_argument("--kb", default="all", choices=["visual-patterns", "pptx-templates", "all"])
     p.add_argument("--type", dest="type_", default="any", choices=["item", "template", "page", "any"])
     p.add_argument("--category", default=None)
@@ -295,6 +406,7 @@ def main():
     if not args.query and not args.query_image:
         p.error("必须提供 --query 或 --query-image")
 
+    original_query = args.query
     if args.query:
         args.query = expand_query(args.query, enabled=not args.no_expand)
 
@@ -310,7 +422,14 @@ def main():
         mode=args.mode,
         text_weight=args.text_weight,
         image_weight=args.image_weight,
+        inverse_category=not args.no_inverse_category,
     )
+
+    if not args.no_log:
+        # log 原 query + 扩展后 query 分开记
+        log_args = argparse.Namespace(**vars(args))
+        log_args.query = original_query
+        _log_query(log_args, expanded_query=args.query, results=results)
 
     if args.format == "json":
         print(json.dumps(results, indent=2, ensure_ascii=False))

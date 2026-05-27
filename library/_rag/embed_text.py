@@ -42,6 +42,18 @@ def _now() -> str:
     return datetime.utcnow().isoformat() + "Z"
 
 
+def _should_skip_page(page_data: dict) -> bool:
+    """跳过 iSlide 工具说明页(layout_type == 'other' AND needs_manual_review == true)。
+
+    这类 page 的 keywords 含通用词(design criteria / template reference 等),
+    embed 入库会污染 RAG 检索结果。
+    """
+    return (
+        page_data.get("layout_type") == "other"
+        and page_data.get("needs_manual_review") is True
+    )
+
+
 def ingest_vp_item(db, item_dir: Path, api_key: str) -> str:
     meta_path = item_dir / "meta.yaml"
     if not meta_path.exists():
@@ -109,6 +121,15 @@ def ingest_tpl_template(db, item_dir: Path, api_key: str) -> str:
 
     if pages_dir.exists():
         for page_meta in sorted(pages_dir.glob("*/meta.yaml")):
+            page_data = yaml.safe_load(page_meta.read_text(encoding="utf-8"))
+            page_full_id = f"tpl:{page_data['id']}"
+            if _should_skip_page(page_data):
+                print(f"[tpl-page] SKIPPED (tool page): {page_full_id}", flush=True)
+                # 清理已 embed 的旧数据(tpl_pages + text_emb + image_emb)
+                db.execute("DELETE FROM tpl_pages WHERE id = ?", (page_full_id,))
+                db.execute("DELETE FROM text_emb WHERE id = ?", (page_full_id,))
+                db.execute("DELETE FROM image_emb WHERE id = ?", (page_full_id,))
+                continue
             ingest_tpl_page(db, page_meta.parent, parent_id=full_id, api_key=api_key)
     return full_id
 
