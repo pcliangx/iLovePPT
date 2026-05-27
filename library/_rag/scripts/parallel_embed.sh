@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # 并行跑 text + image embed(不同表 text_emb / image_emb · 不冲突)
 #
+# P3-6 · WAL 后真正并发不冲突,可放心并跑
+#   · journal_mode=WAL · 写不阻塞读 · 多 reader / 单 writer 并发
+#   · busy_timeout=10000 · 元数据写(tpl_templates / tpl_pages)若撞锁等 10s 兜底
+#   text_emb / image_emb 两表本就不冲突;元数据写有 busy_timeout 兜住 — 见 qwen_embedding.open_db
+#
 # 用法:
 #   parallel_embed.sh                              # 两 kb 全跑
 #   parallel_embed.sh pptx-templates               # 只 pptx-templates

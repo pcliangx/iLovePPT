@@ -177,7 +177,7 @@
 | P3-3 | ✓ | build.py 拆分 · `builder/{base,tier1,tier2,tier3}.py` | 2d |
 | P3-4 | ☐ | Hosted embedding endpoint mode · `embed_*.py --remote http://...` | 3d |
 | P3-5 | ✓ | RAG quality feedback loop · `feedback.jsonl` · score < 7 pattern 降权 | 2d |
-| P3-6 | ☐ | DB 升级 · SQLite WAL 或 pgvector | 2d |
+| P3-6 | ✓ | DB 升级 · SQLite WAL 或 pgvector | 2d |
 | P3-7 | ✓ | subagent Haiku 路由 · self_check / yaml fix 用 Haiku | 1d |
 
 ### P3-B · 新功能 / 扩展
@@ -186,10 +186,10 @@
 |---|---|---|---|
 | P3-8 | ✓ | `library/deck-skeletons/` SSOT · 季度报/postmortem scaffold | 3d |
 | P3-9 | ✓ | 多模板组合 deck · `brief.theme: list` · 跨模板 deep-copy | 1w |
-| P3-10 | ☐ | 中英文混排 · `mixed_lang_text(runs)` | 2d |
+| P3-10 | ✓ | 中英文混排 · `mixed_lang_text(runs)` | 2d |
 | P3-11 | ☐ | 多语言支持 · en-US / ja-JP | 2w |
 | P3-12 | ☐ | a11y · 对比度 WCAG AA / alt-text / 屏幕阅读器 | 1w |
-| P3-13 | ☐ | `scripts/deck_diff.py` 语义 diff | 2d |
+| P3-13 | ✓ | `scripts/deck_diff.py` 语义 diff | 2d |
 | P3-14 | ✓ | `scripts/clip_chapter.py` 跨 deck 章节复制 | 1d |
 | P3-15 | ✓ | 模板版本管理 · `source_pptx_version` + sha 跑 self_check | 2d |
 | P3-16 | ☐ | layout 分类小 CV 模型 · resnet 走 extractor 快路径 · 80% page token 省 | 1w |
@@ -201,7 +201,7 @@
 |---|---|---|---|
 | P3-18 | ✓ | API key rotation · secrets manager | 1d |
 | P3-19 | ✓ | pre-commit hook 扫敏感数据 · `_assets/raw` 强警告 | 4h |
-| P3-20 | ☐ | `.gitignore.lint` · 3 份规则一致性自动校 | 4h |
+| P3-20 | ✓ | `.gitignore.lint` · 3 份规则一致性自动校 | 4h |
 | P3-21 | ✓ | RAG query log 脱敏 · 邮箱 / 手机号 / 钱数 redact | 2h |
 | P3-22 | ✓ | 模板入库 detect 第三方水印 + 版权 LOGO · 强警告 | 4h |
 

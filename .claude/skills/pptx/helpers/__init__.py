@@ -38,6 +38,12 @@ FONT_CN        = "Microsoft YaHei"        # 系统兼容默认(broad compatibili
 FONT_CN_DESIGN = "Source Han Sans CN"     # 设计感更强,需用户安装思源黑体
 FONT_EN  = "Helvetica Neue"
 FONT_NUM = "Helvetica Neue"
+# FONT_LATIN: 给 mixed_lang_text 用的英文 / latin 段字体。
+# 跟 FONT_EN 区别 — FONT_EN 是装饰 / icon 场景的设计字体(Helvetica Neue 偏 macOS),
+# FONT_LATIN 是混排正文场景的 broad compatibility default(Arial,所有 OS 默认装)。
+# 混排场景的英文段必须用 Arial 这种到处都有的字体,避免 Helvetica Neue 在 Windows
+# 渲染时 fallback 成 Arial 后跟中文 EA(YaHei)字重 / metric 不匹配。
+FONT_LATIN = "Arial"
 
 # fallback 链:渲染端如缺当前字体,按此顺序查找替代
 FONT_FALLBACK_CHAIN = (

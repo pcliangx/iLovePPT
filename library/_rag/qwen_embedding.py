@@ -234,13 +234,14 @@ def open_db(db_path: Path | None = None) -> sqlite3.Connection:
     db = sqlite3.connect(db_path or DB_PATH, timeout=30)
     db.enable_load_extension(True)
     sqlite_vec.load(db)
-    # P1-7 parallel_embed.sh 让 text + image 两进程同时写 db.sqlite,WAL 模式才能 multi-writer
-    # 旧 rollback 模式 + 30s busy_timeout 也能勉强(SQLite 写锁串行),但 WAL 更稳
-    try:
-        db.execute("PRAGMA journal_mode=WAL")
-        db.execute("PRAGMA busy_timeout=30000")
-    except sqlite3.OperationalError:
-        pass
+    # P3-6 · WAL mode + busy_timeout 防 parallel 锁
+    # parallel_embed.sh 让 text + image 两进程同时写 db.sqlite,WAL 才能多 reader / 单 writer 并发
+    # · journal_mode=WAL · 写不阻塞读;运行时生成 db.sqlite-wal / db.sqlite-shm 辅助文件
+    # · busy_timeout=10000 · 元数据写撞锁时等 10s 再报(大多场景 < 10s 写完)
+    # · synchronous=NORMAL · WAL 模式下 NORMAL 跟 FULL 持久性差不多但快
+    db.execute("PRAGMA journal_mode=WAL")
+    db.execute("PRAGMA busy_timeout=10000")
+    db.execute("PRAGMA synchronous=NORMAL")
 
     # 1. visual-patterns items(扁平)
     db.execute(

@@ -41,6 +41,9 @@ library/_rag/.venv/
 library/_rag/.env
 library/_rag/.env.*
 library/_rag/db.sqlite
+# P3-6 WAL 模式辅助文件(运行时生成,不入 git)
+library/_rag/db.sqlite-wal
+library/_rag/db.sqlite-shm
 library/_rag/.cache/
 library/_rag/query_log.jsonl
 library/_rag/external_query_cache.jsonl
