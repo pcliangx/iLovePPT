@@ -40,12 +40,17 @@ ID_RE = re.compile(r"^[a-z0-9_-]+__\d{2}-[a-z_]+$")
 def load_yaml(path: Path) -> tuple[dict | None, str | None]:
     """返回 (data, error_msg). data is None 时 error_msg 非空."""
     try:
-        with open(path) as f:
-            return yaml.safe_load(f), None
+        with open(path, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
     except yaml.YAMLError as e:
         return None, str(e).split("\n")[0]
     except FileNotFoundError:
         return None, f"file not found: {path}"
+    if data is None:
+        return None, "file is empty or null"
+    if not isinstance(data, dict):
+        return None, f"YAML_NOT_A_DICT: top-level is {type(data).__name__}, expected dict"
+    return data, None
 
 
 def check(name: str, items_root: Path) -> int:
@@ -93,10 +98,12 @@ def check(name: str, items_root: Path) -> int:
             if f not in data:
                 errors.append(f"MISSING_PAGE_FIELD: {p}: {f}")
 
-    # 3. layout_type enum
+    # 3. layout_type enum (None/"" treated as invalid, not skipped)
     for p, data in page_metas:
         lt = data.get("layout_type")
-        if lt and lt not in ALLOWED_LAYOUTS:
+        if not isinstance(lt, str) or not lt:
+            errors.append(f"LAYOUT_TYPE_INVALID: {p}: layout_type={lt!r} (must be non-empty string)")
+        elif lt not in ALLOWED_LAYOUTS:
             errors.append(f"ENUM_VIOLATION: {p}: layout_type={lt}")
 
     # 4. id 格式 + 唯一性
@@ -119,18 +126,20 @@ def check(name: str, items_root: Path) -> int:
 
     # 6. provenance.embedding_dim == 1152
     if tpl_meta:
-        prov = tpl_meta.get("provenance", {})
+        prov = tpl_meta.get("provenance") or {}
         if prov.get("embedding_dim") != 1152:
             errors.append(f"EMBEDDING_DIM_WRONG: {tpl_meta_path}: got {prov.get('embedding_dim')}, expected 1152")
 
     # 7. extraction 算式自洽
     if tpl_meta:
-        ext = tpl_meta.get("extraction", {})
+        ext = tpl_meta.get("extraction") or {}
         d = ext.get("declared_pages")
         r = ext.get("rendered_pages")
         disc = ext.get("discrepancy")
         if d is not None and r is not None and disc is not None:
-            if d - r != disc:
+            if not all(isinstance(x, int) for x in (d, r, disc)):
+                errors.append(f"EXTRACTION_TYPE_INVALID: {tpl_meta_path}: declared/rendered/discrepancy must be int, got ({type(d).__name__}, {type(r).__name__}, {type(disc).__name__})")
+            elif d - r != disc:
                 errors.append(f"EXTRACTION_MATH_INCONSISTENT: declared={d} rendered={r} discrepancy={disc}")
 
     # 8. template_name 跟父目录名一致

@@ -44,3 +44,53 @@ def test_nonexistent_template_fails_with_code_4():
     code, out = run("does_not_exist", FIXTURES)
     assert code == 4
     assert "TEMPLATE_NOT_FOUND" in out
+
+
+def test_yaml_list_at_top_level_exits_3(tmp_path):
+    """YAML list (not dict) at template level → exit 3, no traceback."""
+    fix = tmp_path / "yaml_list"
+    fix.mkdir()
+    (fix / "meta.yaml.draft").write_text("- item1\n- item2\n")
+    pages = fix / "pages" / "01-cover"
+    pages.mkdir(parents=True)
+    (pages / "meta.yaml.draft").write_text("status: draft\nlayout_type: cover\n")
+    code, out = run("yaml_list", tmp_path)
+    assert code == 3, f"{code}\n{out}"
+    assert "YAML_NOT_A_DICT" in out
+
+
+def test_null_provenance_does_not_crash(tmp_path):
+    """provenance: null → caught as EMBEDDING_DIM_WRONG, not AttributeError."""
+    fix = tmp_path / "null_prov"
+    fix.mkdir()
+    # Build minimal template with provenance: null
+    (fix / "meta.yaml.draft").write_text(
+        "status: draft\nid: null_prov\nname: x\ncategory: test\n"
+        "content_intent: [x]\nwhen_to_use: [x]\nkeywords: [x]\n"
+        "recommended_for: [x]\nvisual_signature: [x]\n"
+        "provenance: null\nextraction: null\n"
+    )
+    pages = fix / "pages" / "01-cover"
+    pages.mkdir(parents=True)
+    (pages / "meta.yaml.draft").write_text(
+        "status: draft\nconfidence: 0.9\nid: null_prov__01-cover\n"
+        "name: x\nlayout_type: cover\ncontent_intent: [x]\nwhen_to_use: [x]\n"
+        "keywords: [x]\nnative_elements: [x]\n"
+    )
+    code, out = run("null_prov", tmp_path)
+    assert code == 1, f"{code}\n{out}"
+    assert "Traceback" not in out
+    assert "EMBEDDING_DIM_WRONG" in out
+
+
+def test_null_layout_type_does_not_pass(tmp_path):
+    """layout_type: null → LAYOUT_TYPE_INVALID, exit 1, not silent pass."""
+    import shutil
+    src = FIXTURES / "minimal_template_ok"
+    dst = tmp_path / "null_layout"
+    shutil.copytree(src, dst)
+    page = dst / "pages" / "01-cover" / "meta.yaml.draft"
+    page.write_text(page.read_text().replace("layout_type: cover", "layout_type: null"))
+    code, out = run("null_layout", tmp_path)
+    assert code == 1
+    assert "LAYOUT_TYPE_INVALID" in out
