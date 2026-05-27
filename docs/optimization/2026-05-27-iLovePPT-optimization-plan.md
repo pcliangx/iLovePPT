@@ -176,34 +176,34 @@
 | P3-2 | ✓ | Layout plugin/hook · `helpers.py/layouts/<name>.py` 自动发现 · `make_*` dynamic register | 3d |
 | P3-3 | ✓ | build.py 拆分 · `builder/{base,tier1,tier2,tier3}.py` | 2d |
 | P3-4 | ☐ | Hosted embedding endpoint mode · `embed_*.py --remote http://...` | 3d |
-| P3-5 | ☐ | RAG quality feedback loop · `feedback.jsonl` · score < 7 pattern 降权 | 2d |
+| P3-5 | ✓ | RAG quality feedback loop · `feedback.jsonl` · score < 7 pattern 降权 | 2d |
 | P3-6 | ☐ | DB 升级 · SQLite WAL 或 pgvector | 2d |
-| P3-7 | ☐ | subagent Haiku 路由 · self_check / yaml fix 用 Haiku | 1d |
+| P3-7 | ✓ | subagent Haiku 路由 · self_check / yaml fix 用 Haiku | 1d |
 
 ### P3-B · 新功能 / 扩展
 
 | # | 状态 | 任务 | 工时 |
 |---|---|---|---|
-| P3-8 | ☐ | `library/deck-skeletons/` SSOT · 季度报/postmortem scaffold | 3d |
+| P3-8 | ✓ | `library/deck-skeletons/` SSOT · 季度报/postmortem scaffold | 3d |
 | P3-9 | ✓ | 多模板组合 deck · `brief.theme: list` · 跨模板 deep-copy | 1w |
 | P3-10 | ☐ | 中英文混排 · `mixed_lang_text(runs)` | 2d |
 | P3-11 | ☐ | 多语言支持 · en-US / ja-JP | 2w |
 | P3-12 | ☐ | a11y · 对比度 WCAG AA / alt-text / 屏幕阅读器 | 1w |
 | P3-13 | ☐ | `scripts/deck_diff.py` 语义 diff | 2d |
-| P3-14 | ☐ | `scripts/clip_chapter.py` 跨 deck 章节复制 | 1d |
-| P3-15 | ☐ | 模板版本管理 · `source_pptx_version` + sha 跑 self_check | 2d |
+| P3-14 | ✓ | `scripts/clip_chapter.py` 跨 deck 章节复制 | 1d |
+| P3-15 | ✓ | 模板版本管理 · `source_pptx_version` + sha 跑 self_check | 2d |
 | P3-16 | ☐ | layout 分类小 CV 模型 · resnet 走 extractor 快路径 · 80% page token 省 | 1w |
-| P3-17 | ☐ | per-deck cost budget · 超额暂停 + 问用户 | 1d |
+| P3-17 | ✓ | per-deck cost budget · 超额暂停 + 问用户 | 1d |
 
 ### P3-C · 治理 + 工程化长尾
 
 | # | 状态 | 任务 | 工时 |
 |---|---|---|---|
-| P3-18 | ☐ | API key rotation · secrets manager | 1d |
-| P3-19 | ☐ | pre-commit hook 扫敏感数据 · `_assets/raw` 强警告 | 4h |
+| P3-18 | ✓ | API key rotation · secrets manager | 1d |
+| P3-19 | ✓ | pre-commit hook 扫敏感数据 · `_assets/raw` 强警告 | 4h |
 | P3-20 | ☐ | `.gitignore.lint` · 3 份规则一致性自动校 | 4h |
-| P3-21 | ☐ | RAG query log 脱敏 · 邮箱 / 手机号 / 钱数 redact | 2h |
-| P3-22 | ☐ | 模板入库 detect 第三方水印 + 版权 LOGO · 强警告 | 4h |
+| P3-21 | ✓ | RAG query log 脱敏 · 邮箱 / 手机号 / 钱数 redact | 2h |
+| P3-22 | ✓ | 模板入库 detect 第三方水印 + 版权 LOGO · 强警告 | 4h |
 
 **P3 总工时**:~6-8 周
 
@@ -267,6 +267,5 @@ P2-2 audience 量化 ───────────────→ P2-4 hot-r
 | 2026-05-27 | **P1 done** | ✓ all 10 | 5 agent 并行 · ~60min wall clock · gap 0.116→0.123 · low_gap 2→1 · 5 个受控词典 SSOT 落盘(layout_variants 139 enum / slot_ids 1115 enum / categories 12 enum / 7 personas / keywords_bank 327 词) · 212 page variant backfill · 7 模板 category retrofit · self_check 11→13 · embed batch(text=8 / image=4 · ingest 时间 -65%) · per-deck cost log · red_line fuzzy+拼音 · EXPANSION_HINTS yaml-ify |
 | 2026-05-27 | **P2 done** | ✓ all 13 | Wave 1(P2-3/4/5 pipeline 重构,1 agent serial)+ Wave 2(P2-1/2/6/7/8/9/10/11/12/13,5 agent 并行)· 总 wall clock ~2h · pipeline 9→7 步 · user checkpoint 5→3 · critic 21 项量化(critic-rubric.yaml SSOT)· audience 每页 12 项量化 · 15 vp pattern ingest(fallback path 验证)· hybrid ablation 改 default 0.6/0.4 → 0.8/0.2 · brief.audience str→list[persona] · image RAG 接 builder Step 4.3.5 + audience Step 3.5.2 · brainstorm inspirations sha256 持久化 · chapter_hashes hot-reload · scripts/derive_plan.py 自动 derive deck_plan · scripts/dashboard.py 跨 deck 聚合 · query_cache.py fuzzy match iconify/Unsplash |
 | 2026-05-27 | **P3 partial done** | ✓ 4 / 22(P3-1/2/3/9)+ iSlide cleanup | 5 agent 并行 · ~1h wall clock · build.py 980→149 行(拆 builder/{base,tier1,tier2,tier3}.py)· themes/_base.py + tech_blue.yaml + 2 个其他 yaml(P3-1)· helpers/(17 layout plugin auto-discover)+ docs/adding-new-layout.md(P3-2)· brief.theme str/list/dict 4 schema + ThemeSpec.resolve_for_page · cross-pptx tier1(P3-9)· iSlide 引用清 90 文件(meta/placeholder_map/vocab/docs/scripts)· DB re-embed 后 7/7 hit + avg gap 0.128(+0.005 vs P2) |
-| TBD | P3 剩余 18 项 | ☐ | (P3-4/5/6/7/8/10/11/12/13/14/15/16/17/18/19/20/21/22 · 视需求触发)|
-| TBD | P2 done | ☐ | |
-| TBD | P3 done | ☐ | |
+| 2026-05-27 | **P3 phase 2 done** | ✓ 新 10 / 累计 14 / 22 | 5 agent 并行 · 2 个 socket 中断但产物落盘 · 治理(P3-19/21/22/15)+ 成本/安全(P3-17/18)+ 性能(P3-7 Haiku helpers)+ 智能(P3-5 RAG feedback loop)+ UX(P3-8 6 skeleton / P3-14 clip_chapter)· self_check 13→14 · 148 tests pass · bench 7/7 hit 维持 |
+| TBD | P3 剩余 8 项 | ☐ | P3-4 hosted embed / P3-6 pgvector / P3-10 中英文混排 / P3-11 多语言 / P3-12 a11y / P3-13 deck diff / P3-16 layout CV / P3-20 .gitignore.lint(视需求触发)|
