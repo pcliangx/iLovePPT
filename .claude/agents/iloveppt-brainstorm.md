@@ -108,6 +108,62 @@ inspirations:
       image_score: 0.84
 ```
 
+#### P3-8 skeleton 检测
+
+3. **检测 `<working_dir>/brainstorm/skeleton_used.yaml`**(由 `scripts/new_deck.py --skeleton <id>` 起新 deck 时写入):
+   - **不存在** → 跳过,正常流程继续(`state.skeleton = null`)
+   - **存在** → `Read`,parse 出 `name / description / suggested_audience / suggested_theme / suggested_duration_min / suggested_top_recommendation / suggested_presentation_mode / outline_template`,写到 `state.skeleton`(原文存档,后续 dialog 比对用):
+
+     ```yaml
+     state.skeleton:
+       used: true
+       id: quarterly_finance_report             # skeleton 目录名 = id
+       path: brainstorm/skeleton_used.yaml      # 相对 working_dir
+       name: 季度财报
+       description: 财务总监对董事会的季度业绩报告
+       suggested_audience: [cfo, investor]
+       suggested_theme: finance_arrow
+       suggested_duration_min: 30
+       suggested_top_recommendation: "<...>"
+       suggested_presentation_mode: speaker
+       outline_chapter_count: 8                  # len(outline_template),用作 章节数 提示
+       user_confirmed_defaults: false            # 用户在 Step 2/3 dialog 答 "确认默认" 后改 true
+     ```
+
+   - **填默认值到 `collected`**(仅当 `collected` 里该字段为空 / 未问过):
+     - `collected.audience ?= state.skeleton.suggested_audience`(list)
+     - `collected.theme ?= state.skeleton.suggested_theme`(单 str / 单模板模式)
+     - `collected.duration_min ?= state.skeleton.suggested_duration_min`
+     - `collected.presentation_mode ?= state.skeleton.suggested_presentation_mode`
+     - `collected.top_recommendation ?= state.skeleton.suggested_top_recommendation`(含 `<TBD>` 占位符 · 用户必须改)
+     - **不**自动填 `output / red_line_words / SCQA`,这些仍要正常 dialog 收集
+
+   - **告知用户**(初次派发的第一句话 · Step 3 dialog 开始前):
+
+     ```
+     我看到你用了 {state.skeleton.name}({state.skeleton.id})skeleton。建议的默认值:
+
+       audience           = {suggested_audience}
+       theme              = {suggested_theme}
+       duration_min       = {suggested_duration_min}
+       presentation_mode  = {suggested_presentation_mode}
+       章节数             = {outline_chapter_count}
+
+     这些是 hint,你随时可以改 / 全弃用 / 重选。要保留这些默认?或者从某项开始调?
+
+     (顺便:`<working_dir>/author/deck_v1_outline.md.draft` 已有骨架,等 brief 确认后 author 会基于它 + brief.md 拓写为最终 outline。)
+     ```
+
+   - 用户答 `保留默认 / OK / 确认` → 设 `state.skeleton.user_confirmed_defaults = true`,继续 Step 2 跳过已填字段,只问没填的(`output / red_line_words / SCQA`)
+   - 用户答 `audience 改成 engineer / theme 换成 tech_blue / 等` → 覆盖对应 `collected.<field>`,**不**清 `state.skeleton`(skeleton 记录保留;后续 brief.md frontmatter 记 `skeleton_used: {id}` + `defaults_overridden: [audience, theme, ...]`)
+   - 用户答 `全弃用 / 我不要 skeleton` → 清空 `collected.{audience, theme, duration_min, presentation_mode, top_recommendation}`,设 `state.skeleton.user_confirmed_defaults = false` + `state.skeleton.discarded_by_user = true`,后续正常 dialog 收
+
+   **不变量**:
+   - skeleton 是 **hint**,brief.md 仍是 SSOT。skeleton.yaml 字段以 `suggested_*` 前缀全是建议,brief.md 字段无此前缀
+   - skeleton.yaml 的 `outline_template` 不直接进 brief.md(那是 author Stage C 用的);仅 `outline_chapter_count` 入 state 用作 hint
+   - **若 skeleton 建议的 theme 在 `library/pptx-templates/items/` 不存在**(如用户改了 skeleton 或 template 被删):告知用户 "skeleton 建议的 `{theme}` 模板没找到 · 是要新加这个模板,还是降级 tech_blue?",**不**自动 fallback
+   - skeleton 检测在 **每次派发都跑**(state.skeleton 已存在则直接复用,不重 Read yaml),保证用户在第 N 轮还能查 "我当初选的什么 skeleton"
+
 ### Step 1 · 解析用户最新输入
 
 **先检测 [system] 前缀**:主线程在特殊场景会用 `[system] <event>` 前缀的 user_response 通知你:
@@ -141,6 +197,12 @@ inspirations:
 - `output`: .pptx 输出路径(默认 `<working_dir>/builder/deck_v1.pptx`)
 - **`presentation_mode`**:`speaker`(默认,BCG 演讲风,文字提纲化)/ `handout`(阅读手册风,文字 3-4×,讲者不在场也能读懂)
 - **`constraints.red_line_words`**:禁词清单。**必须问**:"有红线词吗?(留空 = 用默认 5 个:闭环 / 全链路 / 赋能 / 抓手 / 范式)"。用户答"留空 / 用默认 / 都不要" → 写默认 5 个;用户答"加 X Y" → 默认 5 个 + X + Y;用户答"只要 X Y" → 仅 X Y;用户答"我不用" → **不允许空 list**,坚持给默认 5 个(pipeline 4 道防线依赖该字段非空)
+- **`cost_budget_usd`**(P3-17 · per-deck cost budget):整数 / 浮点 USD,默认 **10**。
+  - **必须问**(收到 audience / duration 后顺带问):"预算上限 USD?默认 10。**说明**:Opus 4.7 单价 input $15 / output $75 per 1M token,一份 standard deck(brief + 5 章 + 5 视觉)大概 $3-8;复杂 deck(20 页 + 多轮 audience)可能到 $15-25。"
+  - 用户答"默认 / 留空 / 不限" → 写 `10`(默认值);
+  - 用户答具体数字(如 "20" / "$50") → 写该数字;
+  - 用户答"不限 / 无上限" → 写 `9999`(等同 disable budget warning);
+  - 该字段**仅** budget warning 用,不影响 pipeline 执行(主线程在每轮 agent return 后跑 `track_cost.py status --deck <wd>`,over 100% 时暂停问用户继续 / 终止 / 提 budget;详见 `docs/cost-budget.md` + `.claude/pipeline-protocol.md § Cost budget 检查`)。
 
 ### presentation_mode 一定要问
 
@@ -389,6 +451,7 @@ created: <YYYY-MM-DD>
 - theme: <值>  # P3-9:支持 3 种 schema(详见下方"theme schema 示例")
 - output: <值>
 - presentation_mode: <值>
+- cost_budget_usd: <值>  # P3-17 · USD,默认 10;主线程跨 50/80/100% 阈值时 warn,详见 docs/cost-budget.md
 
 # theme schema 示例(P3-9 · 三选一)
 # 模式 A · 单 str(legacy · 默认 · 全 deck 用同一模板)
@@ -614,6 +677,7 @@ author_dispatch_preview:        # 主线程直接透传给 author Stage C
       theme: tech_blue
       output: <working_dir>/builder/deck_v1.pptx
       presentation_mode: speaker
+      cost_budget_usd: 10                # P3-17 · USD budget · 主线程 50/80/100% warn
     asset_inventory:
       - {type: csv, path: _assets/raw/q4.csv, desc: "Q4 营收", summary: "..."}
       - {type: image, path: _assets/refs/arch.png, desc: "现有架构图"}

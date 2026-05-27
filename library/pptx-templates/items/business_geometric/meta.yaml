@@ -6,6 +6,7 @@ provenance:
   ingested_at: 2026-05-27 10:30:00+00:00
   source_pptx_sha256: 63273f892fe8dfc1ce31f0b3d3f4ba49c0fd1941a604e5bb82afd93aea3323da
   source_pptx_size_bytes: 2036122
+  source_pptx_version: v1
 extraction:
   declared_pages: 33
   rendered_pages: 33

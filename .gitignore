@@ -44,6 +44,7 @@ library/_rag/db.sqlite
 library/_rag/.cache/
 library/_rag/query_log.jsonl
 library/_rag/external_query_cache.jsonl
+library/_rag/feedback.jsonl
 
 # 各 kb 的 _source/ · 用户原始材料(机密 / 版权 / 体积)
 library/*/_source/*

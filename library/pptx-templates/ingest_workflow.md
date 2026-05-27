@@ -19,20 +19,37 @@
 - `library/pptx-templates/scripts/inspect_placeholders.py` —— Step 3.1.5 产 placeholder_map.yaml.draft 骨架
 - `library/pptx-templates/scripts/extractor_self_check.py` —— Step 3.3 自检 · exit code 0/1/2/3/4
 - `library/_rag/render_pages.py` —— Step 2 渲染 PNG(soffice/pdftoppm 已加 timeout)
+- `library/_rag/scripts/detect_watermark.py` —— Step 2.6 扫源 .pptx 第三方水印 / 版权 LOGO(P3-22)
+- `library/_rag/scripts/check_template_drift.py` —— 定期 / CI 跑 · 7 模板 sha drift sweep(P3-15)
 
 ```
 1. 用户提供 .pptx 路径
 2. agent 复制到 library/pptx-templates/_source/<name>.pptx
    (<name> 不允许含 __ · 跟 page id 分隔符冲突)
+2.5 渲染 PNG · 算 declared/rendered pages
+2.6 watermark detect:
+       library/_rag/.venv/bin/python library/_rag/scripts/detect_watermark.py \
+         library/pptx-templates/_source/<name>.pptx > /tmp/<name>_watermarks.json
+    扫 URL / 版权符号 © ® ™ / "All rights reserved" / "版权所有" / 自定义品牌词
+    + 角落小图(<150x150pt · 边距 <100pt)
+    命中 → 写入 library/pptx-templates/items/<name>/watermark_report.yaml
+    meta.yaml 加 has_watermarks: true/false
+    agent 展示草稿时必须显式提示水印列表 · 用户决定保 / 删 / 改
 3. soffice --headless --convert-to pdf <pptx> + pdftoppm -png -r 120
    渲染每页 → library/pptx-templates/items/<name>/pages/<NN-slug>/preview.png
 4. Claude(LLM)看 PNG:
    (a) 总览所有页 → 产 template-level meta.yaml 草稿
+       provenance 必须含:
+         source_pptx_sha256 (shasum -a 256)
+         source_pptx_size_bytes
+         source_pptx_version: v1   ← 初始;模板更新时 bump v2 / v3
+       has_watermarks: <bool>   ← 来自 2.6
    (b) 逐页 → 产 page-level meta.yaml 草稿 + 决定 page slug
-5. agent 把草稿展示给用户审 / 改 / 弃
+5. agent 把草稿(含 watermark_report.yaml)展示给用户审 / 改 / 弃
 6. 通过的写入:
        library/pptx-templates/items/<name>/meta.yaml
        library/pptx-templates/items/<name>/preview.png   (cover 缩略图)
+       library/pptx-templates/items/<name>/watermark_report.yaml  (若 detect 到水印)
        library/pptx-templates/items/<name>/pages/<NN-slug>/meta.yaml
        library/pptx-templates/items/<name>/pages/<NN-slug>/preview.png
 7. 入库:
@@ -40,6 +57,50 @@
        library/_rag/.venv/bin/python library/_rag/embed_image.py --kb pptx-templates --id <name>
 8. 更新 INDEX.md 加一行
 ```
+
+### Step 2.6 · 水印 / 版权 LOGO detect(P3-22)
+
+**触发**:每次 `full` mode ingest 必跑。**输出**:
+
+- `/tmp/<name>_watermarks.json` 原始结果(stdout 重定向)。`summary.count == 0` 时 meta.yaml 写 `has_watermarks: false`,**跳过** `watermark_report.yaml`。
+- `summary.count > 0` 时落 `library/pptx-templates/items/<name>/watermark_report.yaml`:
+
+```yaml
+# 来源:detect_watermark.py @ <ingested_at>
+summary:
+  count: 28
+  by_type:
+    text:url: 27
+    text:copyright_symbol: 1
+watermarks:
+  - slide: 1
+    type: text:copyright_symbol
+    location: "shape:标题 3"
+    content: "®"
+  # ...
+user_decision: pending   # pending | keep | strip | replace
+notes: |
+  e.g. 页脚 www.islide.cc · 用户决定保留还是手工删
+```
+
+**agent 展示时必须打印**:`"⚠ Template <name> 检测到 N 处水印 / 版权标记。Brief summary: text:url=27 · text:copyright_symbol=1。请审 watermark_report.yaml 后填 user_decision。"`
+
+**brand keyword 自定义**:`library/_rag/scripts/detect_watermark_brand_config.yaml`(default `brands: []`,examples 注释段含 iSlide / OfficePlus 等)。
+
+### Step 3.3 sha drift gate(P3-15)
+
+`extractor_self_check.py` check #14 = `SOURCE_PPTX_SHA_DRIFT`。每次跑 self-check 比对 `_source/<name>.pptx` 实际 sha vs `meta.provenance.source_pptx_sha256`:
+
+- 不匹配 → exit 1 + 提示 `"模板 .pptx 源已变 · 必须重新 inspect placeholder_map · 跑 inspect_placeholders.py + bump source_pptx_version"`。
+- 模板更新流程:**先** bump `source_pptx_version`(v1 → v2)+ 重算 sha256 写入 meta.yaml + 重跑 `inspect_placeholders.py` 重生成 placeholder_map.yaml,**然后**重 embed。
+
+**定期 sweep**(可入 CI):
+
+```bash
+library/_rag/.venv/bin/python library/_rag/scripts/check_template_drift.py
+```
+
+输出 markdown 表(每模板 declared SHA / actual SHA / version / status)+ exit 1 当任一模板漂移。
 
 ## 🔑 必填字段(直接进 embedding · 缺则 RAG 检索失效)
 
@@ -205,8 +266,8 @@ library/_rag/.venv/bin/python \
   library/pptx-templates/scripts/extractor_self_check.py <name>
 ```
 
-Exit code: 0=全过 / 1=字段 enum / list element type / shape_id resolve 错 / 2=pmap tree_path 错 / 3=YAML 语法 / 4=目录不存在。
-脚本会校验 11 项:
+Exit code: 0=全过 / 1=字段 enum / list element type / shape_id resolve / sha drift 错 / 2=pmap tree_path 错 / 3=YAML 语法 / 4=目录不存在。
+脚本会校验 14 项:
 1. YAML 语法
 2. 模板字段必填
 3. 页字段必填
@@ -218,3 +279,6 @@ Exit code: 0=全过 / 1=字段 enum / list element type / shape_id resolve 错 /
 9. pmap tree_path resolve(**仅 `.draft` 文件**;approved `.yaml` 文件由 #11 兜底)
 10. **list element type**(`keywords / content_intent / when_to_use / native_elements / recommended_for / visual_signature` 每个 element 必须是 `str`,防 `[..., 1]` int 混入导致下游 embed crash)
 11. **shape_id resolve**(`.yaml` + `.yaml.draft` 都查;每个 slot `shape_id`(非 null)必须能在 source `.pptx` 对应 slide 找到;`shape_id: null` 允许作 fallback,但若 source `.pptx` 缺失则报 `SOURCE_PPTX_MISSING`)
+12. **variant enum**(page meta.yaml.variant ∈ `library/vocabularies/layout_variants.yaml`,且 vocab[variant].layout_type 必须 == meta.layout_type)
+13. **slot_id enum**(placeholder_map slots[].id ∈ `library/vocabularies/slot_ids.yaml` 展开后的 enum)
+14. **source_pptx sha drift**(P3-15 · `_source/<name>.pptx` 实际 sha256 必须 == `meta.provenance.source_pptx_sha256`;不匹配 → `SOURCE_PPTX_SHA_DRIFT` exit 1 · 提示重新 inspect placeholder_map + bump source_pptx_version)

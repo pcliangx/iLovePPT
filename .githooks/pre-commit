@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# P3-19 · pre-commit · 扫敏感数据 & raw 资产目录
+#
+# 行为:
+#   1. staged file 路径含 `decks/.*/_assets/raw/` → 拒绝(可 git commit --no-verify 跳)
+#   2. staged 文本文件(.md/.yaml/.yml/.json/.txt/.csv)正文含邮箱 / 手机号 / 大额金额 → 警告(不拦)
+#
+# 启用方式:
+#   bash scripts/install-hooks.sh   # 设 git config core.hooksPath .githooks
+#
+# 关闭方式(整仓):
+#   git config --unset core.hooksPath
+#
+# bypass 单次:
+#   git commit --no-verify
+#
+# 详见:docs/security/secrets-protection.md
+
+set -uo pipefail
+
+# 颜色 · TTY 才上色,管道环境降级 plaintext
+if [[ -t 2 ]]; then
+    RED=$'\033[31m'
+    YELLOW=$'\033[33m'
+    CYAN=$'\033[36m'
+    BOLD=$'\033[1m'
+    RESET=$'\033[0m'
+else
+    RED=''; YELLOW=''; CYAN=''; BOLD=''; RESET=''
+fi
+
+# 取 staged 文件名(已 add 到 index 的, 不含 deletions)
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if [[ -z "$staged" ]]; then
+    exit 0
+fi
+
+# --- Rule 1 · 阻断: decks/<deck>/_assets/raw/ 路径 ---
+blocked_raw=()
+while IFS= read -r f; do
+    if [[ "$f" =~ ^decks/[^/]+/_assets/raw/ ]]; then
+        blocked_raw+=("$f")
+    fi
+done <<< "$staged"
+
+if [[ ${#blocked_raw[@]} -gt 0 ]]; then
+    echo "${BOLD}${RED}[pre-commit] BLOCK · 拒绝 commit · 命中 decks/<deck>/_assets/raw/ 路径${RESET}" >&2
+    echo "" >&2
+    echo "${RED}以下 staged file 在 raw 资产目录, 通常含客户机密 / 版权材料 / 个人数据, 严禁入 git:${RESET}" >&2
+    for f in "${blocked_raw[@]}"; do
+        echo "    $f" >&2
+    done
+    echo "" >&2
+    echo "${CYAN}处理建议:${RESET}" >&2
+    echo "  1. ${BOLD}git restore --staged <file>${RESET} unstage 文件" >&2
+    echo "  2. 确认 .gitignore 已盖该路径(decks/.gitignore 默认整目录 ignore)" >&2
+    echo "  3. 真的要入: ${BOLD}git commit --no-verify${RESET}(显式 bypass · 自负风险)" >&2
+    echo "" >&2
+    exit 1
+fi
+
+# --- Rule 2 · 警告: 文本类 staged 文件含敏感正则 ---
+# 仅扫文本格式(.md / .yaml / .yml / .json / .txt / .csv);二进制跳过
+warnings=()
+EMAIL_RE='[a-zA-Z0-9._+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+PHONE_CN_RE='(^|[^0-9])1[3-9][0-9]{9}([^0-9]|$)'
+MONEY_USD_RE='\$[0-9]{4,}'
+MONEY_CNY_RE='[¥￥][0-9]{4,}'
+
+while IFS= read -r f; do
+    case "$f" in
+        *.md|*.yaml|*.yml|*.json|*.txt|*.csv) ;;
+        *) continue ;;
+    esac
+
+    # 跳过文件不存在(rare · staged 后又 rm 的)
+    [[ -f "$f" ]] || continue
+
+    # 各模式各扫一遍,命中即记
+    if grep -qE "$EMAIL_RE" "$f" 2>/dev/null; then
+        warnings+=("$f|email")
+    fi
+    if grep -qE "$PHONE_CN_RE" "$f" 2>/dev/null; then
+        warnings+=("$f|phone_cn")
+    fi
+    if grep -qE "$MONEY_USD_RE" "$f" 2>/dev/null; then
+        warnings+=("$f|money_usd")
+    fi
+    if grep -qE "$MONEY_CNY_RE" "$f" 2>/dev/null; then
+        warnings+=("$f|money_cny")
+    fi
+done <<< "$staged"
+
+if [[ ${#warnings[@]} -gt 0 ]]; then
+    echo "${BOLD}${YELLOW}[pre-commit] WARN · 敏感数据可能命中 · 不阻断, 请人工确认${RESET}" >&2
+    echo "" >&2
+    for entry in "${warnings[@]}"; do
+        f="${entry%|*}"
+        kind="${entry#*|}"
+        echo "  ${YELLOW}[$kind]${RESET} $f" >&2
+    done
+    echo "" >&2
+    echo "${CYAN}如确属敏感: ${BOLD}git restore --staged <file>${RESET}${CYAN} → 脱敏 → 重新 add${RESET}" >&2
+    echo "${CYAN}如属误报(模板示例 / 文档说明): 继续 commit, hook 不拦${RESET}" >&2
+    echo "" >&2
+fi
+
+exit 0

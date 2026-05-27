@@ -1,0 +1,97 @@
+---
+title: <TBD · 例:2026 Q2 财务业绩报告>
+subtitle: <TBD · 一句话总结本季度>
+audience: cfo
+duration_min: 30
+theme: finance_arrow
+output: <TBD · 例:decks/<deck-slug>/builder/deck_v1.pptx>
+presentation_mode: speaker
+top_recommendation: <TBD · 本季度营收同比 +N%,推荐 <具体动作>>
+scqa:
+  situation: <TBD · 本季度市场环境 / 业务起点>
+  complication: <TBD · 出现了什么不在预算内的情况>
+  question: <TBD · 董事会本季度最想知道什么>
+  answer: <TBD · 顶端论点 · 同 top_recommendation>
+footer_meta:
+  classification: CONFIDENTIAL
+  project: <TBD · 例:Q2-2026-finance-report>
+  version: v1.0
+based_on: brainstorm/brief.md
+skeleton_used: quarterly_finance_report
+---
+
+# Outline
+
+> 本文件由 `library/deck-skeletons/quarterly_finance_report/outline.md.tmpl` 复制而来。
+> author 跑 Stage C 时会基于 brief.md + 本骨架重写为最终 outline。
+> `<TBD>` 字段需 user 在 brainstorm 阶段或 author Stage C 填实。
+
+---
+
+## [cover]
+- intent: 季度财报首页 · 给出 deck 主题 + 顶端论点
+- layout: cover
+- pattern: tpl:finance_arrow__01-cover
+
+## [toc]
+- intent: 8 章节导航
+- layout: toc
+- pattern: tpl:finance_arrow__02-toc
+
+## [section_divider]
+- num: 1
+- title: 季度业绩概览
+- layout: section_divider
+- pattern: tpl:finance_arrow__03-section_divider
+
+## 1. <TBD · 本季度顶端结论 · 例:营收同比 +12%,扭亏为盈>
+- intent: BLUF · 一句话总结本季度业绩,后续 7 章证据支撑
+- layout: single_focus
+- pattern: tpl:finance_arrow__18-single_focus
+
+## 2. <TBD · 财务数据快照 · 例:Q2 关键 KPI 一览>
+- intent: 营收 / 净利润 / 毛利率 / 现金流 / EBITDA 五个核心数字
+- layout: data
+- pattern: tpl:finance_arrow__05-data
+- 数据点:
+  - 营收 <TBD>
+  - 净利润 <TBD>
+  - 毛利率 <TBD>
+  - 经营现金流 <TBD>
+  - EBITDA <TBD>
+
+## 3. <TBD · 各业务线表现 · 例:三大业务线贡献分布>
+- intent: 哪条线拉动哪条线拖累
+- layout: cards
+- pattern: tpl:finance_arrow__07-cards
+
+## 4. <TBD · 趋势纵向看 · 例:4 季度收入曲线>
+- intent: 不是孤立看本季度,看曲线 / 季节性 / 拐点
+- layout: data
+- pattern: tpl:finance_arrow__08-data
+
+## 5. <TBD · 预算 vs 实际 · 例:Q2 预算完成度>
+- intent: 方差解读 · 偏差原因
+- layout: comparison
+- pattern: tpl:finance_arrow__14-comparison
+
+## 6. <TBD · 关键风险 · 例:应收账款 / 大客户依赖 / 现金流压力>
+- intent: 财务异常不藏不掖,识别后给应对
+- layout: quadrant
+- pattern: tpl:finance_arrow__20-quadrant
+
+## 7. <TBD · 下季度展望与建议 · 例:Q3 投入方向 + 指引调整>
+- intent: 推荐董事会拍板的动作 · 资源配置 / 全年指引
+- layout: process_flow
+- pattern: tpl:finance_arrow__15-process_flow
+
+## 8. <TBD · Q&A 预判 · 例:董事会最可能问的 5 个问题>
+- intent: 提前给答案,把会议节奏掌握在汇报方
+- layout: bullet_list
+- pattern: tpl:finance_arrow__11-cards
+
+## [summary]
+- intent: 顶端论点收口 · 5 条带数字的结论
+
+## [closing]
+- intent: 致谢 + Q&A 邀请

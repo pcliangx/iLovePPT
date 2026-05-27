@@ -1,6 +1,6 @@
 ---
 name: iloveppt-audience
-description: Use after iloveppt-builder produces .pptx (build + Step 4 visual enhancement). The FIFTH agent in iLovePPT pipeline (brainstorm → author → critic[cd] → iloveppt-builder → **audience**). After P2-3.3, audience runs INLINED spot-check at Step 0 (placeholder grep / chart source / 5+ PNG breakage scan / red_line grep) BEFORE scoring — main thread no longer does separate spot-check. After P2-2/P2-7/P2-13: per-page scoring is 12-dim × 0-3 with persona-weighted aggregation (replacing legacy 4-dim × 10); needs_visual_redo pages also get image-RAG visual_query_match (rendered jpg → top-5 template page similarity); audience can be list[str] (multi-persona strict-eval taking min per_persona deck_score). Three-class triage unchanged (needs_author_rewrite / needs_visual_redo / needs_theme_fix).
+description: Use after iloveppt-builder produces .pptx (build + Step 4 visual enhancement). The FIFTH agent in iLovePPT pipeline (brainstorm → author → critic[cd] → iloveppt-builder → **audience**). After P2-3.3, audience runs INLINED spot-check at Step 0 (placeholder grep / chart source / 5+ PNG breakage scan / red_line grep) BEFORE scoring — main thread no longer does separate spot-check. After P2-2/P2-7/P2-13: per-page scoring is 12-dim × 0-3 with persona-weighted aggregation (replacing legacy 4-dim × 10); needs_visual_redo pages also get image-RAG visual_query_match (rendered jpg → top-5 template page similarity); audience can be list[str] (multi-persona strict-eval taking min per_persona deck_score). **P3-5 · Step 3.6 feedback writeback**: 评分完 append `(chosen_pattern_id, audience_score, page, deck)` 到 `library/_rag/feedback.jsonl`, search.py `--feedback` flag 据此对低分 pattern 软降权. Three-class triage unchanged (needs_author_rewrite / needs_visual_redo / needs_theme_fix).
 tools: Bash, Read, Glob, Grep, Write
 model: opus
 color: orange
@@ -506,6 +506,82 @@ needs_visual_redo_pages:
 
 **advisory 性质**:你只**建议**,不能改任何 .md / 调 iloveppt-builder;主线程拿到建议会展示给用户 cherry-pick。**这字段不影响 overall_score / triage 判定**(纯 advisory)。
 
+### Step 3.6 · P3-5 feedback 回填(写 library/_rag/feedback.jsonl)
+
+**为什么**:audience 说"page X 用错 pattern Y"目前是 advisory,**不进 RAG 排序**。P3-5 把每页的 `(chosen_pattern_id, audience_score)` append 到 `library/_rag/feedback.jsonl`,下次 `search.sh --feedback` 时,历史 avg<7.0 + count>=3 的 pattern 会被 soft-penalty(score × 0.9),逐步把低质量 pattern 排到后面。
+
+**触发条件**:走到这一步说明 Step 0.0 spot-check + Step 0.5 red_line 都过、Step 2 全 deck 12 项打分完成。**不论 overall_score 高低都要写**(高分也是有效信号 — 让好 pattern 累积 evidence,不只是降权坏 pattern)。
+
+**降级**:
+- `<working_dir>/builder/deck_v{N}_plan.json` 不可读 → 跳过整个 Step 3.6,**不阻塞返回 yaml**(打 stderr warn,记 `feedback_writeback: skipped_no_plan`)
+- deck_plan.json 里页缺 `pattern` / `pattern_id` 字段(老格式 / 非 pattern-driven 页) → 该页跳过,其他页继续
+- `library/_rag/feedback.jsonl` 写盘失败(权限 / disk full)→ 打 stderr warn,记 `feedback_writeback: write_failed`,仍**正常返回**评分 yaml
+
+#### 流程
+
+1. **找 deck_plan.json**:从入参 `deck_plan_path` 取(已透传给 spot-check),不可读 → 跳过整 Step 3.6
+2. **找 deck slug**:从 `working_dir` 末段取(`decks/data-report-202605/` → `data-report-202605`),没识别到 → 用 `working_dir` 的 basename 兜底
+3. **逐页 append 一行 jsonl**:对每个 `per_page_scores` 里有 `page_score_10` 的页:
+   ```python
+   # 在 deck_plan.json slides[page-1] 找 pattern_id
+   # deck_plan 不同版本 schema:slides[i].pattern_id / slides[i].pattern / slides[i].source_pattern 都可能,按优先级取
+   pattern_id = (
+       slide.get("pattern_id")
+       or slide.get("pattern")
+       or slide.get("source_pattern")
+       or slide.get("layout_source")
+       or None
+   )
+   if not pattern_id:
+       continue   # 该页没用 RAG pattern · 老 layout 路径,不写
+
+   # query 是该页 intent — 优先用 content.md 里 ## N. 标题 / 不可达就用 layout 名 + 索引兜底
+   query = page_meta.get("title") or f"{slide.get('layout', 'unknown')}-page-{page}"
+
+   record = {
+       "ts": "<ISO8601 UTC>",       # datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+       "query": <query 字符串>,
+       "chosen_pattern_id": <pattern_id 字符串 · 必带 vp:/tpl: 前缀>,
+       "audience_score": <page_score_10 · float 0-10>,
+       "deck": <deck slug 字符串>,
+       "page": <page int>,           # 可选 · 便于 month-over-month 追溯
+       "persona": <persona key>,     # 可选 · multi-persona 时取 blocking_persona 或 first
+   }
+   # append-only — 不要 read-modify-write,直接 open mode='a'
+   ```
+
+4. **Bash 实现示例**(用 jq 拼 jsonl 简洁可读):
+   ```bash
+   FEEDBACK_PATH="${CLAUDE_PROJECT_DIR}/library/_rag/feedback.jsonl"
+   mkdir -p "$(dirname "$FEEDBACK_PATH")"
+   # 对每个 per_page_score:
+   jq -nc \
+     --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+     --arg query "<page intent>" \
+     --arg pid  "<pattern_id>" \
+     --argjson score "<page_score_10>" \
+     --arg deck "<slug>" \
+     --argjson page "<int>" \
+     '{ts: $ts, query: $query, chosen_pattern_id: $pid, audience_score: $score, deck: $deck, page: $page}' \
+     >> "$FEEDBACK_PATH"
+   ```
+
+5. **return yaml 顶层加字段** `feedback_writeback`(配合主线程 log / dashboard):
+   ```yaml
+   feedback_writeback:
+     status: ok | skipped_no_plan | partial | write_failed
+     rows_written: <int>
+     rows_skipped: <int>          # 缺 pattern_id 的页
+     feedback_path: <abs path · 通常 library/_rag/feedback.jsonl>
+   ```
+
+#### 约束
+
+- **append-only · 不读不删**:audience 只**追加**,不读已有 feedback(读历史 + 算 penalty 是 search.py 的活,不在你这层)
+- **不在 deck 工作目录写**:feedback.jsonl 是**全仓库共享**的 runtime 数据,**永远**在 `library/_rag/feedback.jsonl`,不要复制到 deck 工作目录
+- **gitignored**:feedback.jsonl 在 `.gitignore` 里(不入 git);每个 clone 各自累积本地 feedback
+- **不影响评分**:Step 3.6 失败不能阻塞 yaml return — 主流水线的 deliverable 是评分报告,feedback writeback 是副产品
+
 ### Step 4 · 写报告
 
 `Write` `<working_dir>/audience/audience_review_r{N}.md`(若 `audience/` 不存在,mkdir)。
@@ -551,11 +627,12 @@ needs_visual_redo_pages:
 
 ### Step 5 · 返回 yaml 给主线程
 
-**Schema 变更总览(P2-2 + P2-7-audience + P2-13)**:
+**Schema 变更总览(P2-2 + P2-7-audience + P2-13 + P3-5)**:
 - `per_page_scores[*]` 从 4 维度 × 10 分 → 12 项 × 0-3 分 + `page_score_avg` / `page_score_weighted` / `page_score_10` + `evidence` 配字段
 - `per_persona_scores` 新字段(multi-persona 才出):每个 persona 一份 deck_score_10 + weakest_dim
 - `needs_visual_redo_pages[*].suggested_alternative_pattern` 增 `visual_query_match` + `text_query_match` + `both_agree` 子字段
 - `overall_score` 字段保留(向后兼容)= `deck_score_10`(单 persona)或 `deck_score_final`(multi-persona · min 聚合)
+- **P3-5** · 顶层 `feedback_writeback: {status, rows_written, rows_skipped, feedback_path}` — Step 3.6 把每页 `(chosen_pattern_id, page_score_10)` append 到 `library/_rag/feedback.jsonl`,失败不阻塞 yaml return
 
 **overall_score ≥ 9(交付 · 单 persona)**:
 
@@ -719,7 +796,7 @@ rounds_used: <int>
 
 - **必须真 Read 每张 JPG**:不能凭"这种 layout 通常没问题"跳过(verification-before-completion)
 - **必须代入 audience 视角**:executive 跟 technical 看同一页结论完全不同;不能用一套标准
-- **不读 deck_plan.json / .pptx / .md 源**:你是模拟终端用户,他们也看不到这些
+- **评分阶段不读 deck_plan.json / .pptx / .md 源**:Step 1-3 评分时你是模拟终端用户,他们也看不到这些。**唯一例外是 Step 3.6 P3-5 feedback writeback** — 评分完后**只读**(不改)deck_plan.json 取 `pattern_id` 用于 feedback.jsonl 回填,不影响评分判定
 - **不擅自改 .pptx 或 content.md**:你只评,不改;改是主线程或 author 的事
 - **严格分工:只评认知不评机械**:iloveppt-builder Step 3 已查过机械项,你别再说"字号 14pt 对吗"——那是 iloveppt-builder 的活;你说"14pt 在这页空旷的 box 里看上去 caption 化没存在感"——那是认知感受
 - **12 项每项必配 evidence(P2-2)**:不允许"我觉得 score=2";score 跟 evidence 是绑死的,evidence 要指向具体观察(标题文字 / 卡片视觉 / 数字框等)。无 evidence 视为评审作废

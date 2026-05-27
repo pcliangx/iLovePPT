@@ -25,13 +25,22 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
 sys.path.insert(0, str(SCRIPT_DIR / "_rag"))
+sys.path.insert(0, str(SCRIPT_DIR / "_rag" / "scripts"))
 from qwen_embedding import embed_image, embed_text, get_api_key, open_db  # noqa: E402
+from redact import redact as redact_text  # noqa: E402 · P3-21 query log 脱敏
 
 DEFAULT_FALLBACK_THRESHOLD = 0.55
 DEFAULT_TOP_K = 5
 QUERY_LOG_PATH = SCRIPT_DIR / "_rag" / "query_log.jsonl"
 INVERSE_CATEGORY_PENALTY = 0.85
 EXPANSION_HINTS_PATH = SCRIPT_DIR / "_rag" / "expansion_hints.yaml"
+
+# P3-5 · RAG quality feedback loop
+# audience 评分完 append 一行 jsonl 到 FEEDBACK_LOG_PATH;search 读历史 + 算 avg + 触发降权
+FEEDBACK_LOG_PATH = SCRIPT_DIR / "_rag" / "feedback.jsonl"
+FEEDBACK_PENALTY_FACTOR = 0.9       # 历史 avg < 阈值 + count >= min_count → score × 0.9
+FEEDBACK_AVG_THRESHOLD = 7.0        # audience_score 阈值(10 分制)
+FEEDBACK_MIN_COUNT = 3              # 至少出现 3 次才触发(防冷启动 / 数据少时被错误信号干扰)
 
 
 def _load_expansion_hints() -> dict[str, list[str]]:
@@ -269,6 +278,74 @@ def _apply_inverse_category(results: list[dict], inferred_cat: str | None, mode:
         h["inverse_category_applied"] = True
 
 
+def _load_feedback_stats(feedback_path: Path = FEEDBACK_LOG_PATH) -> dict[str, dict]:
+    """读 feedback.jsonl, 按 chosen_pattern_id 聚合 (count, sum_score, avg_score)。
+
+    Returns: {pattern_id: {"count": int, "sum_score": float, "avg_score": float}}
+    feedback.jsonl 不存在 → 空 dict;某行 JSON 解析失败 → silent skip(stderr warn)。
+    """
+    if not feedback_path.exists():
+        return {}
+    stats: dict[str, dict] = {}
+    try:
+        with feedback_path.open(encoding="utf-8") as f:
+            for line_no, line in enumerate(f, start=1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError as je:
+                    print(f"[search.py] WARN: feedback.jsonl line {line_no} JSON 解析失败 — {je}", file=sys.stderr)
+                    continue
+                pid = rec.get("chosen_pattern_id")
+                score = rec.get("audience_score")
+                if not pid or not isinstance(score, (int, float)):
+                    continue
+                if pid not in stats:
+                    stats[pid] = {"count": 0, "sum_score": 0.0, "avg_score": 0.0}
+                stats[pid]["count"] += 1
+                stats[pid]["sum_score"] += float(score)
+        # 算 avg
+        for pid, s in stats.items():
+            s["avg_score"] = round(s["sum_score"] / s["count"], 4) if s["count"] > 0 else 0.0
+    except OSError as e:
+        print(f"[search.py] WARN: feedback.jsonl 读失败 — {type(e).__name__}: {e}", file=sys.stderr)
+        return {}
+    return stats
+
+
+def _apply_feedback_penalty(
+    results: list[dict],
+    feedback_path: Path = FEEDBACK_LOG_PATH,
+    penalty_factor: float = FEEDBACK_PENALTY_FACTOR,
+    avg_threshold: float = FEEDBACK_AVG_THRESHOLD,
+    min_count: float = FEEDBACK_MIN_COUNT,
+) -> None:
+    """P3-5 · 对 hits 做 in-place 软降权:历史 audience_score avg < 阈值 + count >= min → score × 0.9。
+
+    feedback.jsonl 不存在 / 空 / 解析失败 → silent no-op(不影响默认搜索路径)。
+    只对 hit.id 命中 feedback_stats 的 row 应用;hit.id 是 vp_item id 或 tpl_page id(带前缀)。
+    Soft penalty(非 hard filter)— 即使该 pattern 历史评分低, 用户仍能在 top-k 里看到, 只是排序往后。
+    """
+    stats = _load_feedback_stats(feedback_path)
+    if not stats:
+        return
+    for h in results:
+        pid = h.get("id") or ""
+        if not pid or pid not in stats:
+            continue
+        s = stats[pid]
+        if s["count"] < min_count or s["avg_score"] >= avg_threshold:
+            continue
+        new_score = h["score"] * penalty_factor
+        h["score"] = round(new_score, 4)
+        h["distance"] = round(1.0 - new_score, 4)
+        h["feedback_penalty_applied"] = True
+        h["feedback_avg_score"] = s["avg_score"]
+        h["feedback_count"] = s["count"]
+
+
 def search(
     query: str | None,
     query_image: str | None,
@@ -282,6 +359,7 @@ def search(
     text_weight: float = 0.8,
     image_weight: float = 0.2,
     inverse_category: bool = True,
+    feedback: bool = False,
 ) -> list[dict]:
     api_key = get_api_key()
     db = open_db()
@@ -339,6 +417,8 @@ def search(
     if pref_id:
         primary = _do_query("pptx-templates", "page", pref_id, top_k)
         _apply_inverse_category(primary, inferred_cat, mode)
+        if feedback:
+            _apply_feedback_penalty(primary)
         primary.sort(key=lambda x: x["distance"])
         for r in primary:
             r["source"] = "preferred-template"
@@ -348,6 +428,8 @@ def search(
             return primary[:top_k]
         fallback = _do_query("visual-patterns", "item", None, top_k)
         _apply_inverse_category(fallback, inferred_cat, mode)
+        if feedback:
+            _apply_feedback_penalty(fallback)
         for r in fallback:
             r["source"] = "visual-patterns"
         combined = primary + fallback
@@ -364,6 +446,8 @@ def search(
     else:
         out = _do_query(kb, type_, None, top_k * 3)
         _apply_inverse_category(out, inferred_cat, mode)
+        if feedback:
+            _apply_feedback_penalty(out)
         out.sort(key=lambda x: x["distance"])
         for r in out:
             r["source"] = "preferred-template" if r["row_type"].startswith("tpl_") else "visual-patterns"
@@ -371,8 +455,12 @@ def search(
         return out[:top_k]
 
 
-def _log_query(args, expanded_query: str | None, results: list[dict]) -> None:
-    """append 一行 JSONL 到 query_log.jsonl。失败 silent,只打 stderr warn。"""
+def _log_query(args, expanded_query: str | None, results: list[dict], redact_enabled: bool = True) -> None:
+    """append 一行 JSONL 到 query_log.jsonl。失败 silent,只打 stderr warn。
+
+    P3-21 · query / expanded_query 默认走 redact(邮箱 / 手机号 / 大额数字)。
+    --no-redact 时关闭(debug only)。脱敏后多打 `redacted: true` flag 标记记录已处理。
+    """
     try:
         hits_brief = [
             {
@@ -384,11 +472,20 @@ def _log_query(args, expanded_query: str | None, results: list[dict]) -> None:
             }
             for i, h in enumerate(results)
         ]
+        raw_query = args.query
+        raw_expanded = expanded_query
+        if redact_enabled:
+            log_query = redact_text(raw_query) if raw_query else raw_query
+            log_expanded = redact_text(raw_expanded) if raw_expanded else raw_expanded
+        else:
+            log_query = raw_query
+            log_expanded = raw_expanded
         record = {
             "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "query": args.query,  # 注意:此时 args.query 已被 expand_query 覆写过(若启用)
+            "query": log_query,  # 注意:此时 args.query 已被 expand_query 覆写过(若启用)
             "query_image": args.query_image,
-            "expanded_query": expanded_query,
+            "expanded_query": log_expanded,
+            "redacted": redact_enabled,
             "mode": args.mode,
             "kb": args.kb,
             "type": args.type_,
@@ -428,6 +525,7 @@ USAGE_EPILOG = """\
 
 Query 静态扩展:短 query 自动撞库补词(财务 → +财报+营收+CFO 等),--no-expand 关。
 权重调:--text-weight 0.8 --image-weight 0.2(默认 · P2-9 ablation 选定),hybrid 模式生效。
+Feedback 降权(P3-5):--feedback 开(默认关)· 历史 audience_score avg<7.0 + count>=3 的 pattern → score × 0.9。
 """
 
 
@@ -449,6 +547,13 @@ def main():
     p.add_argument("--no-inverse-category", action="store_true",
                    help="关闭 inverse-category 软降权(默认开 · 仅 text/hybrid mode 生效)")
     p.add_argument("--no-log", action="store_true", help="关闭 query 日志写入(便于 batch 测试不污染)")
+    p.add_argument("--no-redact", action="store_true",
+                   help="关闭 query log 脱敏(默认开 · P3-21 · 邮箱 / 手机号 / 大额数字)· debug 时关")
+    p.add_argument("--feedback", action="store_true",
+                   help="开 P3-5 audience feedback 降权(默认关 · 避免冷启动 / 数据少时被错误信号干扰)· "
+                        "需 library/_rag/feedback.jsonl 存在;某 pattern 历史 audience_score avg<7.0 + count>=3 → score × 0.9")
+    p.add_argument("--no-feedback", action="store_true",
+                   help="(显式)关 P3-5 audience feedback 降权 — 跟默认行为一致,显式标注便于脚本可读")
     p.add_argument("--kb", default="all", choices=["visual-patterns", "pptx-templates", "all"])
     p.add_argument("--type", dest="type_", default="any", choices=["item", "template", "page", "any"])
     p.add_argument("--category", default=None)
@@ -465,6 +570,9 @@ def main():
     if args.query:
         args.query = expand_query(args.query, enabled=not args.no_expand)
 
+    # P3-5 · feedback 默认关;--feedback 开;--no-feedback 显式关(跟默认一致)
+    feedback_enabled = args.feedback and not args.no_feedback
+
     results = search(
         query=args.query,
         query_image=args.query_image,
@@ -478,13 +586,15 @@ def main():
         text_weight=args.text_weight,
         image_weight=args.image_weight,
         inverse_category=not args.no_inverse_category,
+        feedback=feedback_enabled,
     )
 
     if not args.no_log:
-        # log 原 query + 扩展后 query 分开记
+        # log 原 query + 扩展后 query 分开记;P3-21 默认脱敏,--no-redact 关
         log_args = argparse.Namespace(**vars(args))
         log_args.query = original_query
-        _log_query(log_args, expanded_query=args.query, results=results)
+        _log_query(log_args, expanded_query=args.query, results=results,
+                   redact_enabled=not args.no_redact)
 
     if args.format == "json":
         print(json.dumps(results, indent=2, ensure_ascii=False))

@@ -2,7 +2,7 @@
 
 Exit codes:
   0 = 全过
-  1 = 字段缺失 / enum / 格式 / list element type / shape_id resolve / variant enum / slot_id enum 问题
+  1 = 字段缺失 / enum / 格式 / list element type / shape_id resolve / variant enum / slot_id enum / sha drift 问题
   2 = placeholder_map tree_path 不能 resolve(check #9)
   3 = YAML 语法错
   4 = 模板目录不存在
@@ -22,10 +22,12 @@ Checks:
   12. VARIANT_ENUM_FAILED        page meta.yaml.variant 必须 ∈ library/vocabularies/layout_variants.yaml
       VARIANT_LAYOUT_MISMATCH    vocab[variant].layout_type 必须 == meta.layout_type
   13. SLOT_ID_ENUM_FAILED        placeholder_map slots[].id 必须 ∈ library/vocabularies/slot_ids.yaml
+  14. SOURCE_PPTX_SHA_DRIFT     _source/<name>.pptx sha256 必须 == meta.provenance.source_pptx_sha256
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import sys
 from pathlib import Path
@@ -322,6 +324,15 @@ def check_list_element_types(data: dict, file_path: Path, fields: list[str]) -> 
     return errors
 
 
+def sha256_of(path: Path) -> str:
+    """Compute sha256 of a file, streaming in 1MB chunks."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def load_yaml(path: Path) -> tuple[dict | None, str | None]:
     """返回 (data, error_msg). data is None 时 error_msg 非空."""
     try:
@@ -436,6 +447,27 @@ def check(name: str, items_root: Path) -> int:
         tn = data.get("template_name")
         if tn and tn != name:
             errors.append(f"TEMPLATE_NAME_MISMATCH: {p}: template_name={tn} != {name}")
+
+    # 14. source_pptx sha drift — _source/<name>.pptx 必须跟 meta.provenance.source_pptx_sha256 匹配
+    #     模板 .pptx 源若更新而 sha 没 bump,placeholder_map.shape_id 静默失效。
+    #     skip 静默情况(source pptx 不在 / 没 declared sha · 让别的 check 报)。
+    if tpl_meta and isinstance(tpl_meta.get("provenance"), dict):
+        prov = tpl_meta["provenance"]
+        declared_sha = prov.get("source_pptx_sha256")
+        source_pptx = items_root.parent / "_source" / f"{name}.pptx"
+        if declared_sha and source_pptx.exists():
+            try:
+                actual_sha = sha256_of(source_pptx)
+            except OSError as e:
+                errors.append(f"SOURCE_PPTX_SHA_DRIFT: cannot read {source_pptx}: {e}")
+            else:
+                if actual_sha != declared_sha:
+                    errors.append(
+                        f"SOURCE_PPTX_SHA_DRIFT: {tpl_meta_path}: "
+                        f"declared={declared_sha[:12]}... actual={actual_sha[:12]}... "
+                        f"(模板 .pptx 源已变 · 必须重新 inspect placeholder_map · "
+                        f"跑 inspect_placeholders.py + bump source_pptx_version)"
+                    )
 
     # 10. list element types — 每个 list 字段每个 element 必须是 str
     # (在 #9 placeholder_map check 之前;失败也走通用 exit-1 路径)

@@ -1,0 +1,74 @@
+# skeleton.yaml · 产品发布
+# 适用:产品经理对市场 / 销售 / 客户的新品发布(定位 / 卖点 / GTM)
+# 起点:scripts/new_deck.py <name> --skeleton product_launch
+
+name: 产品发布
+description: 产品经理对市场 / 销售 / 客户的新品发布(定位 / 痛点 / 卖点 / GTM / 定价)
+suggested_audience:
+  - sales
+  - general_public
+suggested_theme: product_lineart
+suggested_duration_min: 30
+suggested_top_recommendation: "<新产品名> 解决 <用户痛点>,目标 <目标客户>,首发 <时间窗>"
+suggested_presentation_mode: speaker
+
+outline_template:
+  - chapter: 1
+    title: 我们要解决什么问题
+    intent: 用户痛点 BLUF · 一句话引发共鸣
+    suggested_layout: single_focus
+    suggested_pattern: tpl:product_lineart__18-single_focus
+
+  - chapter: 2
+    title: 痛点深挖
+    intent: 痛点的 3 个维度 · 数据支撑 · 用户原声
+    suggested_layout: cards
+    suggested_pattern: tpl:product_lineart__07-cards
+
+  - chapter: 3
+    title: 现有方案为什么不够
+    intent: 竞品 / 现有工具的缺口 · 给我们留出的空间
+    suggested_layout: comparison
+    suggested_pattern: tpl:product_lineart__14-comparison
+
+  - chapter: 4
+    title: 我们的方案
+    intent: 产品介绍 BLUF · 一句话说清楚是什么
+    suggested_layout: single_focus
+    suggested_pattern: tpl:product_lineart__20-single_focus
+
+  - chapter: 5
+    title: 三大核心卖点
+    intent: 卖点 ① ② ③ · MECE · 每个卖点配证据 / demo
+    suggested_layout: cards
+    suggested_pattern: tpl:product_lineart__26-cards
+
+  - chapter: 6
+    title: Demo · 用户真实场景
+    intent: 一个完整 user story · 从场景到 outcome
+    suggested_layout: process_flow
+    suggested_pattern: tpl:product_lineart__15-process_flow
+
+  - chapter: 7
+    title: 定位与目标客户
+    intent: 谁是早期客户 / 谁不是 · ICP 画像
+    suggested_layout: quadrant
+    suggested_pattern: tpl:product_lineart__20-quadrant
+
+  - chapter: 8
+    title: 定价与商业模式
+    intent: 价格 / 计费方式 / 试用策略
+    suggested_layout: data
+    suggested_pattern: tpl:product_lineart__08-data
+
+  - chapter: 9
+    title: GTM 计划
+    intent: 首发时间窗 · 渠道 · 配套物料 · 销售培训节奏
+    suggested_layout: timeline
+    suggested_pattern: tpl:product_lineart__16-timeline
+
+  - chapter: 10
+    title: 销售 / 市场需要做什么
+    intent: 行动号召 · 销售配额 / 市场预算 / 关键动作
+    suggested_layout: cards
+    suggested_pattern: tpl:product_lineart__11-cards
