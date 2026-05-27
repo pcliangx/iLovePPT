@@ -136,7 +136,7 @@ builder_visual_edits: []                          # 可选(Step 0 spot-check cha
 
 ```bash
 DECK_PLAN=<deck_plan_path>
-grep -oE "Text here|Copy paste fonts|Supporting text here|…text|\.\.\.text|SUBTITLE HERE|ISLIDE|Replace with|Lorem ipsum|placeholder" "$DECK_PLAN" 2>/dev/null
+grep -oE "Text here|Copy paste fonts|Supporting text here|…text|\.\.\.text|SUBTITLE HERE|Replace with|Lorem ipsum|placeholder" "$DECK_PLAN" 2>/dev/null
 ```
 
 命中任一 → fail。**(若 deck_plan_path 入参缺,跳过本项 → 标 spot_check.placeholder_grep: skipped)**
@@ -447,15 +447,20 @@ triage 划分后,**对每个 needs_visual_redo 页跑两路 RAG 反查**,取并�
 
 对每个 `needs_visual_redo` 页:
 
+**P3-9 多模板 chapter-aware preferred-template**:`brief.theme` 可能是 str / list / dict 三种 schema。对每页用 `resolve_theme(brief.theme, page_chapter_index)` 算该页对应章节的 `effective_theme`,作 `--preferred-template` 传 search.sh(详见 author.md § "resolve_theme algorithm")。单模板时 effective_theme 跟 brief.theme str 同。
+
 ```bash
 RENDERED_JPG="<rendered_dir>/page-NN.jpg"      # 该页渲染产物(Step 1 已 Glob 出来)
-PREFERRED_TPL="<brief.theme>"                  # 来自入参 brief.theme(可选,缺则不传)
+
+# P3-9:按页所属 chapter 算 effective_theme(从 deck_plan.json slides[i].effective_theme 取最稳)
+# 或按 content.md 章节计数推 chapter_index 再 resolve_theme(brief.theme, chapter_index)
+EFFECTIVE_TPL="<resolve_theme(brief.theme, page_chapter_index) · 单模板时同 brief.theme · 缺则不传>"
 
 bash ${CLAUDE_PROJECT_DIR}/library/search.sh \
      --kb pptx-templates \
      --type page \
      --query-image "${RENDERED_JPG}" \
-     --preferred-template "${PREFERRED_TPL}" \
+     --preferred-template "${EFFECTIVE_TPL}" \
      --mode image \
      --top-k 5 \
      --format json

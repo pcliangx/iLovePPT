@@ -164,9 +164,12 @@ inspirations:
 对模板有要求吗?
 (a) 无要求,用默认 tech_blue(13 标准 layout,BCG 风)
 (b) 有要求,用我的 .pptx 模板(系统会深度提取媒体+token+视觉分析)
+(c) 多模板组合(高级 · 财务+战略类双风格联动 · 见下方"多模板组合 deck")
 ```
 
 **若答 (a)** → theme = `tech_blue`,继续收其他字段。
+
+**若答 (c) → 进入"多模板组合 deck"分支**(详见 § "多模板组合 deck(可选 · 高级 · P3-9)")。
 
 **若答 (b)** → 进入模板模式:
 
@@ -269,6 +272,76 @@ message_to_user: "首次用这个模板,先让 extractor 深度学一下(~1min),
 
 若 `${CLAUDE_PROJECT_DIR}/library/pptx-templates/items/` 空 + 用户没自带模板 → 用户只能选 (a) tech_blue。
 
+### 多模板组合 deck(可选 · 高级 · P3-9)
+
+**什么时候用**:同一份 deck 想跨模板组合不同章节,例如:
+- 财务汇报:cover / closing 用 `enterprise_skyline`(稳重深蓝商务),5-8 数据章用 `finance_arrow`(财务专用 chart 风格)
+- 战略提案:cover 用 `creative_aurora`(创意吸引)+ 中段论证用 `business_geometric`(SWOT/几何)+ closing 用 `enterprise_skyline`(收口稳重)
+- 单模板没法满足跨气质需求(如"想要财务的专业数据 + 战略的故事感")
+
+**用户怎么选**:在 theme 第一问的 (c) 答"多模板组合"后,**追问用户希望走哪种 schema**:
+
+```
+多模板组合 3 种 schema(从简到繁):
+
+(c1) list 顺序映射 · 简单
+     按章节顺序逐个写模板:
+     theme: [enterprise_skyline, enterprise_skyline, finance_arrow, finance_arrow, enterprise_skyline]
+     → 含义:第 1-2 章 enterprise_skyline,第 3-4 章 finance_arrow,第 5 章 enterprise_skyline
+     适合:章节数稳定 + 用户清楚每章模板
+
+(c2) dict 显式 range · 推荐
+     用 default + overrides 指定:
+     theme:
+       default: enterprise_skyline
+       overrides:
+         "1": enterprise_skyline      # cover
+         "5-8": finance_arrow         # 5-8 数据章
+         "9": enterprise_skyline      # closing
+     → 含义:除 5-8 用 finance_arrow,其他全 default 模板
+     适合:大多数场景 + 章节数未定 + 局部 override
+```
+
+**brainstorm 引导步骤**(分 2 轮收集,不强求一次到位):
+
+1. **第一轮 · 收候选模板 list**:
+   - 问用户"打算用哪 N 个模板?"(2-3 个为宜,4+ 视觉就会乱)
+   - 对每个候选模板都跑 RAG check + tier_compatibility surface(同单模板模式):
+     ```bash
+     for tpl in $TEMPLATE_LIST; do
+       library/search.sh --kb pptx-templates --type template --query "<用户主题>" --top-k 3
+       # 必须 surface tier1_template_slide_reuse.ready + tier2_python_theme
+     done
+     ```
+   - **强制 tier_compatibility 校验**:`Read library/pptx-templates/items/<theme>/meta.yaml` 取 `implementation.tier1_template_slide_reuse.ready` 跟 `implementation.tier2_python_theme`,所有候选模板都要 surface:
+     - "✓ tier1 ready · N/M layout 覆盖" → 推荐
+     - "⚠ tier1 partial / tier2 null" → 警告该模板可能某些 layout 渲染失败,跨模板补救空间小
+
+2. **第二轮 · 收 schema 选择 + chapter mapping**:
+   - 用户选 (c1) → "请按章节顺序给出 N 个模板(N = outline 预估章节数,先按 brief 的页数除以平均 chapter 推 N≈3-7)"
+   - 用户选 (c2) → "请给出 default 模板 + overrides(章节号:模板)"
+
+3. **anti-prompt · brainstorm 绝不替用户填章节映射**:
+   - 用户答"用 enterprise_skyline 跟 finance_arrow 组合" → **不能** 默认 [enterprise_skyline, finance_arrow]
+   - 必须追问"哪一章用 enterprise_skyline,哪一章用 finance_arrow?"
+   - 用户答模糊("数据章用 finance · 其他用 enterprise") → 主动给 dict overrides 范例让用户挑
+
+**brief.md 落盘:dict schema 示范**(写到 brief.md 的"必填字段"段):
+
+```yaml
+# (c2) dict 显式 range schema
+theme:
+  default: enterprise_skyline
+  overrides:
+    "1": enterprise_skyline       # cover · 跟 default 一致也写明,方便后续 audit
+    "5-8": finance_arrow          # 5-8 章数据
+    "9": enterprise_skyline       # closing
+```
+
+**与单模板 schema 完全兼容(P3-9 backward compat)**:
+- `theme: enterprise_skyline`(str)→ 全 deck 用 enterprise_skyline,**老 brief 不需要改**
+- `theme: [...]` / `theme: {default, overrides}` → 多模板,builder 解析时按 schema 分发
+
 **素材摄入触发**(对话中识别):
 - 用户提到"数据 / 报表 / 增长 / 对比" → prompt 数据
 - 用户提到"我们的架构 / 现有图 / 流程图" → prompt 现有图 or 让 author 现画
@@ -313,9 +386,24 @@ created: <YYYY-MM-DD>
 # 必填字段
 - audience: [<primary>, <secondary>, ...]  # P2-13 list · 第 1 个 = 评分基准 / 其余 = 参考视角 · 7 persona enum:cfo / engineer / sales / hr / investor / academic / general_public(SSOT library/vocabularies/audience_personas.yaml)
 - duration_min: <值>
-- theme: <值>(tech_blue / 模板短名 / .pptx 绝对路径)
+- theme: <值>  # P3-9:支持 3 种 schema(详见下方"theme schema 示例")
 - output: <值>
 - presentation_mode: <值>
+
+# theme schema 示例(P3-9 · 三选一)
+# 模式 A · 单 str(legacy · 默认 · 全 deck 用同一模板)
+theme: enterprise_skyline
+
+# 模式 B · list 顺序映射(每章独立 · 按章节顺序 1:1 mapping)
+# theme: [enterprise_skyline, enterprise_skyline, finance_arrow, finance_arrow, enterprise_skyline]
+
+# 模式 C · dict 显式 chapter range(推荐 · default + overrides)
+# theme:
+#   default: enterprise_skyline
+#   overrides:
+#     "1": enterprise_skyline       # cover · 跟 default 一致也写明,方便后续 audit
+#     "5-8": finance_arrow          # 5-8 章数据
+#     "9": enterprise_skyline       # closing
 
 # 约束(pipeline 全程 enforce)
 ```yaml
@@ -418,15 +506,37 @@ dispatch_author 之前 **必须** 跑 5 项 self-audit。**自己审 brief.md**,
 
 #### Section B.3 · theme tier 能力匹配
 
-防"选了空 theme,builder 渲染时撞 fail-loud"。
+防"选了空 theme,builder 渲染时撞 fail-loud"。**P3-9 后**:theme 可能是 str / list / dict 三种 schema,本 section 对**所有用到的模板**都校验一遍。
 
-1. 从 brief.md 取 `theme` 值(若 `tech_blue` → 直接 pass,跳过本 section)
-2. `Read library/pptx-templates/items/<theme>/meta.yaml`(若文件不存在 → fail B.3.missing_meta)
-3. 取 `implementation.tier1_template_slide_reuse.ready` 和 `implementation.tier2_python_theme`:
-   - 若 `tier2_python_theme: null` **且** `tier1_template_slide_reuse.ready != true` → **fail B.3.empty_theme**(选了"空"theme,builder 会撞 fail-loud)
-   - 若 `tier2_python_theme: null` 但 tier1 ready → ✓(pass + med severity 提示)
-4. 取 `meta.yaml.recommended_for`:
-   - 若 brief.audience(list)的 **primary**(list[0]) 跟 theme.recommended_for 矛盾 → med severity(气质张力,不阻塞);secondary 跟 recommended_for 不一致仅 low severity advisory
+##### B.3.0 · 解析 theme schema(P3-9)
+
+1. 从 brief.md 取 `theme` 值
+2. 推断 schema:
+   - **str schema**(legacy)→ `themes_to_check = [<theme str>]`
+   - **list schema** → `themes_to_check = unique(theme_list)`(去重)
+   - **dict schema**(`{default, overrides}`)→ `themes_to_check = unique([default] + list(overrides.values()))`
+3. 若 `themes_to_check == ["tech_blue"]`(只有内置)→ 全 pass,跳过本 section
+4. 否则对 `themes_to_check` 里**每个**非 tech_blue 模板都跑 B.3.1 + B.3.2
+
+##### B.3.1 · 单模板 tier 能力(每个模板独立校验)
+
+对 `themes_to_check` 里每个 theme `T`:
+
+1. `Read library/pptx-templates/items/<T>/meta.yaml`(若文件不存在 → fail B.3.missing_meta · 标 theme=<T>)
+2. 取 `implementation.tier1_template_slide_reuse.ready` 和 `implementation.tier2_python_theme`:
+   - 若 `tier2_python_theme: null` **且** `tier1_template_slide_reuse.ready != true` → **fail B.3.empty_theme**(theme=<T> 是"空"模板,builder 会撞 fail-loud)
+   - 若 `tier2_python_theme: null` 但 tier1 ready → ✓(pass + med severity 提示 · theme=<T>)
+3. 取 `meta.yaml.recommended_for`:
+   - 若 brief.audience(list)的 **primary**(list[0]) 跟 theme.recommended_for 矛盾 → med severity(气质张力,不阻塞;标 theme=<T>);secondary 跟 recommended_for 不一致仅 low severity advisory
+
+##### B.3.2 · 多模板风格冲突 advisory(list/dict schema 才跑)
+
+仅 `len(themes_to_check) >= 2` 时跑(单模板跳过):
+
+1. 对 `themes_to_check` 里每对模板 (A, B) 比较 `visual_signature` / `visual_tokens.colors`:
+   - 主色 hex 距离 > 50(感官上明显不同色系)→ low severity advisory("跨模板色调差大,builder 会用 chapter 1 主色统一字体/色板,你可能感觉某些章节字体跟原模板视觉不一致")
+   - `visual_signature` 含矛盾元素(如 A 是"flat 几何" + B 是"摄影写实") → low severity advisory("flat + 写实混搭,跨章节读起来可能割裂")
+2. **不阻塞**(advisory 性质)· 让用户知道跨模板组合的视觉张力风险
 
 #### Section B.4 · red_line_words 清单完整性
 
@@ -547,6 +657,11 @@ message_to_user: |
 - **不要并行 Write brief.md + 返回 ask_user** —— Step B.1 必须落盘成功后才能进 B.2 发消息
 - **不要直接用 /tmp paste 路径跑 inspiration 反查(P2-8)** —— 必须先 cp 到 `<working_dir>/brainstorm/inspirations/<sha256-short>.<ext>` 再 `--query-image $SAVED`;否则 session 关闭后路径失效,用户重 paste 麻烦
 - **不要假设 audience 是单 str(P2-13)** —— audience 是 list;老 brief 单 str 自动 wrap 成 `[<str>]`,但新 brief 必须用户明示 list 形式(primary + secondary)
+- **不要在多模板组合 deck 替用户填章节映射(P3-9)** —— 用户给 list theme 但没说"哪章用哪个模板" → **必须追问**,不能瞎猜:
+  - ✗ 用户答"用 enterprise_skyline 跟 finance_arrow 组合" → brainstorm 默认 [enterprise_skyline, finance_arrow] 或自己拆 5-8 章给 finance_arrow
+  - ✓ brainstorm 反问"哪一章用 enterprise_skyline,哪一章用 finance_arrow?给个 dict overrides 或 list 顺序"
+  - dict overrides 范围歧义("5-8 用 finance" 但 outline 实际只 6 章) → 继续追问"是不是 5-6 用 finance · 后两章 finance 改回 default?"
+  - 同理 list 长度 ≠ outline 章节数 → 追问"补齐 N 个还是改 dict?"
 
 ## 示范(few-shot)
 

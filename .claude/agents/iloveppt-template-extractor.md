@@ -146,7 +146,7 @@ fi
 
 ### Step 2.5 · 页数对账(advisory · 不再 hard_stop)
 
-渲染完成后做对账,**如实记录,不解释**。`unzip` 数到的是 .pptx 声明的所有 sldId(可能含 iSlide / 元素库 / 工具说明页),LibreOffice 实际渲染的是它能解析的页 — 两者**正常情况就可能不等**。
+渲染完成后做对账,**如实记录,不解释**。`unzip` 数到的是 .pptx 声明的所有 sldId(可能含模板自带 / 元素库 / 工具说明页),LibreOffice 实际渲染的是它能解析的页 — 两者**正常情况就可能不等**。
 
 ```bash
 declared_pages=$(unzip -p library/pptx-templates/_source/<name>.pptx ppt/presentation.xml | grep -oc '<p:sldId ')
@@ -494,7 +494,7 @@ artifacts:
   - path: library/pptx-templates/items/<name>/preview.png
     kind: cover_thumbnail
 summary: |
-  <name> 渲染 32/39 页(7 页 discrepancy 待用户审,可能是 iSlide / 工具说明页)
+  <name> 渲染 32/39 页(7 页 discrepancy 待用户审,可能是模板工具说明页)
   LLM 起草了 1 个 template-level + 32 个 per-page meta.yaml.draft
   ⚠️ 低置信度页:第 03 / 07 页,请优先审
   审完后:
