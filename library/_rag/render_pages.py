@@ -50,22 +50,32 @@ def render(name: str, dpi: int = 120) -> list[Path]:
     with tempfile.TemporaryDirectory(prefix=f"render_{name}_") as td:
         td_path = Path(td)
         print(f"[render] soffice {pptx.name} → pdf ...", flush=True)
-        subprocess.run(
-            ["soffice", "--headless", "--convert-to", "pdf", str(pptx), "--outdir", str(td_path)],
-            check=True,
-            capture_output=True,
-        )
+        try:
+            subprocess.run(
+                ["soffice", "--headless", "--convert-to", "pdf", str(pptx), "--outdir", str(td_path)],
+                check=True,
+                capture_output=True,
+                timeout=300,
+            )
+        except subprocess.TimeoutExpired:
+            print("ERROR: soffice 转 PDF 超时 (300s) - RENDER_TIMEOUT", file=sys.stderr)
+            sys.exit(2)
         pdf_files = list(td_path.glob("*.pdf"))
         if not pdf_files:
             print("ERROR: soffice 未产 PDF", file=sys.stderr)
             sys.exit(1)
         pdf = pdf_files[0]
         print(f"[render] pdftoppm -r {dpi} {pdf.name} → png ...", flush=True)
-        subprocess.run(
-            ["pdftoppm", "-png", "-r", str(dpi), str(pdf), str(td_path / "page")],
-            check=True,
-            capture_output=True,
-        )
+        try:
+            subprocess.run(
+                ["pdftoppm", "-png", "-r", str(dpi), str(pdf), str(td_path / "page")],
+                check=True,
+                capture_output=True,
+                timeout=180,
+            )
+        except subprocess.TimeoutExpired:
+            print("ERROR: pdftoppm 渲染超时 (180s) - RENDER_TIMEOUT", file=sys.stderr)
+            sys.exit(2)
         pages = sorted(td_path.glob("page-*.png"))
         if not pages:
             print("ERROR: 无 page-*.png", file=sys.stderr)
