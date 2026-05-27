@@ -4,7 +4,21 @@
 
 由 `iloveppt-template-extractor` agent 主导,主线程 dispatch。
 
+## 模式
+
+| mode | 用途 | step 范围 |
+|---|---|---|
+| `full` | 默认 · 完整 ingest 新模板 | 0-5 全跑 |
+| `placeholder_map_only` | 回填工程 · 给已 ingest 模板补 placeholder_map.yaml.draft | Step 0 / 3.0 / 3.1.5 / 3.3 / 5 |
+| `dry_run` | 看模板有几页 · 不写任何 draft | Step 0-2.5 + return preview |
+| `re_render_only` | 只重渲染 PNG · 保留 meta(LibreOffice 升级 / dpi 调整) | Step 0-2.5,skip Step 3 |
+
 ## 步骤
+
+**关键脚本**:
+- `library/pptx-templates/scripts/inspect_placeholders.py` —— Step 3.1.5 产 placeholder_map.yaml.draft 骨架
+- `library/pptx-templates/scripts/extractor_self_check.py` —— Step 3.3 自检 · exit code 0/1/2/3/4
+- `library/_rag/render_pages.py` —— Step 2 渲染 PNG(soffice/pdftoppm 已加 timeout)
 
 ```
 1. 用户提供 .pptx 路径
@@ -185,31 +199,11 @@ copy_constraints:
 
 ## 验收 checklist(extractor 跑完 self-check)
 
-写完所有 meta.yaml.draft 后,extractor **必须**自检:
-
+不再内嵌 bash · 跑外部脚本:
 ```bash
-# 1. 必填字段检查(模板级)
-for f in items/<name>/meta.yaml.draft; do
-  for field in id name category content_intent when_to_use keywords recommended_for visual_signature; do
-    grep -q "^$field:" $f || echo "MISSING: $f.$field"
-  done
-done
-
-# 2. 必填字段检查(页级)
-for f in items/<name>/pages/*/meta.yaml.draft; do
-  for field in id name layout_type content_intent when_to_use keywords native_elements; do
-    grep -q "^$field:" $f || echo "MISSING: $f.$field"
-  done
-done
-
-# 3. layout_type enum 合规检查
-ALLOWED='cover|toc|section_divider|summary|closing|quote|single_focus|cards|bullet_list|data|timeline|pyramid|venn|radial|process_flow|quadrant|comparison|other'
-grep -hE "^layout_type:" items/<name>/pages/*/meta.yaml.draft \
-  | awk '{print $2}' | sort -u \
-  | grep -vE "^($ALLOWED)$" && echo "ENUM VIOLATION above"
-
-# 4. id 唯一 + 不含双 __ 嵌套
-grep -h "^id:" items/<name>/pages/*/meta.yaml.draft | sort -u | wc -l  # 应 == 页数
+library/_rag/.venv/bin/python \
+  library/pptx-templates/scripts/extractor_self_check.py <name>
 ```
 
-任何一项不通过 → return `status: error` + 列出违规文件,主线程会重派或让用户修。
+Exit code: 0=全过 / 1=字段 enum 错 / 2=pmap tree_path 错 / 3=YAML 语法 / 4=目录不存在。
+脚本会校验 9 项(YAML 语法 / 模板字段 / 页字段 / enum / id 格式 + 唯一 / confidence 数字+范围 / embedding_dim==1152 / extraction 算式 / pmap tree_path resolve)。
