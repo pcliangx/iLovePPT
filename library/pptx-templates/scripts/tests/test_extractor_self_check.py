@@ -94,3 +94,44 @@ def test_null_layout_type_does_not_pass(tmp_path):
     code, out = run("null_layout", tmp_path)
     assert code == 1
     assert "LAYOUT_TYPE_INVALID" in out
+
+
+def test_provenance_as_list_does_not_crash(tmp_path):
+    """provenance: [a, b] (non-null non-dict) → no AttributeError, EMBEDDING_DIM_WRONG fires."""
+    fix = tmp_path / "prov_list"
+    fix.mkdir()
+    (fix / "meta.yaml.draft").write_text(
+        "status: draft\nid: prov_list\nname: x\ncategory: test\n"
+        "content_intent: [x]\nwhen_to_use: [x]\nkeywords: [x]\n"
+        "recommended_for: [x]\nvisual_signature: [x]\n"
+        "provenance: [a, b]\nextraction: [c, d]\n"
+    )
+    pages = fix / "pages" / "01-cover"
+    pages.mkdir(parents=True)
+    (pages / "meta.yaml.draft").write_text(
+        "status: draft\nconfidence: 0.9\nid: prov_list__01-cover\n"
+        "name: x\nlayout_type: cover\ncontent_intent: [x]\nwhen_to_use: [x]\n"
+        "keywords: [x]\nnative_elements: [x]\n"
+    )
+    code, out = run("prov_list", tmp_path)
+    assert code == 1, f"{code}\n{out}"
+    assert "Traceback" not in out
+    assert "EMBEDDING_DIM_WRONG" in out
+
+
+def test_extraction_bool_rejected_as_non_int(tmp_path):
+    """declared_pages: true / rendered_pages: false → EXTRACTION_TYPE_INVALID, not silent pass."""
+    import shutil
+    src = FIXTURES / "minimal_template_ok"
+    dst = tmp_path / "ext_bool"
+    shutil.copytree(src, dst)
+    tpl = dst / "meta.yaml.draft"
+    tpl.write_text(
+        tpl.read_text()
+        .replace("declared_pages: 1", "declared_pages: true")
+        .replace("rendered_pages: 1", "rendered_pages: false")
+        .replace("discrepancy: 0", "discrepancy: true")
+    )
+    code, out = run("ext_bool", tmp_path)
+    assert code == 1, f"{code}\n{out}"
+    assert "EXTRACTION_TYPE_INVALID" in out

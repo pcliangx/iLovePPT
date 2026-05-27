@@ -126,18 +126,22 @@ def check(name: str, items_root: Path) -> int:
 
     # 6. provenance.embedding_dim == 1152
     if tpl_meta:
-        prov = tpl_meta.get("provenance") or {}
+        prov = tpl_meta.get("provenance")
+        if not isinstance(prov, dict):
+            prov = {}
         if prov.get("embedding_dim") != 1152:
             errors.append(f"EMBEDDING_DIM_WRONG: {tpl_meta_path}: got {prov.get('embedding_dim')}, expected 1152")
 
     # 7. extraction 算式自洽
     if tpl_meta:
-        ext = tpl_meta.get("extraction") or {}
+        ext = tpl_meta.get("extraction")
+        if not isinstance(ext, dict):
+            ext = {}
         d = ext.get("declared_pages")
         r = ext.get("rendered_pages")
         disc = ext.get("discrepancy")
         if d is not None and r is not None and disc is not None:
-            if not all(isinstance(x, int) for x in (d, r, disc)):
+            if not all(isinstance(x, int) and not isinstance(x, bool) for x in (d, r, disc)):
                 errors.append(f"EXTRACTION_TYPE_INVALID: {tpl_meta_path}: declared/rendered/discrepancy must be int, got ({type(d).__name__}, {type(r).__name__}, {type(disc).__name__})")
             elif d - r != disc:
                 errors.append(f"EXTRACTION_MATH_INCONSISTENT: declared={d} rendered={r} discrepancy={disc}")
