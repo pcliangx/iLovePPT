@@ -64,7 +64,7 @@ yaml schema 见 [`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md` §4](${CLA
 
 next_action 取值即 verdict(`pass` / `pass_with_notes` / `needs_revision`),主线程按此派下一步。
 
-**P0-1 · 必填 `scores` 块**:return YAML 除 `issues`(人读 high/med/low)外,**必须**再附一个机器可读 `scores: [{id, severity}]` 块,逐项列出 21 项(A1-A7 + B1-B9 + J1-J5)的整数 severity(0-3),与 report .md 里的量化结果一致。主线程 PostToolUse hook(`.claude/hooks/validate_agent_return.py`)据此按公式重算 verdict;声明的 verdict 与重算不符会被 **block**。J5 为 advisory,severity 照填但**不计入** verdict 重算。
+**P0-1 · 必填 `scores` 块**:return YAML 除 `issues`(人读 high/med/low)外,**必须**再附一个机器可读 `scores: [{id, severity}]` 块,逐项列出 21 项(A1-A7 + B1-B9 + J1-J5)的整数 severity(0-3),与 report .md 里的量化结果一致。SubagentStop hook(`.claude/hooks/validate_agent_return.py`)据此按公式重算 verdict;声明的 verdict 与重算不符会 exit 2 把 gate 消息喂回你,逼你自纠后重出(改 verdict 或复查 severity);`stop_hook_active` 保证最多一轮。J5 为 advisory,severity 照填但**不计入** verdict 重算。
 
 ## 入参契约
 
