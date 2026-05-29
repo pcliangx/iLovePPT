@@ -27,11 +27,11 @@
 #     2: <warn 示例,改了更稳>
 #     3: <block 示例,不改 ship 不出去>
 #
-# verdict 自动算公式(critic.md Step 3 引用):
-#   适用范围:全 21 项(A1-A7 + B1-B9 + J1-J5)
+# verdict 自动算公式(critic.md Step 3 + validate_agent_return.py 引用):
+#   适用范围:A1-A7 + B1-B9 + J1-J4(J5 是 advisory,severity 照填但**不计入** verdict 重算)
 #   if any(s.severity == 3): verdict = "needs_revision"
 #   elif count(s.severity == 2) > 5: verdict = "needs_revision"  # warn 累积亦 block
-#   elif count(s.severity == 2) >= 1 or count(s.severity == 1) >= 1: verdict = "pass_with_notes"
+#   elif count(s.severity >= 1) >= 1: verdict = "pass_with_notes"
 #   else: verdict = "pass"
 
 version: 1
