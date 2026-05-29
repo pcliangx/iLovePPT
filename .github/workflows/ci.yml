@@ -1,0 +1,37 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install main deps
+        run: pip install -e ".[diagram,dev]"
+
+      - name: Main pytest (non-RAG)
+        run: python -m pytest -q
+
+      - name: RAG venv + subset tests
+        run: |
+          python3 -m venv library/_rag/.venv
+          library/_rag/.venv/bin/pip install -r library/_rag/requirements.txt
+          library/_rag/.venv/bin/pip install -e ".[diagram,dev]"
+          library/_rag/.venv/bin/python -m pytest tests/library -q
+
+      - name: Secret scan (block sk- keys)
+        run: |
+          if git grep -nIE 'sk-[a-zA-Z0-9]{20,}' -- ':!docs/superpowers/' ':!.github/'; then
+            echo "::error::发现疑似 API key(sk-...)入库"
+            exit 1
+          fi
+          echo "no secrets found"
+
+      - name: gitignore lint
+        run: python scripts/gitignore_lint.py
