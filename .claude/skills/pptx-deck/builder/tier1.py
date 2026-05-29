@@ -21,7 +21,7 @@ from typing import Any
 from pptx import Presentation
 from pptx.shapes.group import GroupShape
 
-from .base import _find_template, H
+from .base import _find_template, H, _warn
 
 
 # ===========================================================================
@@ -299,7 +299,7 @@ def _apply_text_map_by_slots(slide, text_map: dict[str, str], placeholder_map: d
             continue
         shape = _find_shape_by_tree_path(slide, tree_path)
         if shape is None or not shape.has_text_frame:
-            print(f"  WARN tier1 mapping: slot {slot_id!r} tree_path={tree_path} 找不到 / 无 text_frame")
+            _warn("tier1.slot-map", f"slot {slot_id!r} tree_path={tree_path} 找不到 / 无 text_frame")
             continue
         if new_text == "" and slot.get("keep_when_empty") is not True:
             shapes_to_blank_remove.append(shape)
@@ -317,21 +317,29 @@ def _apply_text_map_by_slots(slide, text_map: dict[str, str], placeholder_map: d
                               font_size_pt=font_size)
 
     # Now remove the empty-slot shapes (top-level only via parent.remove)
-    for shape in shapes_to_blank_remove:
+    _remove_blank_shapes(shapes_to_blank_remove)
+
+    unmatched = set(text_map.keys()) - set(slot_by_id.keys())
+    if unmatched:
+        _warn("tier1.slot-map", f"text_map keys {sorted(unmatched)} 无对应 slot, 已跳过")
+
+
+def _remove_blank_shapes(shapes) -> None:
+    """删除空槽位 shape;失败回落到清空文本;两者都失败 → warn-loud(原文可能残留)。"""
+    for shape in shapes:
         try:
             sp = shape._element
             parent = sp.getparent()
             if parent is not None:
                 parent.remove(sp)
-        except Exception:
+        except Exception as e:
             try:
                 _replace_shape_text(shape, "", text_color_hex=None, font_size_pt=None)
-            except Exception:
-                pass
-
-    unmatched = set(text_map.keys()) - set(slot_by_id.keys())
-    if unmatched:
-        print(f"  WARN tier1 mapping: text_map keys {sorted(unmatched)} 无对应 slot, 已跳过")
+            except Exception as e2:
+                _warn(
+                    "tier1.shape-removal",
+                    f"空槽位删除+替换均失败,模板原文可能残留: remove={e!r} replace={e2!r}",
+                )
 
 
 def _apply_text_map_by_geometry(slide, text_map: dict[str, str]):

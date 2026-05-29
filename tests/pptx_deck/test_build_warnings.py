@@ -42,3 +42,24 @@ def test_parse_red_line_words_bad_yaml_block_warns(tmp_path):
     assert "禁词1" in words
     # 损坏 fence 被 warn 而非静默 continue
     assert any("red-line" in w for w in base.BUILD_WARNINGS)
+
+
+def test_tier1_shape_removal_double_failure_warns(monkeypatch):
+    """删空槽位 + 替换均失败时必须 warn-loud(模板原文可能残留),不静默。"""
+    tier1 = importlib.import_module("builder.tier1")
+    base.BUILD_WARNINGS.clear()
+
+    class _BadElement:
+        def getparent(self):
+            raise RuntimeError("parent boom")
+
+    class _FakeShape:
+        _element = _BadElement()
+
+    # _replace_shape_text 也抛 → 进入最内层,必须 warn 而非 pass
+    monkeypatch.setattr(
+        tier1, "_replace_shape_text",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("replace boom")),
+    )
+    tier1._remove_blank_shapes([_FakeShape()])
+    assert any("tier1.shape-removal" in w for w in base.BUILD_WARNINGS)
