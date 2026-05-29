@@ -129,3 +129,44 @@ def test_validate_block_critic_j5_only_scores_no_block():
     block = "next_action: pass\nverdict: pass\nscores:\n  - {id: J5, severity: 2}\n"
     code, msg = v.validate_block("iloveppt-critic", block)
     assert code == 0, msg
+
+
+# ---------------------------------------------------------------------------
+# C3 · main() subprocess tests
+# ---------------------------------------------------------------------------
+import json as _json
+import subprocess
+import sys as _sys
+
+
+def _run_hook(payload: dict):
+    return subprocess.run(
+        [_sys.executable, str(_HOOK)],
+        input=_json.dumps(payload), text=True, capture_output=True,
+    )
+
+
+def test_main_non_iloveppt_agent_passes():
+    r = _run_hook({"tool_input": {"subagent_type": "Explore"},
+                   "tool_response": "```yaml\nnext_action: teleport\n```"})
+    assert r.returncode == 0
+
+
+def test_main_no_yaml_block_passes():
+    r = _run_hook({"tool_input": {"subagent_type": "iloveppt-critic"},
+                   "tool_response": "just prose, no fence"})
+    assert r.returncode == 0
+
+
+def test_main_critic_mismatch_blocks():
+    resp = ("summary text\n```yaml\nnext_action: pass\nverdict: pass\n"
+            "scores:\n  - {id: A6, severity: 3}\n```")
+    r = _run_hook({"tool_input": {"subagent_type": "iloveppt-critic"}, "tool_response": resp})
+    assert r.returncode == 2
+    assert "needs_revision" in r.stderr
+
+
+def test_main_malformed_stdin_passes():
+    r = subprocess.run([_sys.executable, str(_HOOK)], input="not json",
+                       text=True, capture_output=True)
+    assert r.returncode == 0  # 防御性:解析不了的 stdin 不崩不拦

@@ -22,6 +22,7 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent  # <repo>/.claude/hooks → <repo>
 RUBRIC = REPO / ".claude/agents/critic-rubric.yaml"
 
+# 注:iloveppt-template-extractor(旁路)return schema 不同,本 gate 不校验 → 故意不在此集合
 ILOVEPPT_AGENTS = {
     "iloveppt-critic", "iloveppt-audience", "iloveppt-builder",
     "iloveppt-author", "iloveppt-brainstorm",
@@ -135,7 +136,7 @@ def validate_block(agent: str, block: str) -> tuple[int, str]:
             if sev:
                 thresholds = _load_critic_thresholds()
                 expected = _recompute_verdict(sev, thresholds)
-                declared = verdict or na
+                declared = verdict if verdict is not None else na
                 if declared and declared != expected:
                     return 2, (
                         f"critic verdict 公式重算={expected!r} 但声明={declared!r} "
@@ -159,3 +160,36 @@ def validate_block(agent: str, block: str) -> tuple[int, str]:
         return 0, ""
 
     return 0, ""  # builder/author/brainstorm:本版只校 next_action 枚举
+
+
+def main() -> int:
+    raw = sys.stdin.read()
+    try:
+        payload = json.loads(raw)
+    except Exception:
+        return 0  # stdin 非 JSON:防御性放行,绝不因 hook 自身崩溃卡流水线
+    if not isinstance(payload, dict):
+        return 0
+
+    tool_input = payload.get("tool_input") or {}
+    agent = tool_input.get("subagent_type") if isinstance(tool_input, dict) else None
+    if agent not in ILOVEPPT_AGENTS:
+        return 0
+
+    text = _extract_text(payload.get("tool_response"))
+    block = _extract_last_yaml_block(text)
+    if not block:
+        return 0  # 无 yaml fence:保守放行
+
+    try:
+        code, msg = validate_block(agent, block)
+    except Exception:
+        return 0  # validator 自身异常:放行(绝不误杀)
+    if code == 2:
+        print(f"[gate] BLOCK · {msg}", file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
