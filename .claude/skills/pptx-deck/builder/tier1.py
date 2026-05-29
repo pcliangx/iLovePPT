@@ -230,7 +230,8 @@ def _load_placeholder_map(theme: ModuleType, template_page_index: int,
             continue
         try:
             data = _yaml.safe_load(map_path.read_text(encoding="utf-8"))
-        except Exception:
+        except Exception as e:
+            _warn("tier1.placeholder-map", f"跳过损坏的 placeholder_map.yaml ({map_path}): {e!r}")
             continue
         if isinstance(data, dict) and data.get("template_page_index") == template_page_index:
             return data
