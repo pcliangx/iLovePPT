@@ -250,7 +250,8 @@ def _extract_design_tokens(pptx_path: str) -> dict[str, Any]:
 
     try:
         prs = Presentation(pptx_path)
-    except Exception:
+    except Exception as e:
+        _warn("builder.token-extract", f"无法打开 .pptx 提取 token,全部回落默认: {e!r}")
         return tokens
 
     # === master ea typeface + 字号 ===
@@ -272,8 +273,8 @@ def _extract_design_tokens(pptx_path: str) -> dict[str, Any]:
                         break
                 if done:
                     break
-    except Exception:
-        pass
+    except Exception as e:
+        _warn("builder.token-extract", f"master EA 字体提取失败,回落默认: {e!r}")
 
     # === 从 master XML 抽字号(直接读 slideMaster1.xml) ===
     try:
@@ -294,8 +295,8 @@ def _extract_design_tokens(pptx_path: str) -> dict[str, Any]:
                     if sz and sz.isdigit():
                         tokens["body_size_pt"] = int(sz) // 100
                 break
-    except Exception:
-        pass
+    except Exception as e:
+        _warn("builder.token-extract", f"master 字号提取失败,回落默认: {e!r}")
 
     # === theme1.xml: accent1-6 + dk1/lt1 ===
     try:
@@ -331,8 +332,8 @@ def _extract_design_tokens(pptx_path: str) -> dict[str, Any]:
                             if rgb:
                                 tokens[key] = rgb
                 break
-    except Exception:
-        pass
+    except Exception as e:
+        _warn("builder.token-extract", f"theme1.xml accent 色提取失败,回落默认: {e!r}")
 
     return tokens
 
@@ -489,7 +490,8 @@ def _parse_red_line_words(brief_path: str | Path) -> list[str]:
     for block in candidates:
         try:
             data = _yaml.safe_load(block) or {}
-        except Exception:
+        except Exception as e:
+            _warn("builder.red-line", f"跳过损坏的 red_line YAML 块: {e!r}")
             continue
         if not isinstance(data, dict):
             continue
