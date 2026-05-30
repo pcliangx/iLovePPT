@@ -9,6 +9,14 @@ venv/
 /tmp/
 *.swp
 
+# Python build / editable-install 产物(pip install -e . 生成,见 pyproject py-modules=[])
+*.egg-info/
+build/
+dist/
+
+# pandoc 从 .zh.md 生成的 HTML 渲染(不入 git)
+docs/*.zh.html
+
 # 渲染验证产物
 /out/
 *.pdf
