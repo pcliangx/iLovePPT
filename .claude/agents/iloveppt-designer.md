@@ -56,6 +56,15 @@ mode: full | visual_redo                               # 默认 full
 
 > 参考 lark-slides skill 的 visual-planning 思路(layout_type / visual_focus / text_density 三元组定几何)。html/lark-whiteboard 自由度更高,lark-slides 受 slide 模型约束更强。
 
+**Step 1.5 · t2i 封面 / 主视觉(可选 · 三轨通用 · Phase 6)**:若 cover / hero 页要定制主视觉(图标/照片表达不够),调 t2i:
+```bash
+python3 ${CLAUDE_PROJECT_DIR}/scripts/t2i.py "<画面描述 · 含 theme 调性 + 构图>" \
+        --out <working_dir>/builder/assets/cover-<theme>.png --seed <int> --size 1280x720
+```
+- html 轨:`<img src="../assets/cover-<theme>.png">`;lark-whiteboard:SVG `<image href="...">`;lark-slides:`slides +media-upload` 拿 `file_token` → `<img src>`
+- **reproducibility 强制**:t2i.py 自动写同名 `.source.yaml`(prompt+model+seed+ts);缺 source = bug
+- `T2I_API_BASE` / `T2I_API_KEY` 未配 → 跳过 t2i(用 iconify / Unsplash / brand fallback),**不阻塞**
+
 ## Step 2 · 按 track 发源 + build
 
 ### track=html(详见 Phase 5)
