@@ -3,8 +3,6 @@
 模块布局:
     base.py   —— 共享:plan load / theme load / Presentation init / build_deck orchestrator
                  / red_line_words 4th-line check / render / ThemeSpec parser
-    tier1.py  —— tier1 模板 slide 复用(cross-pptx deep-copy)
-                 + drop_rel + shape-removal + placeholder_map 应用
     tier2.py  —— tier2 Python theme 重画(make_<layout> dispatch)
     tier3.py  —— tier3 fallback(layout 不存在 / 错误兜底)
 

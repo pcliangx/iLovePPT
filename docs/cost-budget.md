@@ -54,7 +54,7 @@ iLovePPT 每个 deck 都有 token cost tracking。**在此基础上加 budget ce
 
 ## 价格(Opus 4.7)
 
-`library/_rag/scripts/track_cost.py` PRICES 常量(USD per 1M token,来源 https://www.anthropic.com/pricing 2026-05):
+`scripts/track_cost.py` PRICES 常量(USD per 1M token,来源 https://www.anthropic.com/pricing 2026-05):
 
 | model | input | output |
 |---|---|---|
@@ -69,7 +69,7 @@ iLovePPT 每个 deck 都有 token cost tracking。**在此基础上加 budget ce
 ### update — 累加 token usage(agent 内部跑)
 
 ```bash
-library/_rag/.venv/bin/python library/_rag/scripts/track_cost.py update \
+python3 scripts/track_cost.py update \
     --state <deck>/author/deck_v1_state.json \
     --agent author \
     --tokens-in 1500 \
@@ -88,7 +88,7 @@ library/_rag/.venv/bin/python library/_rag/scripts/track_cost.py update \
 ### status — 主线程派发后检查 budget(新增)
 
 ```bash
-library/_rag/.venv/bin/python library/_rag/scripts/track_cost.py status \
+python3 scripts/track_cost.py status \
     --deck /abs/path/to/deck-working-dir
 ```
 
@@ -120,7 +120,7 @@ JSON output(`--format json`)适合主线程 parse:
 ### show — 详细 cost breakdown
 
 ```bash
-library/_rag/.venv/bin/python library/_rag/scripts/track_cost.py show \
+python3 scripts/track_cost.py show \
     --state <deck>/author/deck_v1_state.json
 ```
 
@@ -144,7 +144,7 @@ by agent:
 ### set-budget — 中途改 budget(用户答"提 budget"后跑)
 
 ```bash
-library/_rag/.venv/bin/python library/_rag/scripts/track_cost.py set-budget \
+python3 scripts/track_cost.py set-budget \
     --state <deck>/author/deck_v1_state.json \
     --budget 25
 ```
@@ -156,7 +156,7 @@ library/_rag/.venv/bin/python library/_rag/scripts/track_cost.py set-budget \
 ### reset — 清零 cost 块(budget 保留)
 
 ```bash
-library/_rag/.venv/bin/python library/_rag/scripts/track_cost.py reset \
+python3 scripts/track_cost.py reset \
     --state <deck>/author/deck_v1_state.json
 ```
 
@@ -189,11 +189,11 @@ reset 只清 token / warn 历史,**budget 不动**。用于 deck 重做 / 跑 ab
 
 ```bash
 # 清 token / warn 历史,保留 budget
-library/_rag/.venv/bin/python library/_rag/scripts/track_cost.py reset \
+python3 scripts/track_cost.py reset \
     --state <deck>/author/deck_v1_state.json
 
 # 同时改 budget
-library/_rag/.venv/bin/python library/_rag/scripts/track_cost.py set-budget \
+python3 scripts/track_cost.py set-budget \
     --state <deck>/author/deck_v1_state.json --budget 20
 ```
 

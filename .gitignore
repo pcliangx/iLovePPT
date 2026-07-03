@@ -43,6 +43,10 @@ _assets/
 # deck 工作目录 — 全交给 decks/.gitignore 管(默认整目录不入 git)
 # 详见 decks/.gitignore
 
+# === scripts/ · 工程脚本运行时产物 ===
+# query_cache.py 沉淀的 iconify/Unsplash query 缓存(从 library/_rag/ 迁来)
+scripts/.cache/
+
 # === library/ · 知识库 ===
 # 共享 RAG 基础设施(venv / 凭据 / DB)
 library/_rag/.venv/

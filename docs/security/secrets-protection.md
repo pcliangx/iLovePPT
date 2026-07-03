@@ -3,7 +3,7 @@
 iLovePPT 是开源 agent team 工具,本身不存机密;但工作产物(brief / outline / content / 客户素材)经常含敏感信息。本文记录两道防线:
 
 - **入仓前**:`.githooks/pre-commit` 扫 staged 文件
-- **运行时**:`library/_rag/scripts/redact.py` 给 query log 脱敏
+- **运行时**:`scripts/redact.py` 给 query log 脱敏
 
 ---
 
@@ -70,7 +70,7 @@ git config --unset core.hooksPath
 
 `library/search.sh` 每次跑都会 append 一行到 `library/_rag/query_log.jsonl`(给 bench / 分析用)。query 原文常含 brief 内容(可能含客户名 / 邮箱 / 钱数等敏感字段)。
 
-默认走 `library/_rag/scripts/redact.py` 过滤:
+默认走 `scripts/redact.py` 过滤:
 
 | 模式 | 替换值 | 备注 |
 |---|---|---|

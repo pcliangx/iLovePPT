@@ -2,7 +2,6 @@
 
 实现已拆分到 `builder/` 子包:
 - builder/base.py  —— plan/theme load · build_deck orchestrator · render · ThemeSpec
-- builder/tier1.py —— 模板 slide 复用(cross-pptx deep-copy + placeholder_map)
 - builder/tier2.py —— Python theme make_<layout> dispatch
 - builder/tier3.py —— fallback / 错误兜底(目前 fail-loud,不 silent remap)
 

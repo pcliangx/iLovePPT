@@ -51,10 +51,8 @@ def test_load_theme_unknown_raises():
 
 def test_load_theme_implementation_meta():
     cfg = load_theme("template_golden")
-    assert cfg.tier1 is True
     assert cfg.tier2 is True
     assert cfg.tier3_fallback == "tech_blue"
-    assert cfg.source_pptx == "template_golden"
 
 
 # ----- apply_theme + module dispatch -----
@@ -117,14 +115,3 @@ def test_list_themes_excludes_schema_and_legacy():
     assert "template_training" in names
     # _schema.yaml 以 _ 开头被排除
     assert "_schema" not in names
-
-
-# ----- backward compat shim _legacy/tech_blue.py -----
-
-def test_legacy_tech_blue_compat_shim():
-    from themes._legacy.tech_blue import BRAND_PRIMARY, FONT_CN, PRIMARY
-    # 老代码 BRAND_PRIMARY 仍可 import
-    assert BRAND_PRIMARY == RGBColor(0x0A, 0x52, 0xBF)
-    assert FONT_CN == "Microsoft YaHei"
-    # tech_blue.py 的 alias PRIMARY 也 re-export
-    assert PRIMARY == BRAND_PRIMARY

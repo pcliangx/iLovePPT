@@ -1,9 +1,8 @@
 name: template_training
 description: "培训风 · 橙红 #EF5938 主色 + 深蓝 + TEAM 插画 · 17 layout(含 3 个 _band/_4sub/_flag 自定义变体)"
 
-# template_training 是 ingested .pptx 模板 · 跟 template_golden 一样,
-# build.py 运行时从 _source/.pptx 重新提取 token 覆盖。
-# 这里 colors 反映模板原色板(橙红 + 深蓝),作为 yaml 加载时的 fallback。
+# template_training · 纯 yaml theme(橙红 #EF5938 主色 + 深蓝 · 培训风)。
+# colors 是权威(load_theme 直接读 yaml,无 .pptx 运行时提取)。
 colors:
   brand_primary: "#EF5938"   # 橙红(模板 accent1)
   brand_dark:    "#0B2A4A"   # 深蓝
@@ -55,11 +54,9 @@ layouts:
   cards_flag_3: make_cards_flag_3
 
 implementation:
-  tier1: true
   tier2: true
   tier3_fallback: tech_blue
   module_path: "template_training"
-  source_pptx: "template_training"
 
 # template_training 额外资产(原 .py 硬编码的 _assets 路径)
 assets:

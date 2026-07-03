@@ -182,28 +182,7 @@ deck_v{N}_plan.json 顶层加 `theme_spec` 字段(完整透传 brief.theme 原 s
 - **不放大字数**:每个字段不超 md 原文长度 110%
 - **layout 强制 explicit**:每个 `## N. <action title>` 内容页**必须**紧跟 `<!-- layout: X -->` 注释(iloveppt-builder 不做 md 结构推断);缺注释 → 立即返回 `hard_stop: missing_layout_directive` 让 author 补。同样规则对 `## [section_divider]` 等特殊 slide(已隐式声明 layout)豁免
 - **图片路径透传**:`![alt](path)` 的 path 直接进 `image_path`,**不重新生成图**
-- **pattern 注释处理**:若 page 含 `<!-- pattern: <full-id> -->` 注释(full-id 形如 `vp:<id>` 或 `tpl:<name>__<NN-slug>`):
-  - 用 id 查 DB 拿 meta_path:
-    ```bash
-    library/_rag/.venv/bin/python -c "
-    import sys; sys.path.insert(0, 'library/_rag')
-    from qwen_embedding import open_db
-    db = open_db()
-    row = db.execute(
-        'SELECT meta_path FROM vp_items WHERE id=? UNION ALL '
-        'SELECT meta_path FROM tpl_pages WHERE id=?',
-        ('<full-id>', '<full-id>')
-    ).fetchone()
-    print(row[0] if row else 'NOT_FOUND')
-    "
-    ```
-  - Read `library/<meta_path>` (相对 library/ 根)
-  - 看 `fallback_rendering.method`:
-    - `native_pptx` + `matches_iloveppt_layout` → 用对应 layout(同 layout 注释逻辑)
-    - `diagram` → 调 `[[diagram]]` skill 用 draw.io 现画,渲染后 path 写入 deck_v{N}_plan.json slide 的 `image_path`(走 pic_text 嵌)
-    - `manual` → 按 `fallback_rendering.notes` 指示渲染;若无可执行步骤 log warning "pattern X 无 rendering 实现,fallback 到 layout 注释指定的 layout"
-  - 把 `pattern_id` 字段透传到 deck_v{N}_plan.json slide,供后续 audit
-  - **拒绝无前缀 id**:若 pattern 注释里 id 没带 `vp:` 或 `tpl:` 前缀(老格式),报 error 并要求 author 补全
+- **pattern 注释(RAG 已退役,忽略)**:`<!-- pattern: vp:... / tpl:... -->` 是历史 RAG 检索产物(DB 已删),builder **不查库 / 不消费**;content.md 残留此类注释当 advisory metadata 忽略,layout 完全以 `<!-- layout: X -->` 为准。需要 diagram 的页按 layout 注释(`data` / `comparison` 等)或 author 嵌 `![alt](path)` 引 diagram skill 产出的 PNG。
 
 **反向 diff 校验**:转完后,grep 所有 JSON 文本字段,验证存在于 md 中(允许压缩,不允许新增)。差异 > 5% 报错并终止。
 
@@ -278,6 +257,21 @@ python3 <仓库>/.claude/skills/pptx-deck/build.py <deck_v{N}_plan.json>
 - 某 effective_theme 的 source pptx 不存在 → fail-loud `error: missing_template_pptx, theme: <name>`(用户得先 ingest 或改 theme)
 - 某 effective_theme 的 placeholder_map 缺 → fail-loud `error: missing_placeholder_map, theme: <name>, layout: <layout>`
 - 跨模板视觉协调度低(色板差 > 50 hex 距离 等) → log warning,不阻塞(brainstorm B.3.2 已 advisory · 用户自己接受了风险)
+
+#### Step 2.9 · EA 字体读侧机械审计(build 成功后立即跑)
+
+写侧不变量(helpers.set_font / _fix_ph_font 写 `<a:ea>`)的**读侧全量校验** —— 此前只有"抽 5 页 grep"的人工抽样:
+
+```bash
+python3 ${CLAUDE_PROJECT_DIR}/scripts/audit_pptx.py <working_dir>/builder/deck_v{N}.pptx --sections fonts
+```
+
+- exit 0 → 记 `font_audit: pass`,进 Step 3
+- exit 1(ERROR ≥ 1:某 CJK run 只写 `<a:latin>` 未写 `<a:ea>`,跨平台必 fallback 丑字体):
+  - ERROR findings 摘录进 return `font_audit.errors[]`(slide / shape / text 预览,JSON 输出里直接取)
+  - 涉及页加 `review_needed_pages`,标 `category: font_ea`
+  - **不阻塞交付**(与 visual-qa "字体一致性"现行政策一致),但这是 helpers 层代码 bug 信号 —— 改 deck_plan 治不了,return 时明确提示主线程修码路径
+- WARNING(继承链 / theme ea 为空)→ 只记数量,不展开
 
 ### Step 3 · 视觉 QA 循环(≤ 3 轮)
 
@@ -486,35 +480,6 @@ EOF
 
 **节制原则**:咨询稿是**文字驱动**,不是 marketing flyer。**没合适 icon 就不加**,比将就加更专业。BCG/McKinsey 的 deck icon 通常很少。
 
-#### Step 4.2.5 · 第 4 路 RAG patterns fallback
-
-**触发条件(三条全满足)**:
-- 上面三路降级**全部 disabled**(cairosvg 失败 / Unsplash KEY 缺 / brand_assets 为空)
-- **且** 某页 visual_qa 评分低(visual_qa.passed < 14/17,即至少 3 项 fail)
-- **且** `library/` 存在 + `library/search.sh` 可调
-
-**做法**:
-1. 对每个低分页:
-   ```bash
-   PAGE_INTENT="<该页章节 intent + action title 关键词>"
-   Bash: bash ${CLAUDE_PROJECT_DIR}/library/search.sh \
-         --query "$PAGE_INTENT" \
-         --preferred-template "<brief.theme · 若是模板>" \
-         --type any \
-         --mode hybrid \
-         --top-k 3 \
-         --format json
-   ```
-2. parse top-3 · 看每个返回项的 `preview_path`(相对 library/ 根):
-   - 若该 page layout 支持 hero 图(`pic_text` / `single_focus`)→ 嵌入 preview.png 作 hero(写进 deck_v{N}_plan.json `hero_image` 字段)
-   - 若 layout 不支持 hero(`table` / `bullet_list`)→ preview.png 仅作 reference,**不嵌入**,但记录在 yaml `usage: reference_only`
-3. **source 记录**(reproducibility):每张嵌入的 RAG preview.png 在 `<working_dir>/builder/rag/<page_id>.source.yaml` 记 query / preferred-template / library item path / RAG score / 引用类型(hero / reference_only)。用户改图 → 改 query 重 search 或直接 edit library item
-4. 在 visual_report 同步记录 `rag_fallback_used`(给 audience 看哪些页用了 RAG · 含 `source` 字段标 preferred-template / visual-patterns)
-
-**节制原则同样适用**:即使 RAG top-3 有候选,若 preview 跟内容风格不符 → **不嵌入,reference_only**。
-
-**降级**:若 search.sh 调用失败 → `rag_patterns: 0_available` + `rag_fallback_used: []`,不阻塞 Step 4 完成。
-
 #### Step 4.3 · 改 deck_v{N}_plan.json + rebuild
 
 把新 asset path 写进 `<working_dir>/builder/deck_v{N}_plan.json` 对应 slide 字段(`icon` / `image_path` / `hero_image` 等)。
@@ -525,54 +490,6 @@ python3 ${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/build.py <working_dir>/bu
 ```
 
 → 新 .pptx + 新 render PNG。
-
-#### Step 4.3.5 · 视觉一致性反查(query-image)
-
-**触发条件**:Step 4.3 rebuild 完产出新 render PNG 之后,且 `brief.theme != tech_blue`(模板模式才有意义;tech_blue 13 标准 layout 已是 SSOT,无反查必要)。
-
-**目的**:对每个 **Step 4 新增 / 重做** 的 slide,反查模板里相似页 → 量化视觉一致性偏差 → 把低分页号写入 `visual_drift_pages`,留给 audience 主审。**builder 不自动重做**(避免无限循环 / 越界 audience 职责)。
-
-**做法**:对 `visual_edits[]` + `rolled_back[]` 涉及的每个 page NN(去重):
-
-```bash
-library/search.sh --kb pptx-templates --type page \
-  --query-image "<working_dir>/builder/deck_v{N}_render/page-NN.jpg" \
-  --preferred-template "<brief.theme>" \
-  --mode image \
-  --top-k 5 \
-  --format json
-```
-
-**判定**:parse 返回 JSON,取 `hits[0].image_score`(top-1 image 相似度):
-- `image_score ≥ 0.6` → 视觉跟模板对齐,**pass**(不写 visual_drift_pages)
-- `image_score < 0.6` → **drift**,写入 `visual_drift_pages: [NN, ...]`,附 top-1 命中信息
-
-**记录在 visual_report**:
-```yaml
-visual_consistency_check:
-  enabled: true | false           # brief.theme == tech_blue 时 false / skipped
-  preferred_template: <brief.theme>
-  checked_pages: [3, 5, 7, ...]   # Step 4 改过的 page
-  threshold: 0.6
-  drift:
-    - page: 5
-      top1_id: tpl:template_golden__12-cards-3col
-      image_score: 0.42
-      gap_to_threshold: 0.18
-```
-
-**返回 yaml 新增字段**:
-```yaml
-visual_drift_pages: [5, 8]        # image_score < 0.6 的 page 号(用 audience 主审,builder 不重做)
-```
-
-**节制原则 / 不阻塞**:
-- 这是 **advisory 建议性指标**,**不是 hard_stop**;visual_drift_pages 非空也照常 `next_action: dispatch_audience`,由 audience 视觉一致性判定再决定是否触发 `needs_visual_redo`
-- 若 `library/search.sh` 调用失败 / `brief.theme == tech_blue` / `--query-image` 不支持 → `visual_consistency_check.enabled: false`,跳过本步,**不阻塞** Step 4.4
-
-**降级**:
-- `brief.theme == tech_blue` → 跳过(13 标准 layout 已是 SSOT,无反查参考系)
-- `search.sh image mode` 不可用 → 跳过 + log 警告
 
 #### Step 4.4 · 自检 fresh Read · 改了变好留下 · 变糟回滚
 
@@ -598,7 +515,7 @@ visual_drift_pages: [5, 8]        # image_score < 0.6 的 page 号(用 audience 
 **(1) 查 cache · 命中即用**:每次准备发 `curl https://api.iconify.design/search` 或 `https://api.unsplash.com/search/photos` 之前,先 lookup:
 
 ```bash
-library/_rag/.venv/bin/python ${CLAUDE_PROJECT_DIR}/library/_rag/scripts/query_cache.py \
+python3 ${CLAUDE_PROJECT_DIR}/scripts/query_cache.py \
   lookup --service iconify --query "<本次拟用 query>" --limit 3 --format json
 ```
 
@@ -616,13 +533,13 @@ library/_rag/.venv/bin/python ${CLAUDE_PROJECT_DIR}/library/_rag/scripts/query_c
 
 ```bash
 # iconify
-library/_rag/.venv/bin/python ${CLAUDE_PROJECT_DIR}/library/_rag/scripts/query_cache.py \
+python3 ${CLAUDE_PROJECT_DIR}/scripts/query_cache.py \
   add --service iconify --query "team kickoff" \
       --icon-name "lucide:users" --color "#0A52BF" \
       --score 0.85   # 你 Step 4.4 评估的主观质量 0-1
 
 # unsplash
-library/_rag/.venv/bin/python ${CLAUDE_PROJECT_DIR}/library/_rag/scripts/query_cache.py \
+python3 ${CLAUDE_PROJECT_DIR}/scripts/query_cache.py \
   add --service unsplash --query "city skyline night" \
       --photo-id "<photo.id>" --score 0.92
 ```
@@ -638,7 +555,7 @@ query_cache:
   total:   8                          # 本 session 总 query 次数(hits + miss)
   hit_rate: 0.375                     # hits / total
   newly_added: 5                      # 本 session add 的新 query 数
-  cache_path: library/_rag/external_query_cache.jsonl
+  cache_path: scripts/.cache/external_query_cache.jsonl
 ```
 
 **节制原则 / 降级**:
@@ -646,11 +563,6 @@ query_cache:
 - `query_cache.py` 不可调 / rapidfuzz 缺失 → log warning,visual_report 记 `query_cache.disabled: true`,**不阻塞** Step 4
 - fuzz threshold 默认 80(`token_set_ratio`) · cache 命中要求语义近似,不强求字面一致 · 同一 query 多次 add 走累加 hit_count 路径(让常用 query 浮上去)
 - **不**跨 service cross-hit(iconify cache 不返给 Unsplash)
-- visual_drift_pages(Step 4.3.5)跟 query_cache_hits(本 §)是**两件独立的事**,互不影响:Step 4.3.5 反查模板视觉一致性 / Step 4.5 复用 query 字符串
-
-**跟 Step 4.3.5 反查区分**:
-- Step 4.3.5 = **rebuild 后** query-image 反查模板原页 · 输出 visual_drift_pages
-- Step 4.5 = **search API 调之前** lookup query 字符串 cache · 输出 query_cache.hits/total
 
 ### Step 5 · 写 visual_report_r{N}.md + 返回最终 YAML
 
@@ -700,34 +612,17 @@ visual_qa:
   evidence:                           # 必填
     pages_read: [page-1.jpg, page-2.jpg, ..., page-N.jpg]
     issues_found: 0
-visual_step4:                         # Step 4 三路 + RAG 第 4 路状态
+visual_step4:                         # Step 4 三路降级状态
   capability:
     cairosvg: enabled | disabled
     unsplash: enabled | disabled
     brand_assets: <count> | none
-    rag_patterns: <count>_available   # patterns 库当前可用数(库不可用时 0_available)
-  rag_fallback_used:                  # 第 4 路实际使用(三路全降级 + 该页 visual_qa 低分时触发)
-    - page: 6
-      pattern_id: cards-flag-3
-      preview_path: library/visual-patterns/items/cards-flag-3/preview.png
-      usage: hero_reference | reference_only
-visual_consistency_check:             # P2-7 query-image 反查(Step 4.3.5)
-  enabled: true | false               # brief.theme == tech_blue 时 false
-  preferred_template: <brief.theme>
-  checked_pages: [3, 5, 7]            # Step 4 改过且做了反查的 page
-  threshold: 0.6
-  drift:
-    - page: 5
-      top1_id: tpl:template_golden__12-cards-3col
-      image_score: 0.42
-      gap_to_threshold: 0.18
-visual_drift_pages: [5, 8]            # P2-7 · image_score < 0.6 的 page 号(advisory,audience 主审,builder 不重做)
 query_cache:                          # P2-10 · iconify / Unsplash query 沉淀缓存(Step 4.5)
   hits: 3                             # 本 session lookup 命中次数
   total: 8                            # 本 session 总 query 数(hits + miss)
   hit_rate: 0.375                     # = hits / total
   newly_added: 5                      # 本 session add 的新 query 数(Step 4.4 留下的)
-  cache_path: library/_rag/external_query_cache.jsonl
+  cache_path: scripts/.cache/external_query_cache.jsonl
   disabled: false                     # true 时其他字段可缺(rapidfuzz / cache helper 不可用)
 ```
 
@@ -761,7 +656,6 @@ errors:
 - **footer_meta 从 content.md frontmatter 读**:不再走入参;若 frontmatter 无 → 不画 footer,不报错
 - **视觉 QA 限机械项**:不评"读者认知接收"(论点清晰度 / 节奏 / 记忆点 / 走神点)—— 那是 audience 的事
 - **3 轮 QA 上限**:仍 fail 进 `review_needed_pages`,不要死循环
-- **query-image 反查是 advisory**:Step 4.3.5 visual_drift_pages 不阻塞、不自动重做,只是把低于 0.6 的页号写进 visual_report 留给 audience;builder 自己不基于 drift 触发新一轮 Step 4 / rebuild
 - **跨模板字体不混搭**:多模板 deck 全程**强制用 primary theme(chapter 1 的 theme)的字体 + 主色板**(`set_font` 写 `<a:latin>` + `<a:ea>` + `<a:cs>` 三元组);跨模板 slide 装饰图 / shape 几何样式保留,文字字体 / `BRAND_PRIMARY` 强制覆写。混搭字体 = 视觉 #1 破坏源
 - **placeholder_map 按 effective_theme 取**:不能用 primary theme 的 placeholder_map 渲染其他 theme 的 slide(shape_id 对不上)
 - **不能再派 subagent**:你是 subagent,不嵌套
@@ -785,8 +679,6 @@ errors:
 - 不要重新生成 md 里已嵌入的 PNG——直接用 path
 - 不要在 review_needed_pages 里塞"建议但 agent 自己改不了的"——必须真的尝试过 3 轮
 - 不要假装跑了 visual QA 而不真读 PNG——`Read` 每张 page-N.jpg 是硬要求
-- 不要根据 visual_drift_pages 自动触发 Step 4 重做——advisory 信号留给 audience 判定;builder 自动重做会进入"drift → 重做 → 又 drift"无限循环
-- 不要在 brief.theme == tech_blue 时跑 query-image 反查——tech_blue 是 SSOT 标准 layout,没有"模板原页"做参考系,反查无意义
 - **不要假设 brief.theme 永远是 str** —— 可能是 list / dict;builder 必须调 `builder.parse_theme(brief.theme)` 拿 ThemeSpec,按 chapter index `resolve()` 取 effective_theme,不能直接当字符串传给 source pptx 路径
 - **不要在多模板 deck 让 chapter 5(finance_arrow)用 chapter 1(enterprise_skyline)字体** —— 跨模板字体统一用 primary theme,但**不能反过来**说"chapter 5 用 finance_arrow 自己字体" —— 半 deck 用 SimHei 半 deck 用 PingFang 是反例
 

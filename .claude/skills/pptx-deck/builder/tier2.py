@@ -52,10 +52,9 @@ def render_tier2_slide(prs: Presentation, theme: ModuleType,
     # 弹出 cross-cutting 字段,不传给 make_* fn(避免 TypeError)
     fields = {k: v for k, v in slide_def.items() if k != "layout"}
     fields.pop("source", None)
-    # tier1 字段(如果误用在 tier2 page 也要弹出)
-    fields.pop("tier1_template_page", None)
-    fields.pop("text_map", None)
-    fields.pop("placeholder_map", None)
+    # 多模板 deck 诊断字段(plan 顶层 theme_spec 路由依据,make_* 不消费)
+    fields.pop("chapter_index", None)
+    fields.pop("effective_theme", None)
 
     try:
         fn(prs, **fields)

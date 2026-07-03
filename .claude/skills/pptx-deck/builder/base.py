@@ -6,10 +6,10 @@
 - _extract_design_tokens / _extract_theme_from_pptx(.pptx → theme module)
 - _find_template / _list_available_templates(模板查找)
 - _check_red_line_words / _parse_red_line_words(第 4 道防线)
-- build_deck(主 orchestrator,逐 slide 派 tier1 / tier2 / tier3)
+- build_deck(主 orchestrator,逐 slide 派 tier2 / tier3)
 - render(soffice → PDF → pdftoppm → JPG)
 
-注意:tier1 / tier2 / tier3 派发只在 build_deck 内,不在本模块定义 tier 实现。
+注意:tier2 / tier3 派发只在 build_deck 内,不在本模块定义 tier 实现。
 """
 from __future__ import annotations
 
@@ -33,8 +33,7 @@ BUILD_WARNINGS: list[str] = []
 def _warn(stage: str, msg: str) -> None:
     """记一条 build warning:append 到 BUILD_WARNINGS + 打印到 stderr。
 
-    stage 约定前缀:`builder.token-extract` / `builder.red-line` /
-    `tier1.slot-map` / `tier1.shape-removal`。
+    stage 约定前缀:`builder.token-extract` / `builder.red-line`。
     """
     line = f"[{stage}] WARN {msg}"
     BUILD_WARNINGS.append(line)
@@ -544,7 +543,7 @@ def _check_red_line_words(brief_path: str | Path | None,
 
 
 # ===========================================================================
-# build_deck —— orchestrator(逐 slide 派 tier1 / tier2 / tier3)
+# build_deck —— orchestrator(逐 slide 派 tier2 / tier3)
 # ===========================================================================
 
 def build_deck(plan: dict[str, Any]) -> Path:
@@ -559,11 +558,11 @@ def build_deck(plan: dict[str, Any]) -> Path:
     会 set helpers.PRESENTATION_MODE,theme layout 据此切字号 / box 高度 / padding。
 
     Theme 解析(P3-9 多模板组合):plan["theme"] 可以是 str / list / dict;
-    parse_theme() 规范化成 ThemeSpec。当前 tier1 / tier2 path 走 ThemeSpec.default 模板
+    parse_theme() 规范化成 ThemeSpec。当前 tier2 path 走 ThemeSpec.default 模板
     的色板 / 字体(避免跨模板字体色板混搭),后续可扩展按 slide 选 theme override。
     """
-    # 延迟 import 避免循环依赖(tier1/tier2/tier3 都依赖 base.py 的常量)
-    from . import tier1, tier2, tier3
+    # 延迟 import 避免循环依赖(tier2/tier3 都依赖 base.py 的常量)
+    from . import tier2, tier3
     BUILD_WARNINGS.clear()
 
     # set presentation mode(影响 layout 字数 / 字号)
@@ -585,24 +584,12 @@ def build_deck(plan: dict[str, Any]) -> Path:
     theme_spec = parse_theme(plan["theme"])
     theme = load_theme(theme_spec.default, plan.get("_plan_dir"))
 
-    # 把 theme_spec 写回 plan 便于 tier1/tier2 内部 inspect(诊断用,不改 plan 语义)
+    # 把 theme_spec 写回 plan 便于 tier2 内部 inspect(诊断用,不改 plan 语义)
     plan["_theme_spec"] = theme_spec
 
-    # Tier1 模板复用:若任一 slide 有 `tier1_template_page` 字段,以模板 prs 作起点
-    use_tier1 = any("tier1_template_page" in s for s in plan["slides"])
-    source_prs: Presentation | None = None
-    if use_tier1:
-        source_prs = tier1.load_template_prs(theme, plan.get("_plan_dir"))
-        if source_prs is None:
-            raise ValueError(
-                f"tier1 path 启用,但找不到 theme {theme_spec.default!r} 对应的 .pptx 模板。"
-                "tier1 复用要求 theme 是 ingested 模板(library/pptx-templates/_source/<name>.pptx)。"
-            )
-        prs = tier1.init_prs_from_template(theme_spec.default, plan.get("_plan_dir"))
-    else:
-        prs = Presentation()
-        prs.slide_width = H.SLIDE_W
-        prs.slide_height = H.SLIDE_H
+    prs = Presentation()
+    prs.slide_width = H.SLIDE_W
+    prs.slide_height = H.SLIDE_H
 
     footer_meta = plan.get("footer_meta", {}) or {}
 
@@ -614,31 +601,6 @@ def build_deck(plan: dict[str, Any]) -> Path:
 
     for i, slide in enumerate(plan["slides"], 1):
         layout = slide["layout"]
-        # tier1 path:从 source_prs 复制指定 page 的 slide
-        if "tier1_template_page" in slide:
-            if source_prs is None:
-                raise ValueError(f"第 {i} 页用 tier1 但 source_prs 未加载")
-            tier1.render_tier1_slide(
-                prs=prs,
-                source_prs=source_prs,
-                slide_def=slide,
-                page_no=i,
-                theme=theme,
-                plan_dir=plan.get("_plan_dir"),
-            )
-            # source 引文 + footer 用 deck 自己的系统
-            source = slide.get("source")
-            if source:
-                H.source_citation(prs.slides[-1], source)
-            if layout in FOOTERED_LAYOUTS and total_footered > 0:
-                footer_idx += 1
-                H.footer(
-                    prs.slides[-1], footer_idx, total_footered,
-                    classification=footer_meta.get("classification"),
-                    project=footer_meta.get("project"),
-                    version=footer_meta.get("version"),
-                )
-            continue
         # tier2 path:Python theme make_*
         try:
             tier2.render_tier2_slide(prs=prs, theme=theme, slide_def=slide, page_no=i)
