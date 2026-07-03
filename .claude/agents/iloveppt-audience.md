@@ -323,9 +323,33 @@ overall_impression:
   - "结论感: summary 页 14pt 文字 + 大蓝数字,但每条结论像 caption 不像 takeaway"
 ```
 
-### Step 2 · 逐页 12 项定量打分(0-3 分 / persona-weighted)
+### Step 1.5 · describe-then-score 两跳 · Hop 1(逐页描述)
 
-**为什么改 12 项定量(从原 4 维度 × 10 分)**:同 deck 跑 3 次方差 ±0.5 是 baseline 痛点 — 4 维度 × 10 分粒度过粗、维度太少容易被印象拉偏。改成 **12 项 × 0-3 分**(0=严重缺失 / 1=明显欠缺 / 2=及格 / 3=优秀) + **persona 权重**,目标方差 < 0.5(P2 验收基准)。
+**为什么两跳**(P7):直接对 PNG 打 12 维分是"印象分",方差大、易幻觉(PPTEval describe-then-score 哲学)。改成**先描述再打分**:Hop 1 把每页视觉事实写成结构化描述(客观),Hop 2(Step 2)对**描述文本**打分(判断)—— 描述锁事实,打分不跑偏,目标方差 < 0.5。
+
+对 Step 1 Read 过的每页,写一条结构化描述(存进该页 `page_description`,Step 2 + evidence 引用):
+
+```yaml
+page_description:                    # Hop 1 产物 · 每页一条 · Step 2 打分消费
+  page: 5
+  layout_observed: "5 张 cards 横排,每张 icon + 标题 + 1 句描述"
+  visual_focus: "无主视觉 / 无 hero;5 卡同质"
+  text_density: "适中(每卡 ≤ 15 字)"
+  hierarchy: "标题 28pt > 卡标题 18pt > 描述 14pt,层级清楚"
+  anchors: "无大数字 / 无对比色块 / icon 是 lucide outline 系(细线,存在感弱)"
+  color_use: "全程 brand-primary 蓝 + 灰,无 accent 强调"
+  white_space: "卡间距 24px,留白够"
+  breakage_signals: "无破损(page-5.jpg 完整)"
+  one_line: "5 同质 cards,层级清但缺锚点,看完记不住差异"
+```
+
+> 描述**只记事实**(看到的 layout / 字号 / 颜色 / 锚点 / 破损),**不打分**(打分是 Step 2 的活)。这一步可用便宜 VLM 规模化跑,描述落盘后 Step 2 只读文本(可缓存 / 复跑稳定)。
+
+### Step 2 · 逐页 12 项定量打分(0-3 分 / persona-weighted)· **Hop 2(消费 Step 1.5 描述)**
+
+**输入是 Step 1.5 的 `page_description` 文本(不是裸 PNG)** —— 对每页描述 + brief + persona 跑 12 维打分。evidence **引描述字段**(如 `evidence: "page_description.anchors=无大数字 → 重点突出 1 分"`),不凭印象。
+
+**为什么改 12 项定量(从原 4 维度 × 10 分)**:同 deck 跑 3 次方差 ±0.5 是 baseline 痛点 — 4 维度 × 10 分粒度过粗、维度太少容易被印象拉偏。改成 **12 项 × 0-3 分**(0=严重缺失 / 1=明显欠缺 / 2=及格 / 3=优秀) + **persona 权重** + **describe-then-score 两跳**,目标方差 < 0.5(P2 验收基准)。
 
 #### 12 项维度定义(按 persona 加权)
 
@@ -380,6 +404,12 @@ page: 5
 layout: cards
 title_seen: "一套 Claude · 五个 surface 跑"
 persona: engineer                # 当前 persona(multi-persona 时每个 persona 各一份)
+page_description:                # Step 1.5 Hop 1 产物 · Step 2 打分消费的视觉事实(evidence 引这里,不凭印象)
+  layout_observed: "5 张 cards 横排,每张 icon + 标题 + 1 句描述"
+  visual_focus: "无 hero;5 卡同质"
+  anchors: "无大数字 / 无对比色块 / icon 细线存在感弱"
+  color_use: "全程 brand-primary 蓝 + 灰,无 accent"
+  breakage_signals: "无破损"
 scores:
   - {dim: 内容清晰度, score: 3, evidence: "标题动宾清楚 + subtitle 收口"}
   - {dim: 重点突出,   score: 2, evidence: "5 张卡片视觉同质,无强锚点"}
