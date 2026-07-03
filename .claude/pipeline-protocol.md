@@ -297,10 +297,12 @@ ${CLAUDE_PROJECT_DIR}/python3 \
 
 | # | 触发条件 | 调谁 | 期望返回 next_action |
 |---|---|---|---|
-| 1 | "做 PPT" 意图 + brief 未生成 | `TeamCreate({agents: ["iloveppt-brainstorm"]})` → `SendMessage(brainstorm, user_intent)`,产 `brainstorm/deck_v1_brief.md`(含 Step 3.6 self-audit) | `ask_user` 或 `dispatch_author` 或 `needs_self_revision` |
+| 1 | "做 PPT" 意图 + brief 未生成 | `TeamCreate({agents: ["iloveppt-brainstorm"]})` → `SendMessage(brainstorm, user_intent)`,产 `brainstorm/deck_v1_brief.md`(含 Step 3.6 self-audit) | `ask_user` 或 `dispatch_author` 或 `dispatch_research` 或 `needs_self_revision` |
 | – | 用户答完 brainstorm 问题 | `SendMessage(brainstorm team, user_response)` | 同上 |
 | – | brainstorm `needs_self_revision`(self-audit fail) | 主线程展示 must_fix → 用户改 brief.md 或续 dialog → SendMessage 给 brainstorm | 直至 `dispatch_author` |
-| 2 | brainstorm `dispatch_author` 返回 | 关闭 brainstorm team → `Task(author, args={stage: "C", brief_md_path: ..., pattern_hints_for_author: [...]})`(透传 brainstorm `author_dispatch_preview`),产 `author/deck_v1_outline.md` | `ask_user_for_outline_approval` |
+| 1.5 | brainstorm `dispatch_research`(素材不足 OR 用户显式要研究 · Phase 3 bypass) | 关 brainstorm team → `Task(research, args={working_dir, topic, scqa, audience, user_attachments, depth})` → 产 `research/research_manuscript.md`(网搜+PDF 解析+抓取 · --- 分页 · source 标注) | `dispatch_author_with_research` |
+| – | research return | 主线程拿 `research_manuscript` path,并入下一步 author Stage C 入参(透传) | (续 row 2) |
+| 2 | brainstorm `dispatch_author` 返回(或 research 完后续) | 关 brainstorm team → `Task(author, args={stage: "C", brief_md_path: ..., research_manuscript: <path|null>, pattern_hints_for_author: [...]})`(透传 brainstorm `author_dispatch_preview` + research 的 manuscript),产 `author/deck_v1_outline.md` | `ask_user_for_outline_approval` |
 | 3 | outline 已批准 | author return `dispatch_self_stage_d` → 主线程立即 `Task(author, args={stage: "D", outline_md_path: ...})` 续走(无中间 critic),产 `author/deck_v1_content.md` | `ask_user_for_content_approval` |
 | 4 | content 已批准 | `Task(critic, args={stage: "cd", outline_md_path: ..., content_md_path: ..., report_path: "critic/deck_v1_critic_cd.r{R}.md"})` | `pass` / `pass_with_notes` / `needs_revision` |
 | 5 | critic cd `pass` 或 `pass_with_notes` | **按 `brief.track` 路由**(Phase 1):`track=pptx`(默认)→ `Task(builder, args={content_md_path:..., critic_cd_report:..., output_pptx:builder/deck_v1.pptx, ...})`;`track ∈ {html, lark-slides, lark-whiteboard}` → `Task(designer, args={track, content_md_path:..., theme:..., critic_cd_report:..., working_dir:..., mode:full})`(designer 收敛产 `builder/deck_v{N}_render/page-*.jpg`,audience track-agnostic) | `dispatch_audience` 或 `hard_stop` |

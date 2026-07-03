@@ -361,6 +361,8 @@ context_for_user:
 
 **Step 3.5 · pattern category hints(RAG 已退役 → 跳过)**:历史用 `search.sh` 预选 pattern category;RAG 切除后**不再跑**,dispatch_author yaml 的 `pattern_hints_for_author: []`(author 直接从 `layout_variants.yaml` 受控词典选 layout)。直接进 Step 3.6 self-audit。
 
+**Step 3.4b · Research 触发(Phase 3 bypass · 素材不足时)**:若 brief 收集中发现**素材严重不足**(用户没给数据/源,topic 又需证据支撑,如"行业分析 / 竞品对标 / 市场数据")→ return `next_action: dispatch_research`(**而非 dispatch_author**),主线程派 `Task(research)`:网搜 + PDF 解析 + 抓取 → `research/research_manuscript.md`,完后续派 author(透传 manuscript 进 `research_manuscript` 字段)。用户显式说"先帮我查/研究一下"也走此路。素材够 / 用户没要 → 跳过,直走 Step 3.5。
+
 **Step 3.6 · brief self-audit(原 critic Stage B 已并入本 agent)**
 
 dispatch_author 之前 **必须** 跑 5 项 self-audit。**自己审 brief.md**,不另派 critic agent。耗时 1-2 min 上限。
@@ -483,6 +485,7 @@ author_dispatch_preview:        # 主线程直接透传给 author Stage C
     asset_inventory:
       - {type: csv, path: _assets/raw/q4.csv, desc: "Q4 营收", summary: "..."}
       - {type: image, path: _assets/refs/arch.png, desc: "现有架构图"}
+research_manuscript: null          # Phase 3 · Research bypass 产物 path(素材不足时主线程先派 research,完后续派 author 时透传此处);null = 未走 research
 pattern_hints_for_author: []      # RAG 已退役 → 恒空;author 从 layout_variants.yaml 受控词典自选 layout
 message_to_user: |
   brief 已写完 + self-audit 通过(<working_dir>/brainstorm/deck_v1_brief.md),

@@ -82,8 +82,9 @@ next_action 取值:
 ```yaml
 working_dir: /abs/path/to/deck-工作目录       # 必填
 stage: C | D                                   # 必填,主线程根据 state 指定
-brief: { audience, duration_min, top_recommendation, theme, output, presentation_mode }  # 初次派发 C 时必填(由 brainstorm 返回)
+brief: { audience, duration_min, top_recommendation, theme, output, presentation_mode, track }  # 初次派发 C 时必填(由 brainstorm 返回)
 asset_inventory: [...]                          # 初次派发 C 时必填
+research_manuscript: <path | null>              # Phase 3 · Research bypass 产物(素材不足时 brainstorm 先派 research);Stage C/D 当 supplementary source 读,null = 没走 research
 user_response: "用户对上轮 outline/content 的反馈,或用户筛过的 critic / audience 建议"  # 后续派发可能有
 ```
 
