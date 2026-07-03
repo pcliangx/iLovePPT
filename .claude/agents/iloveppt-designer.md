@@ -69,24 +69,26 @@ node <repo>/.claude/skills/pptx-deck/html2pptx/html2pptx_cli.js \
 ```
 失败回退:soffice 直接转(质量降)。
 
-### track=lark-whiteboard(详见 Phase 4)
+### track=lark-whiteboard(飞书画板 · 自由画布)
 
-每页写 `slides/slide_NN.svg`(`viewBox="0 0 1280 720"` · 内嵌 `<style>` 引 global.css 的 CSS vars · 用 `var(--brand-primary)` 等),然后对每页:
-```bash
-npx -y @larksuite/whiteboard-cli@^0.2.12 -i slide_NN.svg --to openapi --format json \
-  | lark-cli whiteboard +update --whiteboard-token <board_token> --source - --input_format raw \
-     --idempotent-token <ts>-board-NN --as user --overwrite
-```
-N 页 = N 白板,由 `lark-doc` 批量 append `<whiteboard>` 块到一个飞书 doc(每白板一个 board_token)。
+**先 Read lark-whiteboard skill**(`Skill(lark-whiteboard)` 或 Read 其 `SKILL.md` + `references/lark-whiteboard-workflow.md` + `routes/svg.md`)—— SVG 高保真路径 + DSL 回退纪律都在该 skill,**勿凭记忆写 SVG**。
 
-### track=lark-slides(详见 Phase 2)
+工作流:
+1. **发源 SVG**:每页写 `slides/side_NN.svg`(`viewBox="0 0 1280 720"` · 内嵌 `<style>` 引 Step 0 生成的 `global.css` CSS vars · 元素 `fill="var(--brand-primary)"` 等 · **视觉身份跟 html 轨一致**)。cover/hero/复杂信息图用 SVG 自由画布(slides 模型约束不到的)
+2. **build**:每页 SVG → `npx -y @larksuite/whiteboard-cli@^0.2.12 -i slide_NN.svg --to openapi --format json` → `lark-cli whiteboard +update --whiteboard-token <tok> --source - --input_format raw --idempotent-token <ts>-board-NN --as user --overwrite`(或直接 `--input_format svg`)
+3. **多页编排**:`lark-doc` 批量 append N 个 `<whiteboard>` 块到一个飞书 doc(每白板一个 `board_token`,记 `whiteboard_tokens[]`);`--overwrite` 覆盖式更新
+4. **SVG 失败回退**:两轮修不好 → 弃 SVG 源,改读 `routes/dsl.md` 从零重画(skill 纪律 · 不逐行修补)
+5. **收敛 + 交付**:`lark-cli whiteboard +query --whiteboard-token <tok> --output_as image` 逐白板导 PNG → 改名 `builder/deck_v{N}_render/page-NN.jpg`;deliverable = `feishu_doc_url` + `whiteboard_tokens[]`
 
-消费 content.md 每页 → 写 `.lark-slides/plan/<deck-id>/slide_plan.json`(layout_type/visual_focus/text_density/asset_need+fallback)→ 按 plan 生成 `<slide><style><data>...</data></slide>` 原生 XML(shape/line/table/`<chart>`/`<whiteboard>`/`<icon>`/`<img>`)→ 创建飞书演示文稿:
-```bash
-lark-cli slides +create --as user                                   # 空 PPT,拿 xml_presentation_id
-# 复杂/多页:xml_presentation.slide create 逐页(两步创建法)
-lark-cli slides +media-upload --presentation <id> --file <local.png>  # 图 → file_token → <img src>
-```
+### track=lark-slides(飞书演示文稿 · 主力 Feishu 轨)
+
+**先 Read lark-slides skill**(`Skill(lark-slides)` 或 Read 其 `SKILL.md` + `references/xml-schema-quick-ref.md` + `planning-layer.md` + `visual-planning.md`)—— XML 协议 / planning 纪律 / design ideas 都在该 skill,**勿凭记忆写 XML**。
+
+工作流:
+1. **planning**:消费 content.md 每页 → 写 `.lark-slides/plan/<deck-id>/slide_plan.json`(每页 `{page, key_message, layout_type, visual_focus, text_density, asset_need[] + fallback_if_missing}`);layout_type 选双栏/图标行/网格/半出血/大数字/对比列/时间线(skill design ideas)
+2. **theme 应用**:Read `themes/<theme>.yaml` 取 `colors`(brand_primary/dark/tint/accent + muted_*)+ `fonts`(ea=Microsoft YaHei);XML `<fillColor color="..."/>` / `<text>` 字体直接用这些 token(**跟 pptx 轨视觉一致** · theme SSOT)。可选套飞书模板:`template_tool.py search --query "<主题>"` → `summarize` → 需骨架才 `extract`
+3. **生成 XML + 创建**:逐页生成 `<slide xmlns="http://www.larkoffice.com/sml/2.0"><style/><data>{shape/line/table/chart/whiteboard/icon/img}</data></slide>`(原生 `<chart>` 数据图 · `<whiteboard>` 嵌流程/架构图 · `<icon>` IconPark · `<img src=file_token>`)。简单短 XML(1-3 页)→ `lark-cli slides +create --slides '[...]' --as user`;复杂/多页/含中文 → **两步创建**:`+create` 空 PPT 拿 `xml_presentation_id` → `xml_presentation.slide create` 逐页(图片先 `+media-upload` 拿 `file_token`,**禁 http 外链**)
+4. **收敛 + 交付**:`lark-cli slides +screenshot --presentation <id> --slide-id <sid>` 逐页截图 → 改名 `builder/deck_v{N}_render/page-NN.jpg`;deliverable = `feishu_presentation_id`(+ wiki 链接解析)。渐变必须 `rgba()` + 百分比停靠点
 
 ## Step 3 · 收敛到 audience(三轨同一契约)
 
