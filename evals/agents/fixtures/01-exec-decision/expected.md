@@ -53,7 +53,7 @@ SCQA 线索:推断出来,Situation/Complication 应跟"AI 评审耗时增加 + �
 - **icon_prefix 单一**:全 deck icon 同一套(lucide / phosphor / tabler / heroicons 选一)
 - **visual_edits[] count**:典型 4-8 处(cards 加 icon + section_divider 加装饰)
 - **rolled_back[] count**:理想 0(或 1-2 是自检 fresh Read PNG 后变糟回滚)
-- **`visual_step4.capability.rag_patterns` + `rag_fallback_used[]` 字段完整**(library-first:三处强制走 `library/search.sh`,见 [pipeline-protocol.md §3.3](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md))
+- **`visual_step4.capability` 三路状态完整**(cairosvg / unsplash / brand_assets;RAG 第 4 路已退役,见 [pipeline-protocol.md §3.3](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md))
 - **风格统一**:染色 BRAND_PRIMARY / GRAY_700(helpers.py SSOT)
 
 ## audience_review.md 应有

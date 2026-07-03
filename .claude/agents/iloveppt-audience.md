@@ -1,6 +1,6 @@
 ---
 name: iloveppt-audience
-description: Use after iloveppt-builder produces .pptx (build + Step 4 visual enhancement). The FIFTH agent in iLovePPT pipeline (brainstorm → author → critic[cd] → iloveppt-builder → **audience**). Audience runs INLINED spot-check at Step 0 (placeholder grep / chart source / 5 + PNG breakage scan / red_line grep) BEFORE scoring — main thread no longer does separate spot-check. Per-page scoring is 12-dim × 0-3 with persona-weighted aggregation (replacing legacy 4-dim × 10); needs_visual_redo pages also get image-RAG visual_query_match (rendered jpg → top-5 template page similarity); audience can be list[str] (multi-persona strict-eval taking min per_persona deck_score). **Step 3.6 feedback writeback**: 评分完 append `(chosen_pattern_id, audience_score, page, deck)` 到 `library/_rag/feedback.jsonl`, search.py `--feedback` flag 据此对低分 pattern 软降权. Three-class triage unchanged (needs_author_rewrite / needs_visual_redo / needs_theme_fix).
+description: Use after iloveppt-builder produces .pptx (build + Step 4 visual enhancement). The FIFTH agent in iLovePPT pipeline (brainstorm → author → critic[cd] → iloveppt-builder → **audience**). Audience runs INLINED spot-check at Step 0 (placeholder grep / chart source / 5 + PNG breakage scan / red_line grep / source-fidelity claims 核对[可选]) BEFORE scoring — main thread no longer does separate spot-check. Per-page scoring is 12-dim × 0-3 with persona-weighted aggregation (replacing legacy 4-dim × 10); audience can be list[str] (multi-persona strict-eval taking min per_persona deck_score). Three-class triage unchanged (needs_author_rewrite / needs_visual_redo / needs_theme_fix).
 tools: Bash, Read, Glob, Grep, Write
 model: opus
 color: orange
@@ -113,6 +113,7 @@ brief_md_path: <working_dir>/brainstorm/brief.md   # 可选(Step 0/0.5 红线词
 content_md_path: <working_dir>/author/deck_v{N}_content.md  # 可选(Step 0.5 红线词 grep 用,缺则跳过)
 deck_plan_path: <working_dir>/builder/deck_v{N}_plan.json   # 可选(Step 0 spot-check placeholder grep 用,缺则跳过该项)
 builder_visual_edits: []                          # 可选(Step 0 spot-check chart-source 用,builder 透传)
+claims_path: <working_dir>/author/deck_v{N}_claims.yaml     # 可选(Step 0.0.5 source 保真核对用,缺则跳过该项;author Stage D 在 brief 含已确认数据口径时产出)
 ```
 
 ## 流程
@@ -128,7 +129,7 @@ builder_visual_edits: []                          # 可选(Step 0 spot-check cha
 
 **为什么并入**:之前主线程在 builder return `dispatch_audience` 后单独跑 spot-check;已收口到 audience Step 0,主线程不再单独 spot-check。Sprint v1/v2 实测发现 builder 自报 OK 后仍有 placeholder 残留 / 文字未替换 / 截断等严重 bug,这道防线必须有。
 
-**评分前 4 项必做检查**(任一 fail → 立即返回 `next_action: needs_visual_redo`,**不评分**):
+**评分前 5 项必做检查**(第 5 项条件触发;任一 fail → **不评分**,按下方 verdict 表 triage 立即返回):
 
 #### 0.0.1 · placeholder 残留 grep
 
@@ -162,12 +163,24 @@ grep -oE "Text here|Copy paste fonts|Supporting text here|…text|\.\.\.text|SUB
 
 若入参缺其中之一 → 跳过(已被 critic stage=cd B.9 兜底)。
 
+#### 0.0.5 · source 保真核对(claim 级 · 条件触发)
+
+入参有 `claims_path` 时(author Stage D 从 brief 已确认数据口径产出的 claims 清单):
+
+```bash
+python3 ${CLAUDE_PROJECT_DIR}/scripts/check_source_fidelity.py <working_dir>/builder/deck_v{N}.pptx --claims <claims_path>
+```
+
+- exit 0 → pass(所有 required claim 在 deck 文本里找到且落位正确)
+- exit 1 → fail:JSON 报告里 `status: missing`(关键数字丢了)/ `misplaced`(数字落错章节页)都是**内容问题** → triage=needs_author_rewrite,`failures` 记 claim id + status + expect_pages 证据
+- **(claims_path 入参缺 → 跳过本项 → 标 spot_check.source_fidelity: skipped)**
+
 #### Spot-check verdict
 
 | spot-check 结果 | audience 动作 |
 |---|---|
-| 4 项全 pass(或跳过的项不算 fail) | 进 Step 0.5 红线词 grep + Step 1 + 正常评分 |
-| 任一 fail → 红线词 fail → triage=needs_author_rewrite | 走原 Step 0.5 路径(返回 needs_author_rewrite,见下方) |
+| 5 项全 pass(或跳过的项不算 fail) | 进 Step 0.5 红线词 grep + Step 1 + 正常评分 |
+| 任一 fail → 红线词 / source_fidelity fail → triage=needs_author_rewrite | 走原 Step 0.5 路径(返回 needs_author_rewrite,见下方) |
 | 任一 fail → placeholder / chart_source / png_breakage → triage=needs_visual_redo | **不评分**,立即返回:|
 
 ```yaml
@@ -182,6 +195,7 @@ spot_check:
   chart_sources: pass | fail | skipped
   png_breakage: pass | fail | skipped
   red_line_grep: pass | fail | skipped
+  source_fidelity: pass | fail | skipped
   failures: [{check: <name>, evidence: <文本>, page: <int 或 N/A>}]
 needs_visual_redo_pages: [3, 7, 10]   # placeholder 命中页 / 破损页
 message_to_user: |
@@ -247,7 +261,7 @@ rounds_used: <int>
 
 **触发**:入参 `audience` 是 `list[str]`(多受众场景,如 brief 标定 `[cfo, engineer]` 让财务跟技术都过审)。
 
-**策略 · strict-eval(取最低分)**:对每个 persona 独立跑一遍完整 Step 1 → Step 3.5,最后 `deck_score_final = min(per_persona_scores)`。理由:**多受众场景任何一个 persona < 9 都算 deck 没过**,不能用平均分掩盖某一 persona 的不满意。
+**策略 · strict-eval(取最低分)**:对每个 persona 独立跑一遍完整 Step 1 → Step 3,最后 `deck_score_final = min(per_persona_scores)`。理由:**多受众场景任何一个 persona < 9 都算 deck 没过**,不能用平均分掩盖某一 persona 的不满意。
 
 **流程**:
 
@@ -261,7 +275,7 @@ rounds_used: <int>
    ```
    Read 该 yaml,对入参 list 里每个 key 找到对应 persona 节(`personas.<key>`)。**未知 key → fail-loud**:返回 `status: err, error: unknown_persona_key, key: <key>, valid_keys: [cfo, engineer, sales, hr, investor, academic, general_public]`。
 
-3. **对每个 persona 跑完整 Step 1 → Step 3.5 评分**(per_page_scores · top_3_must_fix · suggested_alternative_pattern):
+3. **对每个 persona 跑完整 Step 1 → Step 3 评分**(per_page_scores · top_3_must_fix):
    - **12 项权重按 persona 动态调**(见 Step 2 § "12 项维度权重 · persona-driven"):
      - 技术受众(`engineer` / `academic`)重 `数据可信` + `论据强度`
      - 财务受众(`cfo` / `investor`)重 `数据可信` + `行动指引`
@@ -424,164 +438,6 @@ top_3_must_fix:
     suggestion: "用 H.section_divider_with_bignum 加 800pt 背景 '02' 浅灰"
 ```
 
-### Step 3.5 · 对 needs_visual_redo 每页 RAG 找 alternative pattern(双路:text + image)
-
-triage 划分后,**对每个 needs_visual_redo 页跑两路 RAG 反查**,取并集再合并打分:
-
-#### 3.5.1 · text query 路径(原有)
-
-1. 用该页 layout + page issue 关键词构造 query:
-   ```bash
-   PAGE_QUERY="<page issue 关键词,如 '5 阶段流程图 PNG 渲染破损' 或 '4 维 cards 视觉单调'>"
-   bash ${CLAUDE_PROJECT_DIR}/library/search.sh \
-         --query "$PAGE_QUERY" \
-         --mode hybrid \
-         --top-k 3 \
-         --format json
-   ```
-2. parse top-3 text-match 候选
-
-#### 3.5.2 · query-image 视觉反查路径(-audience 新增)
-
-**为什么加 image RAG**:文字 query 找的是"语义/意图最像"的页,但 audience 看到的"这页视觉破"问题(配色违和 / 排版同质 / 没有 hero)很多时候**文字描述抓不准**。用渲染后的 jpg 反查模板里**视觉最像**的页,常常一击命中。
-
-对每个 `needs_visual_redo` 页:
-
-**多模板 chapter-aware preferred-template**:`brief.theme` 可能是 str / list / dict 三种 schema。对每页用 `resolve_theme(brief.theme, page_chapter_index)` 算该页对应章节的 `effective_theme`,作 `--preferred-template` 传 search.sh(详见 author.md § "resolve_theme algorithm")。单模板时 effective_theme 跟 brief.theme str 同。
-
-```bash
-RENDERED_JPG="<rendered_dir>/page-NN.jpg"      # 该页渲染产物(Step 1 已 Glob 出来)
-
-# P3-9:按页所属 chapter 算 effective_theme(从 deck_plan.json slides[i].effective_theme 取最稳)
-# 或按 content.md 章节计数推 chapter_index 再 resolve_theme(brief.theme, chapter_index)
-EFFECTIVE_TPL="<resolve_theme(brief.theme, page_chapter_index) · 单模板时同 brief.theme · 缺则不传>"
-
-bash ${CLAUDE_PROJECT_DIR}/library/search.sh \
-     --kb pptx-templates \
-     --type page \
-     --query-image "${RENDERED_JPG}" \
-     --preferred-template "${EFFECTIVE_TPL}" \
-     --mode image \
-     --top-k 5 \
-     --format json
-```
-
-parse top-5 image-match 候选,看是否有 `pattern_score`(候选页的 RAG 相似度分)**显著高于当前页的视觉评分**(`page_score_10 / 10` 归一化到 0-1 区间作对照基准)。命中条件:`pattern_score > (page_score_10 / 10)` 且 `pattern_score >= 0.65`(避免高假阳)。
-
-#### 3.5.3 · 合并 + 写 suggested_alternative_pattern
-
-在 `needs_visual_redo_pages` 该页 entry 嵌入合并后的建议:
-
-```yaml
-needs_visual_redo_pages:
-  - page: 8
-    issue: "draw.io 流程图 HTML 标签裸露 · 5 阶段视觉同质"
-    suggested_alternative_pattern:
-      current: pic_text + drawio_chart
-      suggest: process-5-step-linear
-      reason: "draw.io HTML 裸露 + 视觉同质,文字 RAG + 图像 RAG 都指向 process-5-step-linear"
-      visual_query_match:                                # P2-7-audience 新增字段
-        rendered_jpg: <rendered_dir>/page-08.jpg
-        top_match: tpl:enterprise_skyline__03-process
-        pattern_score: 0.78                              # image-mode similarity (0-1)
-        current_page_score_normalized: 0.55              # = page_score_10 / 10
-        improvement: 0.23                                # = pattern_score - current_normalized
-      text_query_match:                                  # 原 3.5.1 路径,标明来源
-        query: "5 阶段流程图 PNG 渲染破损"
-        top_match: tpl:enterprise_skyline__03-process
-        hybrid_score: 0.72
-      both_agree: true                                   # text + image 是否指向同一候选(强信号)
-```
-
-**合并规则**:
-- text + image 都指向同一候选 → `both_agree: true`,建议强度 high
-- text 跟 image 指向不同候选 → 取 `pattern_score` 高的那个作 `suggest`,`both_agree: false`,建议强度 medium
-- 仅 text 命中 / 仅 image 命中 → 用命中的那条,缺失字段写 `null`,建议强度 medium
-- 都没命中(text top-3 全 < 0.5 + image top-5 全 < 0.65 或 `pattern_score <= current_normalized`)→ **不写** `suggested_alternative_pattern` 字段
-
-**降级**:
-- search.sh image-mode 失败(qwen image embedding API down / jpg 不可读)→ 只用 text 路径,`visual_query_match: null`
-- search.sh text-mode 失败 → 只用 image 路径,`text_query_match: null`
-- 双路都失败 → 不写 `suggested_alternative_pattern`(iloveppt-builder mode=visual_redo 走自己的 Step 4 第 4 路 fallback)
-
-**advisory 性质**:你只**建议**,不能改任何 .md / 调 iloveppt-builder;主线程拿到建议会展示给用户 cherry-pick。**这字段不影响 overall_score / triage 判定**(纯 advisory)。
-
-### Step 3.6 · feedback 回填(写 library/_rag/feedback.jsonl)
-
-**为什么**:audience 说"page X 用错 pattern Y"目前是 advisory,**不进 RAG 排序**。feedback 回填把每页的 `(chosen_pattern_id, audience_score)` append 到 `library/_rag/feedback.jsonl`,下次 `search.sh --feedback` 时,历史 avg<7.0 + count>=3 的 pattern 会被 soft-penalty(score × 0.9),逐步把低质量 pattern 排到后面。
-
-**触发条件**:走到这一步说明 Step 0.0 spot-check + Step 0.5 red_line 都过、Step 2 全 deck 12 项打分完成。**不论 overall_score 高低都要写**(高分也是有效信号 — 让好 pattern 累积 evidence,不只是降权坏 pattern)。
-
-**降级**:
-- `<working_dir>/builder/deck_v{N}_plan.json` 不可读 → 跳过整个 Step 3.6,**不阻塞返回 yaml**(打 stderr warn,记 `feedback_writeback: skipped_no_plan`)
-- deck_plan.json 里页缺 `pattern` / `pattern_id` 字段(老格式 / 非 pattern-driven 页) → 该页跳过,其他页继续
-- `library/_rag/feedback.jsonl` 写盘失败(权限 / disk full)→ 打 stderr warn,记 `feedback_writeback: write_failed`,仍**正常返回**评分 yaml
-
-#### 流程
-
-1. **找 deck_plan.json**:从入参 `deck_plan_path` 取(已透传给 spot-check),不可读 → 跳过整 Step 3.6
-2. **找 deck slug**:从 `working_dir` 末段取(`decks/data-report-202605/` → `data-report-202605`),没识别到 → 用 `working_dir` 的 basename 兜底
-3. **逐页 append 一行 jsonl**:对每个 `per_page_scores` 里有 `page_score_10` 的页:
-   ```python
-   # 在 deck_plan.json slides[page-1] 找 pattern_id
-   # deck_plan 不同版本 schema:slides[i].pattern_id / slides[i].pattern / slides[i].source_pattern 都可能,按优先级取
-   pattern_id = (
-       slide.get("pattern_id")
-       or slide.get("pattern")
-       or slide.get("source_pattern")
-       or slide.get("layout_source")
-       or None
-   )
-   if not pattern_id:
-       continue   # 该页没用 RAG pattern · 老 layout 路径,不写
-
-   # query 是该页 intent — 优先用 content.md 里 ## N. 标题 / 不可达就用 layout 名 + 索引兜底
-   query = page_meta.get("title") or f"{slide.get('layout', 'unknown')}-page-{page}"
-
-   record = {
-       "ts": "<ISO8601 UTC>",       # datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-       "query": <query 字符串>,
-       "chosen_pattern_id": <pattern_id 字符串 · 必带 vp:/tpl: 前缀>,
-       "audience_score": <page_score_10 · float 0-10>,
-       "deck": <deck slug 字符串>,
-       "page": <page int>,           # 可选 · 便于 month-over-month 追溯
-       "persona": <persona key>,     # 可选 · multi-persona 时取 blocking_persona 或 first
-   }
-   # append-only — 不要 read-modify-write,直接 open mode='a'
-   ```
-
-4. **Bash 实现示例**(用 jq 拼 jsonl 简洁可读):
-   ```bash
-   FEEDBACK_PATH="${CLAUDE_PROJECT_DIR}/library/_rag/feedback.jsonl"
-   mkdir -p "$(dirname "$FEEDBACK_PATH")"
-   # 对每个 per_page_score:
-   jq -nc \
-     --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-     --arg query "<page intent>" \
-     --arg pid  "<pattern_id>" \
-     --argjson score "<page_score_10>" \
-     --arg deck "<slug>" \
-     --argjson page "<int>" \
-     '{ts: $ts, query: $query, chosen_pattern_id: $pid, audience_score: $score, deck: $deck, page: $page}' \
-     >> "$FEEDBACK_PATH"
-   ```
-
-5. **return yaml 顶层加字段** `feedback_writeback`(配合主线程 log / dashboard):
-   ```yaml
-   feedback_writeback:
-     status: ok | skipped_no_plan | partial | write_failed
-     rows_written: <int>
-     rows_skipped: <int>          # 缺 pattern_id 的页
-     feedback_path: <abs path · 通常 library/_rag/feedback.jsonl>
-   ```
-
-#### 约束
-
-- **append-only · 不读不删**:audience 只**追加**,不读已有 feedback(读历史 + 算 penalty 是 search.py 的活,不在你这层)
-- **不在 deck 工作目录写**:feedback.jsonl 是**全仓库共享**的 runtime 数据,**永远**在 `library/_rag/feedback.jsonl`,不要复制到 deck 工作目录
-- **gitignored**:feedback.jsonl 在 `.gitignore` 里(不入 git);每个 clone 各自累积本地 feedback
-- **不影响评分**:Step 3.6 失败不能阻塞 yaml return — 主流水线的 deliverable 是评分报告,feedback writeback 是副产品
-
 ### Step 4 · 写报告
 
 `Write` `<working_dir>/audience/audience_review_r{N}.md`(若 `audience/` 不存在,mkdir)。
@@ -630,9 +486,7 @@ needs_visual_redo_pages:
 **Schema 变更总览(-audience +)**:
 - `per_page_scores[*]` 从 4 维度 × 10 分 → 12 项 × 0-3 分 + `page_score_avg` / `page_score_weighted` / `page_score_10` + `evidence` 配字段
 - `per_persona_scores` 新字段(multi-persona 才出):每个 persona 一份 deck_score_10 + weakest_dim
-- `needs_visual_redo_pages[*].suggested_alternative_pattern` 增 `visual_query_match` + `text_query_match` + `both_agree` 子字段
 - `overall_score` 字段保留(向后兼容)= `deck_score_10`(单 persona)或 `deck_score_final`(multi-persona · min 聚合)
-- 顶层 `feedback_writeback: {status, rows_written, rows_skipped, feedback_path}` — Step 3.6 把每页 `(chosen_pattern_id, page_score_10)` append 到 `library/_rag/feedback.jsonl`,失败不阻塞 yaml return
 
 **overall_score ≥ 9(交付 · 单 persona)**:
 
@@ -687,24 +541,8 @@ top_3_must_fix:
 needs_visual_redo_pages:
   - page: 5
     issue: 5 张同质 cards 无 icon
-    suggested_alternative_pattern:        # P2-7-audience 增强:含 visual_query_match
-      current: cards
-      suggest: cards-5-icon
-      reason: "text + image RAG 都指向 cards-5-icon"
-      visual_query_match:
-        rendered_jpg: <rendered_dir>/page-05.jpg
-        top_match: tpl:enterprise_skyline__07-cards-icon
-        pattern_score: 0.81
-        current_page_score_normalized: 0.62
-        improvement: 0.19
-      text_query_match:
-        query: "5 张卡片同质无 icon"
-        top_match: tpl:enterprise_skyline__07-cards-icon
-        hybrid_score: 0.74
-      both_agree: true
   - page: 7
     issue: "..."
-    suggested_alternative_pattern: ...
 rounds_used: <int>
 ```
 
@@ -796,7 +634,7 @@ rounds_used: <int>
 
 - **必须真 Read 每张 JPG**:不能凭"这种 layout 通常没问题"跳过(verification-before-completion)
 - **必须代入 audience 视角**:executive 跟 technical 看同一页结论完全不同;不能用一套标准
-- **评分阶段不读 deck_plan.json / .pptx / .md 源**:Step 1-3 评分时你是模拟终端用户,他们也看不到这些。**唯一例外是 Step 3.6 feedback writeback** — 评分完后**只读**(不改)deck_plan.json 取 `pattern_id` 用于 feedback.jsonl 回填,不影响评分判定
+- **评分阶段不读 deck_plan.json / .pptx / .md 源**:Step 1-3 评分时你是模拟终端用户,他们也看不到这些
 - **不擅自改 .pptx 或 content.md**:你只评,不改;改是主线程或 author 的事
 - **严格分工:只评认知不评机械**:iloveppt-builder Step 3 已查过机械项,你别再说"字号 14pt 对吗"——那是 iloveppt-builder 的活;你说"14pt 在这页空旷的 box 里看上去 caption 化没存在感"——那是认知感受
 - **12 项每项必配 evidence**:不允许"我觉得 score=2";score 跟 evidence 是绑死的,evidence 要指向具体观察(标题文字 / 卡片视觉 / 数字框等)。无 evidence 视为评审作废

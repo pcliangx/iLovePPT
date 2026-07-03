@@ -8,7 +8,7 @@
 # - Section A · 金字塔结构审计(7 项):A1-A7 — checklist 底线 1/2
 # - Section B · brief → outline + content 对齐(9 项):B1-B9 — checklist 底线 2/2
 #                                                    (B1-B7 为原 14 项的后半 7 项;B8 + B9 为 P1 wave 加的 hard gate)
-# - Section J · 判断性评审(5 维度):J1-J5 — beyond checklist 的 partner-level 判断
+# - Section J · 判断性评审(4 维度):J1-J4 — beyond checklist 的 partner-level 判断
 # 合计:21 项,每项强制量化 schema
 #
 # 引入背景(P2-1, 2026-05-27):
@@ -17,7 +17,7 @@
 # - "evidence 必须引原文 >= 10 字" + "severity 必须整数 0-3" 是兜底约束
 #
 # Schema(每项 checklist / 维度):
-#   id: 唯一短码(A1-A7, B1-B9, J1-J5)
+#   id: 唯一短码(A1-A7, B1-B9, J1-J4)
 #   name: 一句话名称
 #   description: 评什么 + 怎么算 passed=true
 #   evidence_requirement: 该项 evidence 必须长什么样(LLM 引原文的具体格式)
@@ -28,7 +28,7 @@
 #     3: <block 示例,不改 ship 不出去>
 #
 # verdict 自动算公式(critic.md Step 3 + validate_agent_return.py 引用):
-#   适用范围:A1-A7 + B1-B9 + J1-J4(J5 是 advisory,severity 照填但**不计入** verdict 重算)
+#   适用范围:A1-A7 + B1-B9 + J1-J4(J5 pattern 适配性已随 RAG 退役移除)
 #   if any(s.severity == 3): verdict = "needs_revision"
 #   elif count(s.severity == 2) > 5: verdict = "needs_revision"  # warn 累积亦 block
 #   elif count(s.severity >= 1) >= 1: verdict = "pass_with_notes"
@@ -265,100 +265,294 @@ section_b_alignment:
   - id: B8
     name: validate_layout_in_theme
     description: |
-      outline + content 中所有 `<!-- layout: X -->` 必须在 brief.theme 真有渲染路径:
-      tier2 (`themes/<theme>.py` 有 `make_<X>` 函数) **或** tier1 (`library/pptx-templates/items/<theme>/pages/*/placeholder_map.yaml` 有 `layout_class: X`)。
-      passed=true 当所有 layout 在 theme 至少有一条渲染路径。
+      outline + content 中所有 `<!-- layout: X -->` 必须在 brief.theme 真有 tier2 渲染路径:
+      `themes/<theme>.py` 有 `make_<X>` 函数(tier1 已退役)。
+      passed=true 当所有 layout 在 theme 有 `make_<layout>`。
     evidence_requirement: |
-      列所有 layout 集合 + 对每个 layout 验 tier2 / tier1 路径存在性(bash grep 命令 + 结果)。
-      格式:`layout=cards → tier2 [.themes/X.py 有 make_cards / 无]; tier1 [item Y 有 layout_class: cards / 无]; 路径 [存在 / 不存在]`
+      列所有 layout 集合 + 对每个 layout 验 tier2 路径(bash grep 命令 + 结果)。
+      格式:`layout=cards → themes/X.py 有 make_cards / 无`
     severity_examples:
-      "0": "所有 layout 都有 tier2 路径"
-      "1": "1 layout 只有 tier1 路径,需 outline 显式标 tier1_template_page"
-      "2": "1 layout 两条路径都没有 但章节非 critical(可降级)"
-      "3": "1+ layout 两条路径都没有 且章节 critical(builder 会撞 make_X 不存在 fail-loud)"
+      "0": "所有 layout 都有 make_<layout>"
+      "1": "1 layout 缺 make_<layout> 但有近似 layout 可无感降级(non-critical)"
+      "2": "1 layout 缺 make_<layout> 且章节非 critical(需 author 改 layout)"
+      "3": "1+ layout 缺 make_<layout> 且章节 critical(builder 撞 make_X 不存在 fail-loud)
 
-  - id: B9
-    name: red_line_words 0 hit
-    description: |
-      brief.constraints.red_line_words 任一禁词在 outline.md / content.md **0 出现**(case-insensitive, 含拼音 fuzzy)。
-      passed=true 当 grep 0 命中。
-    evidence_requirement: |
-      列 red_line_words 全词 + 对每词在 outline / content 跑 grep,记命中行号 + 引文(若命中)。
-      格式:`word "X": outline grep [N hits at line A,B] · content grep [M hits at line C]; 总命中 = X; pass [yes/no]`
-    severity_examples:
-      "0": "0 命中(grep 全部干净)"
-      "1": "无,B9 严格 0 容忍 → 命中 1 次也是 severity >= 2"
-      "2": "1 次命中(单页单段),容易 surgical fix"
-      "3": "≥ 2 次命中 或 高频词命中(改起来动结构)"
 
-# === 判断性评审 5 维度(beyond checklist,critic 真正的价值)===
-section_judgmental:
-  - id: J1
-    name: 论据强度
-    description: |
-      看每章论据是否够 sharp(数字 / source / 例子)。听众读完会被说服 还是 会反问 "凭什么"?
-      passed=true 当所有 high-impact 章节论据有数字或 source 支撑;弱论据集中在 polish 区。
-    evidence_requirement: |
-      抽 3 个 high-impact 章节(intent 关键的)+ 1 个 polish 章节,引 bullet 文本,判 [数字/source 支撑充分 / 定性陈述弱 / 配图凑数]。
-      格式:`page X 章节 "<title>": bullets ["X", "Y", "Z"] — 3 bullet 都 [无数字/有数字/混合],评估 [strong/weak]`
-    severity_examples:
-      "0": "所有 high-impact 章节论据都有数字 / source / 客户案例;弱论据集中在 polish 区"
-      "1": "1 处定性陈述,但同页其他论据数字强,整体均衡"
-      "2": "1 个 high-impact 章节通篇定性陈述,缺数字"
-      "3": "≥ 2 high-impact 章节通篇定性陈述 或 用'显著提升/广泛应用'等空形容词代替数据"
+#
+# 此文件是 critic agent 21 项评审(A 7 + B 9 + J 5)的权威定义源。
+# 修改本文件等同于修改 critic 评分规则;`.claude/agents/iloveppt-critic.md` 引用本文件,
+# 不允许在 critic.md 重述同名字段(避免 SSOT 失同步)。
+#
+# 项目结构:
+# - Section A · 金字塔结构审计(7 项):A1-A7 — checklist 底线 1/2
+# - Section B · brief → outline + content 对齐(9 项):B1-B9 — checklist 底线 2/2
+#                                                    (B1-B7 为原 14 项的后半 7 项;B8 + B9 为 P1 wave 加的 hard gate)
+# - Section J · 判断性评审(4 维度):J1-J4 — beyond checklist 的 partner-level 判断
+# 合计:21 项,每项强制量化 schema
+#
+# 引入背景(P2-1, 2026-05-27):
+# - 老 critic:21 项主观 pass/fail,LLM 自判 verdict → 同 deck 跑 3 次 verdict ~70% 一致
+# - 新 critic:每项强制 {passed, evidence, severity 0-3, suggestion},verdict 由公式自动算 → 目标 ~100% 一致
+# - "evidence 必须引原文 >= 10 字" + "severity 必须整数 0-3" 是兜底约束
+#
+# Schema(每项 checklist / 维度):
+#   id: 唯一短码(A1-A7, B1-B9, J1-J4)
+#   name: 一句话名称
+#   description: 评什么 + 怎么算 passed=true
+#   evidence_requirement: 该项 evidence 必须长什么样(LLM 引原文的具体格式)
+#   severity_examples:  # 0/1/2/3 各档示例,LLM 校准用
+#     0: <严格 ok 的示例,observed 与改建议都不需要>
+#     1: <nit 示例,可改可不改>
+#     2: <warn 示例,改了更稳>
+#     3: <block 示例,不改 ship 不出去>
+#
+# verdict 自动算公式(critic.md Step 3 + validate_agent_return.py 引用):
+#   适用范围:A1-A7 + B1-B9 + J1-J4(J5 pattern 适配性已随 RAG 退役移除)
+#   if any(s.severity == 3): verdict = "needs_revision"
+#   elif count(s.severity == 2) > 5: verdict = "needs_revision"  # warn 累积亦 block
+#   elif count(s.severity >= 1) >= 1: verdict = "pass_with_notes"
+#   else: verdict = "pass"
 
-  - id: J2
-    name: 节奏感
-    description: |
-      看章节顺序 + 章节间过渡 + 章节内部页数分布。narrative 是断的还是顺的?有该合该拆的吗?
-      passed=true 当章节顺序合 What→How / 段落分布均匀 / 章节间有过渡。
-    evidence_requirement: |
-      列章节顺序 + 每章页数 + 章节间过渡句存在性。指出 [合并候选 / 拆分候选 / 顺序问题 / 过渡缺失]。
-      格式:`章节顺序:1 [现状 1 页] → 2 [方案 3 页] → 3 [...]; 章节 2-3 过渡: [无,跳得突兀]`
-    severity_examples:
-      "0": "顺序 What→Why→How→When,章节页数均匀 (2-3 页),章节间有过渡句"
-      "1": "1 处过渡缺失,但内容衔接自然"
-      "2": "某章 1 页 vs 其他 3-4 页(头重脚轻);或 1 对章节论点近应合并"
-      "3": "章节顺序违反 What→How(方案在背景之前);或 ≥ 2 章节论点重叠应合并"
+version: 1
+applies_to_stage: cd  # P2-3.2 后 critic 只跑 stage=cd 合审
 
-  - id: J3
-    name: 措辞质感
-    description: |
-      看 action title / 文案的味道。结论句 还是 话题标签?数字驱动 还是 形容词堆?
-      passed=true 当 action title 都是结论(动+宾+边界)+ 一页通用形容词 ≤ 1 个 + summary 给新结论非重列。
-    evidence_requirement: |
-      抽 3 页 action title + 1 页 bullet + summary,标 [结论句/话题标签] [形容词数量] [summary 是结论还是重列]。
-      格式:`page 5 action title: "<原文>" → [结论句/话题]; page 8 bullet: "<原文>" 含 [N 个通用形容词]`
-    severity_examples:
-      "0": "全 action title 都是结论句;一页通用形容词 0;summary 给数字结论"
-      "1": "1 页 action title 偏话题(可补具体数字)"
-      "2": "2-3 页 action title 是 disguised topic(如'技术方案')"
-      "3": "summary 重列 outline 章节名 或 ≥ 4 页 action title 是话题标签"
+# === Verdict 阈值(critic.md Step 3 引用)===
+verdict_thresholds:
+  block_severity: 3       # 任一项 severity == 3 → needs_revision
+  warn_accumulation: 5    # severity == 2 的累积 > 5 → needs_revision(纵使无 block)
+  notes_min_severity: 1   # severity >= 1 → pass_with_notes
 
-  - id: J4
-    name: 整体平衡
-    description: |
-      看 deck-level 平衡。章节篇幅合理?summary 真收口?closing 极简?BLUF 前置?
-      passed=true 当 1 个章节 ≤ 40% 篇幅 + summary 有新结论 + closing ≤ 2 页 + BLUF 在前 3 页。
-    evidence_requirement: |
-      引 章节页数分布 + summary 全文 + closing 全文 + 前 3 页 BLUF 状态。
-      格式:`章节 1 占 X%; summary: "<原文>" [给数字结论/重列章节名]; closing 页数: N`
-    severity_examples:
-      "0": "章节均匀 / summary 数字结论 / closing 极简 / BLUF 前 3 页"
-      "1": "summary 略冗(给结论但带了 1 段重列)"
-      "2": "1 章节占 50%+ 篇幅 或 summary 重列章节"
-      "3": "BLUF 前 5 页才出 或 closing 又一页要点 或 summary 完全重列 toc"
+# === Severity 校准统一定义(全 19 项共用语义)===
+severity_definitions:
+  0:
+    label: ok
+    meaning: "完全通过,无需关注"
+    actionable: false       # suggestion 字段可留空
+  1:
+    label: nit
+    meaning: "极小问题,polish 级,可改可不改;影响微到不阻塞 ship"
+    actionable: optional    # suggestion 写但不强制
+  2:
+    label: warn
+    meaning: "明显问题,改了更稳;不致命但风险存在(读者会有微妙不爽 / 资深 reviewer 会扣分)"
+    actionable: true        # suggestion 必填
+  3:
+    label: block
+    meaning: "硬阻塞,不改 ship 不出去;客观违反(red_line 命中 / brief 字面对不上)或主观重伤(措辞误导决策)"
+    actionable: true        # suggestion 必填 + 必须给出明确修法
 
-  - id: J5
-    name: pattern 适配性
+# === Section A · 金字塔结构审计(7 项)===
+section_a_pyramid:
+  - id: A1
+    name: 单一顶端论点
     description: |
-      看 author selected pattern 是否最匹配本章 intent;有没有更准的 alternative?(advisory 性质 · 不计入 verdict 决定)
-      passed=true 始终 true(pattern 不当不阻塞);改用 suggested_alternative_patterns 字段告诉用户。
+      brief.top_recommendation 是单一动宾结构,含动词 + 宾语 + 边界三要素。
+      passed=true 当三要素齐全;缺一 → passed=false + severity >= 2
     evidence_requirement: |
-      抽 3 个有 pattern_hints 的章节,RAG 重跑 search.sh top-5,找出 [author selected vs RAG top-1] 差异。
-      格式:`page X 章节: author selected [id-A]; RAG top-5: [id-B, id-C, ...]; 建议 [accept/alternative: id-B] 理由 ...`
+      必须引 brief.top_recommendation 全文(>= 10 字),并标注 [动词|宾语|边界] 三要素是否齐全。
+      格式:`brief.top_recommendation: "<原文>" — 动词=[X] 宾语=[Y] 边界=[Z]`
     severity_examples:
-      "0": "3 章节 author selected 都是 RAG top-1 或语义无别"
-      "1": "1 处 RAG top-2 略优(advisory 推 alternative)"
-      "2": "2 处 RAG top-1 明显优(advisory)"
-      "3": "**不存在 3** — pattern 适配性始终 advisory,不阻塞 verdict"
+      "0": "顶端论点齐三要素,如'本季度落地数据汇报标准化流程,5 阶段 ≤ 3 天'"
+      "1": "三要素齐但措辞略冗,如夹了一句修饰语 'we believe'"
+      "2": "缺边界(时间/范围/规模),如'落地数据汇报流程',无 deadline 也无规模"
+      "3": "缺动词或宾语(非结论句),如'数据汇报标准化'(只是话题)"
+
+  - id: A2
+    name: SCQA 完整
+    description: |
+      brief.SCQA 4 字段(situation/complication/question/answer)齐全且 answer 跟 top_recommendation 语义等价(允许压缩)。
+      passed=true 当 4 字段非空 + answer == top_rec(压缩等价)。
+    evidence_requirement: |
+      必须引 SCQA 4 字段全文(每字段 >= 10 字),并验 answer ↔ top_rec 等价性。
+      格式:`SCQA.situation: "<原文>"; complication: "<原文>"; question: "<原文>"; answer: "<原文>" — answer==top_rec? [yes/no],推导:...`
+    severity_examples:
+      "0": "4 字段齐 + answer 压缩自 top_rec"
+      "1": "answer 多了一句修饰,但语义等价"
+      "2": "complication / question 字段较短(< 20 字),逻辑勉强"
+      "3": "缺一字段 或 answer 跟 top_rec 不等价(说的不是同一件事)"
+
+  - id: A3
+    name: 答案在前 BLUF
+    description: |
+      outline.cover.subtitle 或 content cover.subtitle + 第 1 内容页,在前 3 张内必须出顶端论点核心动宾。
+      passed=true 当 cover.subtitle 或 page 1-2 含 top_rec 动词 + 宾语。
+    evidence_requirement: |
+      引 cover.subtitle 全文 + 第 1 内容页 action title;指出哪一处含 top_rec 核心动宾。
+      格式:`cover.subtitle: "<原文>"; page 1 action title: "<原文>" — top_rec 动词 [X] 在 [位置] 出现`
+    severity_examples:
+      "0": "cover.subtitle 直接说出 top_rec 全句"
+      "1": "cover.subtitle 仅出现 top_rec 宾语,动词在 page 2"
+      "2": "前 3 页都不见 top_rec 动词,需扫到 page 5+"
+      "3": "前 3 页只见话题词,从未出现 top_rec 的动宾结论"
+
+  - id: A4
+    name: MECE 3-5 章节
+    description: |
+      `## N. <title>` 数量在 3-5 之间;**逐对**比较章节论据是否重叠(C(N,2) 对均独立)。
+      passed=true 当数量 3-5 + 所有章节对论据不重叠。
+    evidence_requirement: |
+      列所有 `## N. ...` 章节标题 + 数量。然后逐对(C(N,2))给出"论据 X 与 论据 Y [独立 / 重叠]"的判断。
+      格式:`章节数: N; 章节列表: [...]; 重叠对: [章节 A & B → 重叠点 "Z"] 或 []`
+    severity_examples:
+      "0": "4 章节,6 对全独立(strictly MECE)"
+      "1": "5 章节,1 对边缘重叠(<= 20% 论据)但语义有别"
+      "2": "章节数 2 或 6(突破 3-5 范围) 或 1 对明显重叠(50% 论据共享)"
+      "3": "章节数 > 6 或 < 2,或 ≥ 2 对显著重叠(70%+ 共享论据)"
+
+  - id: A5
+    name: 纵向疑问链
+    description: |
+      顺序列每章 action title 并解释"为何是顶端论点的论据"。
+      passed=true 当每章论据均能 trace 回顶端论点。
+    evidence_requirement: |
+      顺序列每章 action title 全文 + 一句话解释 "→ 支撑 top_rec.[动词|宾语|边界] 的哪部分"。
+      格式:`章节 1: "<action title>" → 支撑 top_rec.边界 [时间约束];章节 2: ...`
+    severity_examples:
+      "0": "每章 action title 都明确 trace 到 top_rec 某子部分"
+      "1": "1 章节 trace 较弱但仍说得通"
+      "2": "2-3 章节 trace 弱(支撑关系靠拢强求)"
+      "3": "1+ 章节完全 trace 不回 top_rec(论据脱离主论点)"
+
+  - id: A6
+    name: 横向逻辑同类
+    description: |
+      章节句式 / 类型应全是 because / 全是 steps / 全是 dimensions;不允许混合。
+      passed=true 当所有章节句式同类。
+    evidence_requirement: |
+      分析每章 action title 的句式类型(原因/步骤/维度/对比/其他),列出类型分布。
+      格式:`章节 1: [类型]; 章节 2: [类型]; ...; 统一类型? [yes/no] · 若 no 列冲突章节`
+    severity_examples:
+      "0": "全 5 章节都是 steps(顺序流程)"
+      "1": "4 章节 steps + 1 章节句式略变但仍是 steps 子类型"
+      "2": "混合 2 类(如 3 steps + 2 dimensions)但章节内连贯"
+      "3": "混合 3+ 类(如 steps + because + dimensions + comparison)读者抓不到主线"
+
+  - id: A7
+    name: action title ≤ 24 字
+    description: |
+      每条 action title 字数 ≤ 24(中文 1 字,英文 0.5 字)。
+      passed=true 当所有章节 action title 字数 ≤ 24。
+    evidence_requirement: |
+      对每条 action title 标字数 + 是否超限。
+      格式:`page N: "<action title 原文>" (X 字, [pass/fail])`
+    severity_examples:
+      "0": "所有 ≤ 24"
+      "1": "1 处超限 25 字,可简短缩 1 字"
+      "2": "2-3 处超限 26-28 字"
+      "3": "1+ 处超限 30+ 字 或 ≥ 4 处超限"
+
+# === Section B · brief → outline + content 对齐(9 项)===
+section_b_alignment:
+  - id: B1
+    name: top_recommendation 字面一致
+    description: |
+      outline.cover.subtitle + content.cover.subtitle 都必须包含 brief.top_recommendation 的核心动宾 + 边界。
+      passed=true 当双源都对齐(允许压缩,不允许遗漏要素)。
+    evidence_requirement: |
+      引 brief.top_recommendation + outline.cover.subtitle + content.cover.subtitle 三处全文,判断三要素映射。
+      格式:`top_rec: "<原文>"; outline.cover.subtitle: "<原文>"; content.cover.subtitle: "<原文>" — 动词[一致/不一致] 宾语[一致/不一致] 边界[一致/不一致]`
+    severity_examples:
+      "0": "三处动宾边界完全一致(允许 outline.subtitle 压缩省主语)"
+      "1": "outline 跟 content 一致,某要素是同义词替换(语义无损)"
+      "2": "outline 跟 content 字面不一致(虽语义近)"
+      "3": "outline 或 content 缺核心动词/宾语/边界 其一"
+
+  - id: B2
+    name: SCQA 4 字段在 content 有承接
+    description: |
+      content.md cover / 第 1 内容页能 trace 到 brief.SCQA 4 字段(无 1:1 文本,但语义/逻辑承接)。
+      passed=true 当 4 字段都能在 content 前 3 页找到承接段落。
+    evidence_requirement: |
+      引 brief.SCQA 4 字段 + content cover / page 1-3 的对应段落;指出 [situation→哪页] [complication→哪页] 等映射。
+      格式:`SCQA.situation [page N: "<段落>" 承接]; complication [page M: "<段落>" 承接]; ...`
+    severity_examples:
+      "0": "4 字段都能在前 3 页找到清晰承接段"
+      "1": "4 字段承接但顺序略乱(C 在 S 之前)"
+      "2": "1 字段承接弱(读者要推断)"
+      "3": "≥ 2 字段在 content 找不到承接(brief→content 断层)"
+
+  - id: B3
+    name: audience tone 匹配
+    description: |
+      content.md 抽 3 页验语气是否匹配 brief.audience(executive 简洁数字 / technical 详细方法 / general 类比通俗 / sales benefit 导向)。
+      passed=true 当抽样 3 页语气都符合预期 tone。
+    evidence_requirement: |
+      抽 3 页(cover + 中段 + summary)引文,对照 brief.audience 标 [匹配/不匹配] + 理由。
+      格式:`brief.audience: [persona]; page 1 段: "<引文>" — tone [匹配];page X 段: "<引文>" — tone [不匹配,理由 ...]`
+    severity_examples:
+      "0": "3 页 tone 都精准匹配 audience"
+      "1": "3 页 tone 都匹配但有 1 处用词偏 academic"
+      "2": "1 页 tone 偏离 audience(如 executive 写得太长太 technical)"
+      "3": "2-3 页 tone 严重偏离(如 sales deck 写成 academic paper)"
+
+  - id: B4
+    name: asset_inventory 每项有交代
+    description: |
+      brief.asset_inventory 每项(csv/image/url)必须在 content.md 引用或在 image alt 注明。
+      passed=true 当所有 inventory item 都在 content 出现(0 omission)。
+    evidence_requirement: |
+      列 asset_inventory 全项 + 标记每项在 content 哪页(或哪 alt 段)被引用;0 omission 显式确认。
+      格式:`asset 1: "<desc>" → content page N [引用方式];asset 2: ... → [N/A 缺失]`
+    severity_examples:
+      "0": "全 inventory items 都在 content 引用"
+      "1": "全 inventory items 都引用,1 处引用稍 implicit"
+      "2": "1 item 在 content 未出现(用户给了素材没用)"
+      "3": "≥ 2 items 未引用"
+
+  - id: B5
+    name: 无 brief 外新事实
+    description: |
+      content.md 全文不允许出现 brief 未提及的具体数字 / source / 客户案例(允许已知行业常识)。
+      passed=true 当 grep 全文 0 处出现 brief 之外的新事实。
+    evidence_requirement: |
+      grep 反向校验:对 content 所有具体数字 / 客户名 / source 标注,逐一对照 brief 是否提及。
+      格式:`content page N 数字 "X%": brief 提及? [yes/no, brief 出处 ...]`
+    severity_examples:
+      "0": "全部具体数字 / source 都能 trace 回 brief"
+      "1": "1 处行业基准数字(brief 未明说但属常识)"
+      "2": "1 处具体数字 brief 未提及(可能是 LLM 编的)"
+      "3": "≥ 2 处具体数字 / 客户案例 brief 完全没说(LLM 编了)"
+
+  - id: B6
+    name: duration × 1.5 ≈ 总页数
+    description: |
+      brief.presentation_mode.duration_min × 1.5 ≈ content 实际页数(允许 ±20%)。
+      passed=true 当 |actual_pages - duration*1.5| / (duration*1.5) <= 0.2
+    evidence_requirement: |
+      数 content.md 实际 `## N.` 章节子页数量 + brief duration;算偏差比。
+      格式:`duration: X min; expected: X*1.5 = Y 页; actual: Z 页; 偏差 = (Z-Y)/Y = ±A%`
+    severity_examples:
+      "0": "偏差 < 10%"
+      "1": "偏差 10-15%"
+      "2": "偏差 15-25%(超 ±20% 但 < 30%)"
+      "3": "偏差 > 30%(讲不完 / 时间挤不满)"
+
+  - id: B7
+    name: presentation_mode 字数遵守
+    description: |
+      content.md 抽 5 页全字段实测,字数遵守 content-writing.md 的 13 layout 字数表(presentation 模式 vs handout 模式)。
+      passed=true 当 5 页 all fields 都在字数上限内。
+    evidence_requirement: |
+      抽 5 页(cover / 1 早 / 1 中 / 1 晚 / summary),对每字段标 [layout / 字段 / 字数 / 上限 / pass/fail]。
+      格式:`page 3 cards/body: 65 字 [上限 80, pass]; page 8 bullet: 75 字 [上限 70, FAIL]`
+    severity_examples:
+      "0": "5 页全字段都在上限内"
+      "1": "1 字段超限 < 5 字"
+      "2": "1-2 字段超限 5-15 字"
+      "3": "≥ 3 字段超限 或 任一字段超限 > 20 字"
+
+  - id: B8
+    name: validate_layout_in_theme
+    description: |
+      outline + content 中所有 `<!-- layout: X -->` 必须在 brief.theme 真有 tier2 渲染路径:
+      `themes/<theme>.py` 有 `make_<X>` 函数(tier1 已退役)。
+      passed=true 当所有 layout 在 theme 有 `make_<layout>`。
+    evidence_requirement: |
+      列所有 layout 集合 + 对每个 layout 验 tier2 路径(bash grep 命令 + 结果)。
+      格式:`layout=cards → themes/X.py 有 make_cards / 无`
+    severity_examples:
+      "0": "所有 layout 都有 make_<layout>"
+      "1": "1 layout 缺 make_<layout> 但有近似 layout 可无感降级(non-critical)"
+      "2": "1 layout 缺 make_<layout> 且章节非 critical(需 author 改 layout)"
+      "3": "1+ layout 缺 make_<layout> 且章节 critical(builder 撞 make_X 不存在 fail-loud)
+

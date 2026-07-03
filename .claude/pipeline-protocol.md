@@ -382,9 +382,8 @@ Task(iloveppt-author, args={
 
 brainstorm 在返回 `dispatch_author` **之前**必须完成两步 + self-audit(brainstorm prompt 内部逻辑,主线程不感知):
 1. 先 `Write brief.md`(文件落盘成功)
-2. 跑 Step 3.5 RAG pattern_hints_for_author
-3. 跑 Step 3.6 brief self-audit 5 项(原 critic Stage B 已并入)
-4. self-audit pass / pass_with_notes → 返回 `dispatch_author`;needs_self_revision → 返回 `needs_self_revision` 给用户改
+2. 跑 Step 3.6 brief self-audit 5 项(原 critic Stage B 已并入;Step 3.5 RAG pattern 预选已退役)
+3. self-audit pass / pass_with_notes → 返回 `dispatch_author`;needs_self_revision → 返回 `needs_self_revision` 给用户改
 
 用户回 OK 后,brainstorm 下次 SendMessage 返回 `dispatch_author`。**注意**self-audit 5 项(必填字段 / 内部一致性 / theme tier / red_line / top×audience 张力)由 brainstorm 自己跑,不再有 critic Stage B hard gate(合并)。
 
@@ -416,8 +415,7 @@ Task(<agent-name>, args={...})
 | critic verdict | `pass` 或 `pass_with_notes`(只跑 stage=cd 一次)|
 | audience overall_score | ≥ 9(含 Step 0 spot-check pre-gate) |
 | 5 轮 cap | critic stage=cd / audience 各独立计数,达 5 轮强制询问用户四选一(继续改 / 接受当前版本 quality_grade=B / 终止 / 回 brainstorm 改 brief) |
-| **Pattern cherry-pick** | critic / iloveppt-builder / audience 任一 yaml 含 `suggested_alternative_pattern(s)` → 主线程**必须**展示给用户决定,不允许自决;用户答"改" → Task author rework + user_response 含 `accept_alternative_pattern: <id>`;用户答"不改" → 继续派下一棒;若 audience 阶段触发改 → author rework 后必须重派 critic cd + audience |
-| **library/search.sh 强制规则** | 下列 3 处必须走 `library/search.sh`,不允许 agent 凭空造 pattern 引用:① brainstorm Stage A 列模板(`--kb pptx-templates --type template --query <主题>` 排序)② author Stage D 拓写(`--preferred-template <brief.theme> --type page` 模板优先 + vp fallback)③ iloveppt-builder Step 4 加视觉(读 `<!-- pattern: vp:/tpl: -->` 注释 → 查 DB → 渲染)。content.md 的 pattern 注释 id **必须**带 `vp:` 或 `tpl:` 前缀,iloveppt-builder 拒绝无前缀 id |
+> **Pattern cherry-pick gate / library/search.sh 强制规则已退役**(RAG+tier1 切除):历史 critic/builder/audience 的 `suggested_alternative_pattern` + `<!-- pattern: vp:/tpl: -->` 注释 + search.sh 检索闭环已移除;author 直接从 `layout_variants.yaml` 受控词典选 layout,builder 只认 `<!-- layout: X -->`。
 
 ### §3.4 Pyramid 单点收口
 
