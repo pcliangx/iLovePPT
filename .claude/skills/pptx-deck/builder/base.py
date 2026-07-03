@@ -60,12 +60,9 @@ THEMES: dict[str, ModuleType] = {
     "template_training": _template_training,
 }
 
-# Themes with Python layout implementations but **not** registered in THEMES.
-# These are ingested .pptx templates (library/pptx-templates/items/<name>/) whose
-# theme module supplies layout shapes; color/font tokens come from the .pptx at
-# runtime via _extract_theme_from_pptx. Keying off the .pptx stem lets
-# `_extract_theme_from_pptx` pick the right base module instead of always
-# hardcoding tech_blue.
+# Themes with Python layout implementations keyed by stem.
+# (历史:ingested .pptx 模板的 layout 模块;legacy `_extract_theme_from_pptx` 用它选 base
+# module。.pptx 提取路径已退役,此 dict 保留给残留 legacy 路径,待后续清理。)
 PPTX_BASE_THEMES: dict[str, ModuleType] = {
     "template_golden": _template_golden,
 }

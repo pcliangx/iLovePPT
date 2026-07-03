@@ -1,7 +1,6 @@
 """template_golden — 继承 tech_blue + 3 个独有 layout(process_flow / pyramid / radial)。
 
-template_golden 是 ingested .pptx 模板(library/pptx-templates/items/template_golden/),
-原模板 38 declared pages 覆盖丰富 layout。这里实现 author 用到的 3 个独有 layout:
+实现 author 用到的 3 个独有 layout:
 - process_flow:N 步 vertical 流程(numbered circle + step_title + step_desc + arrows)
 - pyramid:N-tier stacked structure(顶窄底宽,色梯度,可选侧栏)
 - radial:central node + N spokes(圆形围绕中心,可选连线)
@@ -9,8 +8,8 @@ template_golden 是 ingested .pptx 模板(library/pptx-templates/items/template_
 其他 layout(cover/toc/section_divider/single_focus/compare/cards/bullet_list/table/
 pic_text/summary/closing 等 14 个)从 tech_blue re-export,共享 SSOT。
 
-色彩 / 字体 token 由 build.py:_extract_theme_from_pptx 在运行时从 source_pptx 提取覆盖,
-此处常量仅作 fallback(tech_blue 默认值)。
+色彩 / 字体 token 来自 themes/template_golden.yaml(纯 yaml · load_theme 直接读);
+此处常量跟 yaml token 对齐(apply_theme 推过来)。
 """
 import math
 import sys
@@ -59,7 +58,7 @@ make_summary = _tb.make_summary
 make_closing = _tb.make_closing
 
 
-# ===== Token aliases(运行时 _extract_theme_from_pptx 会覆盖) =====
+# ===== Token aliases(跟 template_golden.yaml token 对齐 · apply_theme 推过来) =====
 FONT_HEADER = _tb.FONT_HEADER
 FONT_BODY = _tb.FONT_BODY
 FONT_NUM = _tb.FONT_NUM
