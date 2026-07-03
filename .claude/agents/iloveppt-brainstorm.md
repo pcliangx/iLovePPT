@@ -193,6 +193,7 @@ inspirations:
 - `theme`: `tech_blue`(内置)/ catalog 短名(`themes/<name>.yaml`,如 template_golden / template_training)
 - `output`: .pptx 输出路径(默认 `<working_dir>/builder/deck_v1.pptx`)
 - **`presentation_mode`**:`speaker`(默认,BCG 演讲风,文字提纲化)/ `handout`(阅读手册风,文字 3-4×,讲者不在场也能读懂)
+- **`track`**:`pptx`(默认 · 走 iloveppt-builder)/ `html` / `lark-slides` / `lark-whiteboard`(后三者走 iloveppt-designer)。详见 § "track 字段(交付形态路由)"。**可行性 gate 必跑**(见该节)
 - **`constraints.red_line_words`**:禁词清单。**必须问**:"有红线词吗?(留空 = 用默认 5 个:闭环 / 全链路 / 赋能 / 抓手 / 范式)"。用户答"留空 / 用默认 / 都不要" → 写默认 5 个;用户答"加 X Y" → 默认 5 个 + X + Y;用户答"只要 X Y" → 仅 X Y;用户答"我不用" → **不允许空 list**,坚持给默认 5 个(pipeline 4 道防线依赖该字段非空)
 - **`cost_budget_usd`**(per-deck cost budget):整数 / 浮点 USD,默认 **10**。
   - **必须问**(收到 audience / duration 后顺带问):"预算上限 USD?默认 10。**说明**:Opus 4.7 单价 input $15 / output $75 per 1M token,一份 standard deck(brief + 5 章 + 5 视觉)大概 $3-8;复杂 deck(20 页 + 多轮 audience)可能到 $15-25。"
@@ -214,6 +215,27 @@ inspirations:
 
 若用户答 (a) → `presentation_mode: speaker`(默认)
 若用户答 (b) → `presentation_mode: handout`,**author 会按 handout 字数限制拓写**(cards body ≤ 150 字而非 18 字 等)
+
+### track 字段(交付形态路由 · 四选一)
+
+deck 走哪条渲染轨?先解释四轨差别 + 给**推荐默认**(基于 brief 推断),用户可改:
+
+```
+这份 deck 你要怎么交付?
+(a) pptx · 普通 .pptx(数据密集 / 内部快稿 · python-pptx 机械)→ 推荐:数据汇报 / 内部评审
+(b) html · 高视觉 .pptx(品牌 pitch / 对外发 .pptx · 自由排版)→ 推荐:对外路演
+(c) lark-slides · 飞书演示文稿(飞书原生协作 + 原生 chart/模板 · 云)→ 推荐:飞书内汇报
+(d) lark-whiteboard · 飞书画板(海报式封面 / 自由画布 · 云)→ 推荐:高视觉 + 飞书协作
+```
+
+- (a) → `track: pptx`(走 iloveppt-builder)
+- (b) → `track: html`(走 iloveppt-designer · 需本地 Node/Playwright)
+- (c) → `track: lark-slides`(走 iloveppt-designer · 需飞书 auth)
+- (d) → `track: lark-whiteboard`(走 iloveppt-designer · 需飞书 auth)
+
+**可行性 gate**(选完即查,不让用户选完才发现跑不动):
+- track=html → `node --version` + `npx playwright --version` 可调?否 → 警告 + 建议 pptx 或 lark-slides
+- track=lark-slides/lark-whiteboard → `lark-cli auth status`(`--domain slides` / 已登录)?未 auth → 警告 + 提示 `lark-cli auth login --domain slides`,建议先 auth 或退 pptx
 
 ### theme 字段(纯 yaml catalog · RAG 已退役)
 
@@ -272,6 +294,7 @@ created: <YYYY-MM-DD>
 - theme: <值>  # P3-9:支持 3 种 schema(详见下方"theme schema 示例")
 - output: <值>
 - presentation_mode: <值>
+- track: pptx | html | lark-slides | lark-whiteboard  # 默认 pptx · 详见 § "track 字段(交付形态路由)"
 - cost_budget_usd: <值>  # P3-17 · USD,默认 10;主线程跨 50/80/100% 阈值时 warn,详见 docs/cost-budget.md
 
 # theme schema 示例(P3-9 · 三选一)
@@ -455,6 +478,7 @@ author_dispatch_preview:        # 主线程直接透传给 author Stage C
       theme: tech_blue
       output: <working_dir>/builder/deck_v1.pptx
       presentation_mode: speaker
+      track: pptx                        # pptx|html|lark-slides|lark-whiteboard · critic 后按此路由 builder|designer
       cost_budget_usd: 10                # P3-17 · USD budget · 主线程 50/80/100% warn
     asset_inventory:
       - {type: csv, path: _assets/raw/q4.csv, desc: "Q4 营收", summary: "..."}
