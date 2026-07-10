@@ -1,4 +1,4 @@
-"""测试 library/_rag/scripts/redact.py · 4 类敏感模式 + 边界 case。"""
+"""测试 scripts/redact.py · 4 类敏感模式 + 边界 case。"""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-RAG_SCRIPTS = Path(__file__).resolve().parent.parent.parent / "library" / "_rag" / "scripts"
-sys.path.insert(0, str(RAG_SCRIPTS))
+SCRIPTS = Path(__file__).resolve().parent.parent.parent / "scripts"
+sys.path.insert(0, str(SCRIPTS))
 
 from redact import redact, redact_dict  # noqa: E402
 

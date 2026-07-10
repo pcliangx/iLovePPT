@@ -27,7 +27,7 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent  # <repo>/.claude/hooks → <repo>
 RUBRIC = REPO / ".claude/agents/critic-rubric.yaml"
 
-# 注:iloveppt-template-extractor(旁路)return schema 不同,本 gate 不校验 → 故意不在此集合
+# 主流水线 5 agent(tier1/extractor/self-check 已退役;yaml-fixer 是工程错误恢复 helper,return schema 自由,不校验)
 ILOVEPPT_AGENTS = {
     "iloveppt-critic", "iloveppt-audience", "iloveppt-builder",
     "iloveppt-author", "iloveppt-brainstorm",

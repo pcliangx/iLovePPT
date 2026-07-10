@@ -204,7 +204,7 @@ flowchart TB
 **性能优化**:
 - **embedding batch API**:text=8 / image=4 batch · 7 模板 ingest 时间 ~5min → ~215s(parallel)
 - **WAL mode**:并发读写不锁,busy_timeout 10s
-- **query cache**:iconify / Unsplash query 沉淀到 `library/_rag/external_query_cache.jsonl`,fuzzy match 复用
+- **query cache**:iconify / Unsplash query 沉淀到 `scripts/.cache/external_query_cache.jsonl`,fuzzy match 复用
 
 **5 agent 调用矩阵**:
 
@@ -379,7 +379,7 @@ status: dispatched_critic | dispatched_audience | ...
 
 # === P2-4 hot-reload for rework ===
 # 章节级 SHA-256 hash · 用于 critic/builder/audience 跨轮跳过未变章节
-# 由 library/_rag/scripts/compute_chapter_hashes.py 写入
+# 由 scripts/compute_chapter_hashes.py 写入
 chapter_hashes:
   "1": "sha256:abc123..."               # 章节 1 的 content.md 段(`## 1.` 到下一 `## ` 之前)
   "2": "sha256:def456..."
@@ -441,7 +441,7 @@ chapter_audience_carryovers:            # 上轮 audience 各 chapter 的 per_pa
 - **`warned_at_pct[]` + `warnings[]`** — 50/80/100% 节点 warn 一次,避免 spam
 - `last_updated` — 每次 `update` / `show` / `reset` 时刷
 
-**维护工具**:`library/_rag/scripts/track_cost.py`(update / show / reset / status 子命令)。schema 由该脚本自动 ensure_cost_block 兜底,旧 state 自动 upgrade。
+**维护工具**:`scripts/track_cost.py`(update / show / reset / status 子命令)。schema 由该脚本自动 ensure_cost_block 兜底,旧 state 自动 upgrade。
 
 **lifecycle 关键节点**:
 
@@ -671,9 +671,9 @@ loop:
 | `library/_rag/bench.py` | 7 golden query SSOT(bench_queries.yaml) + baseline snapshot,RAG 改动前后跑对比 | 手动跑 + sprint 末跑 | `library/_rag/bench_results/<label>.json` |
 | `library/_rag/feedback.jsonl` | audience 评分后 append `(chosen_pattern_id, audience_score, page, deck)`(opt-in)| audience Step 3.6 append | gitignored;**全仓库共享**,不在 deck 工作目录 |
 | `scripts/dashboard.py` | 跨 deck 聚合:token / rework / audience / layout failure rate | 手动跑 | stdout report |
-| `library/_rag/scripts/track_cost.py` | per-deck cost log + budget warn | agent return 后 hook 调 | state.json `cost` block |
+| `scripts/track_cost.py` | per-deck cost log + budget warn | agent return 后 hook 调 | state.json `cost` block |
 | `library/_rag/scripts/feedback_stats.py` | feedback.jsonl 聚合(哪些 pattern 低分 + count) | dashboard 调 | stdout |
-| `library/_rag/scripts/redact.py` | query / brief 脱敏 helper | query log + brief 写盘前调 | inline |
+| `scripts/redact.py` | query / brief 脱敏 helper | query log + brief 写盘前调 | inline |
 | `library/_rag/scripts/rotate_api_key.py` | API key rotation 工具 | 手动跑 | `.env` rewrite |
 | `library/_rag/scripts/ablation_hybrid_weights.py` | hybrid 权重 ablation(用于定 0.8/0.2 default) | sprint 末跑 | bench_results |
 
@@ -1007,7 +1007,7 @@ flowchart TB
 - fallback:search.sh 调用失败 / brief.theme == tech_blue / image RAG 不可用 → `visual_consistency_check.enabled: false`,跳过不阻塞
 
 **Step 4.5 query_cache**:
-- iconify / Unsplash query 沉淀到 `library/_rag/external_query_cache.jsonl`
+- iconify / Unsplash query 沉淀到 `scripts/.cache/external_query_cache.jsonl`
 - 每次 Step 4 调用前 fuzzy match(rapidfuzz)历史 query → 贴合 → 复用 cache_hits +1;不贴合 → 走 API + write back
 - fallback:`query_cache.py` 不可调 / rapidfuzz 缺失 → log warn + `query_cache.disabled: true`,不阻塞
 
@@ -1192,7 +1192,7 @@ flowchart TB
 
 **做的事**:
 1. 复制用户提供的 .pptx → `library/pptx-templates/_source/<name>.pptx`(记 sha256 → meta.provenance.source_pptx_sha256)
-2. 跑 `library/_rag/.venv/bin/python library/_rag/render_pages.py <name> --dpi 120` → 渲染每页 PNG 到 `items/<name>/pages/<NN-slug>/preview.png`(`__` 开头页跳过)
+2. 跑 `python3 library/_rag/render_pages.py <name> --dpi 120` → 渲染每页 PNG 到 `items/<name>/pages/<NN-slug>/preview.png`(`__` 开头页跳过)
 3. **Step 2.6 watermark + 第三方品牌 LOGO detect**(`library/_rag/scripts/detect_watermark.py`):扫源 .pptx 媒体 + 渲染 PNG · 命中已知品牌词 / 半透明大图层 → 标 `needs_manual_review: true` + 强警告 user_review_drafts 阶段提示
 4. Step 2.5 declared(unzip sldId 数)vs rendered(ls preview.png 数)如实记 advisory
 5. (可选)抽 L1 媒体 + L2 visual_tokens
@@ -1255,7 +1255,7 @@ flowchart TB
 | **模型** | **haiku-4-5**(路由 · Opus 单价 19x Haiku 浪费) |
 | **Tools** | Bash / Read / Glob(**无 Edit / Write** · 不修任何文件) |
 | **state file** | **无**(纯函数式,跑脚本 + 解析 stdout) |
-| **干什么** | 跑指定校验脚本(`library/pptx-templates/scripts/extractor_self_check.py` / `library/_rag/scripts/red_line_check.py`) + 解析 stdout / stderr / exit code → 归一化 yaml 报告 |
+| **干什么** | 跑指定校验脚本(`library/pptx-templates/scripts/extractor_self_check.py` / `scripts/red_line_check.py`) + 解析 stdout / stderr / exit code → 归一化 yaml 报告 |
 | **不干什么** | 不修 .draft(那是 yaml-fixer 的活)/ 不评 .pptx 视觉(audience 的活)/ 不做内容判断 / 不调 LLM 重写 |
 | **典型触发** | extractor 写完 8 套 draft → 主线程批量跑 self_check → 聚合 fail 项 → 主线程决定派 yaml-fixer 还是回 extractor rework |
 
@@ -1694,9 +1694,9 @@ artifacts: [{path, kind}]
 
 | 问题 | 答案 |
 |---|---|
-| **我怎么测 RAG?** | `library/_rag/.venv/bin/python library/_rag/bench.py --label <name>` · 7 golden query baseline 对比 · 结果落 `library/_rag/bench_results/<name>.json` |
-| **我怎么看 deck cost?** | `library/_rag/.venv/bin/python library/_rag/scripts/track_cost.py status --deck <wd>` · 输出 tokens_by_agent + cost_usd + budget 进度 |
-| **我怎么 rotate API key?** | `library/_rag/.venv/bin/python library/_rag/scripts/rotate_api_key.py --new-key <KEY>` · 自动改 `.env` + 验证 |
+| **我怎么测 RAG?** | `python3 library/_rag/bench.py --label <name>` · 7 golden query baseline 对比 · 结果落 `library/_rag/bench_results/<name>.json` |
+| **我怎么看 deck cost?** | `python3 scripts/track_cost.py status --deck <wd>` · 输出 tokens_by_agent + cost_usd + budget 进度 |
+| **我怎么 rotate API key?** | `python3 scripts/rotate_api_key.py --new-key <KEY>` · 自动改 `.env` + 验证 |
 | **我怎么找哪些 layout 最常 fail?** | `python scripts/dashboard.py layout-stats --all-rounds` · 跨 deck 跨轮聚合 audience triage 统计 |
 | **模板更新了 placeholder_map 怎么办?** | extractor self_check #11 报 `SHAPE_ID_RESOLVE_FAILED` / #14 报 `SOURCE_PPTX_SHA_DRIFT` · 修 placeholder_map shape_id 字段或重 ingest source.pptx |
 | **怎么加新 theme?** | 写 `themes/<name>.yaml`(参考 `themes/tech_blue.yaml` SSOT + `themes/_schema.yaml` 验证) · **不用** 写 Python · 详 [`docs/writing-custom-themes.md`](${CLAUDE_PROJECT_DIR}/docs/writing-custom-themes.md) |
@@ -1705,7 +1705,7 @@ artifacts: [{path, kind}]
 | **怎么对比 deck v1/v2?** | `python scripts/deck_diff.py <v1.pptx> <v2.pptx>` · 4 类语义 diff(layout / content / pattern / theme) |
 | **怎么起新 deck 用 skeleton?** | `python scripts/new_deck.py --skeleton <id>` · 6 个内置:annual_strategy_review / customer_pitch / product_launch / project_postmortem / quarterly_finance_report / team_okr_kickoff |
 | **feedback loop 怎么开?** | search.sh 加 `--feedback` flag(默认关 · 详 §4.11 决策 11 · 等 feedback.jsonl 积累 >= 50 条再开) |
-| **怎么扫敏感数据?** | pre-commit hook 自动跑;手动:`library/_rag/scripts/redact.py --scan <file>` |
+| **怎么扫敏感数据?** | pre-commit hook 自动跑;手动:`scripts/redact.py --scan <file>` |
 | **多模板组合 deck 怎么写 brief.theme?** | 4 schema 任选(详 §3.1 brainstorm 多模板组合) · list(按章循环)/ dict_default(default + overrides)/ dict_mapping(全 mapping)|
 | **deck self-check fail 主线程怎么修?** | 派 `Task(iloveppt-self-check)` 跑 14 项 + 解析 → 派 `Task(iloveppt-yaml-fixer)` 修字面 → 重跑 self-check 验证(详 §3.7)|
 

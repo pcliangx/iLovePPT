@@ -721,7 +721,7 @@ def make_summary(prs: _Pres, conclusions: list[str],
 
 
 # ============================================================================
-# Tier 3 · Visual Patterns(library/visual-patterns/ 命中实现)
+# Tier 3 · 培训风独有 layout 变体(_band / _4sub / _flag)
 # ============================================================================
 
 def make_timeline_band_3(prs: _Pres, title: str,

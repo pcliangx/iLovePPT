@@ -112,65 +112,6 @@ def test_extract_extended_tokens_returns_dict(tmp_path):
     assert isinstance(tokens, dict)
 
 
-def test_extract_template_cli_l1_l2(tmp_path):
-    """extract_template.py CLI 跑通(L1 媒体提取 + L2 token,跳过 probe 加速)"""
-    import subprocess
-    from pptx import Presentation as _P
-    from pathlib import Path as _Pa
-    # 1. 写一个 .pptx 模板到 templates/
-    tmpl_dir = tmp_path / "templates"
-    tmpl_dir.mkdir()
-    pptx = tmpl_dir / "minimal_template.pptx"
-    _P().save(str(pptx))
-    # 2. 跑 CLI
-    script = _Pa(__file__).resolve().parent.parent.parent / ".claude" / "skills" / "pptx-deck" / "extract_template.py"
-    result = subprocess.run(
-        ["python3", str(script), str(pptx),
-         "--no-probe", "--working-dir", str(tmp_path)],
-        capture_output=True, text=True)
-    assert result.returncode == 0, f"CLI failed: {result.stderr}"
-    # 3. yaml 应被写
-    yaml_path = tmpl_dir / "minimal_template.yaml"
-    assert yaml_path.exists()
-    # 4. yaml 应包含 extracted 段
-    import yaml as _y
-    data = _y.safe_load(yaml_path.read_text(encoding="utf-8"))
-    assert "extracted" in data
-    assert "source_pptx" in data["extracted"]
-    assert "tokens" in data["extracted"]
-
-
-def test_extract_template_preserves_user_yaml_fields(tmp_path):
-    """已有 yaml 的用户字段(desc/notes/owner)应保留,不被 extract 覆盖"""
-    import subprocess
-    from pptx import Presentation as _P
-    from pathlib import Path as _Pa
-    import yaml as _y
-    tmpl_dir = tmp_path / "templates"
-    tmpl_dir.mkdir()
-    pptx = tmpl_dir / "test_preserve.pptx"
-    _P().save(str(pptx))
-    # 预先写一份 yaml 含用户字段
-    yaml_path = tmpl_dir / "test_preserve.yaml"
-    yaml_path.write_text(
-        "name: 我的模板\ndesc: 不能覆盖\nowner: alice\nnotes: 保留我\n",
-        encoding="utf-8")
-    # 跑 CLI
-    script = _Pa(__file__).resolve().parent.parent.parent / ".claude" / "skills" / "pptx-deck" / "extract_template.py"
-    result = subprocess.run(
-        ["python3", str(script), str(pptx), "--no-probe", "--working-dir", str(tmp_path)],
-        capture_output=True, text=True)
-    assert result.returncode == 0
-    # 验证用户字段被保留
-    data = _y.safe_load(yaml_path.read_text(encoding="utf-8"))
-    assert data["name"] == "我的模板"
-    assert data["desc"] == "不能覆盖"
-    assert data["owner"] == "alice"
-    assert data["notes"] == "保留我"
-    # 同时 extracted 字段被加上
-    assert "extracted" in data
-
-
 def test_build_deck_produces_pptx(tmp_path):
     p = _write_plan(tmp_path, {
         "theme": "tech_blue", "output": "./deck.pptx",

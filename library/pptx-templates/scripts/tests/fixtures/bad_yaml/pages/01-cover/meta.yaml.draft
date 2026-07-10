@@ -1,4 +1,0 @@
-status: draft
-layout_type: cover
-content_intent:
-  - "QUOTED" text rest    # YAML 解析失败的经典模式

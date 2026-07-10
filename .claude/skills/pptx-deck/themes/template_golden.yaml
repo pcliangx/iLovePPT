@@ -1,9 +1,8 @@
 name: template_golden
 description: "黄金商务模板 · 38 page native · 3 独有 layout(process_flow/pyramid/radial)· 其他 14 layout 共享 tech_blue SSOT"
 
-# template_golden 是 ingested .pptx 模板 · color/font 在 build.py 运行时
-# 从 _source/template_golden.pptx 提取覆盖(_extract_theme_from_pptx)。
-# 这里的 colors 是 fallback(token 提取失败时用),非权威 — 跟 tech_blue 一致。
+# template_golden · 纯 yaml theme(色板跟 tech_blue 一致 · 3 独有 layout:process_flow/pyramid/radial)。
+# colors 是权威(load_theme 直接读 yaml,无 .pptx 运行时提取);layouts 14 个共享 tech_blue 命名 + 3 个独有。
 colors:
   brand_primary: "#0A52BF"
   brand_dark:    "#0B2A4A"
@@ -50,8 +49,6 @@ layouts:
   pic_text: make_pic_text
 
 implementation:
-  tier1: true
   tier2: true
   tier3_fallback: tech_blue
   module_path: "template_golden"      # themes/template_golden.py
-  source_pptx: "template_golden"      # library/pptx-templates/_source/template_golden.pptx

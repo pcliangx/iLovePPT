@@ -41,6 +41,30 @@ import helpers as H  # noqa: E402
 
 
 # ============================================================================
+# 0. 风格配方(借鉴 mavis pptx design-system 的 Sharp/Soft/Rounded/Pill 参数化)
+# ============================================================================
+# 单位适配本仓库:radius_* 是 rounded-rect adjustments[0] 比例(0-0.5 · 见 visual-qa
+# "卡片圆角"项),gap_in / margin_in 是 inches。yaml `style.recipe` 选档,单值可覆盖。
+
+STYLE_RECIPES: dict[str, dict[str, float]] = {
+    # 数据密集 / 财报 · 直角紧凑
+    "sharp":   {"radius_small": 0.0,  "radius_medium": 0.02, "radius_large": 0.03,
+                "gap_in": 0.15, "margin_in": 0.55},
+    # 默认 · 企业通用(radius_medium=0.05 即原 visual-qa 写死的上限)
+    "soft":    {"radius_small": 0.03, "radius_medium": 0.05, "radius_large": 0.08,
+                "gap_in": 0.25, "margin_in": 0.55},
+    # 产品 / 营销 · 大圆角松弛
+    "rounded": {"radius_small": 0.08, "radius_medium": 0.12, "radius_large": 0.20,
+                "gap_in": 0.35, "margin_in": 0.60},
+    # 发布会 / 品牌 · 胶囊大留白
+    "pill":    {"radius_small": 0.20, "radius_medium": 0.30, "radius_large": 0.50,
+                "gap_in": 0.45, "margin_in": 0.70},
+}
+
+_STYLE_KEYS = ("radius_small", "radius_medium", "radius_large", "gap_in", "margin_in")
+
+
+# ============================================================================
 # 1. ThemeConfig dataclass
 # ============================================================================
 
@@ -57,6 +81,10 @@ class ThemeConfig:
                                           None 表示该 theme 不实现
         implementation: dict · tier1/tier2/tier3_fallback/module_path/source_pptx
         assets: dict[str, str] · 模板独有资产(如 team_illustration 路径)· 可选
+        mode: "light"(default) | "dark" · 暗色模板语义声明(dark 时 brand_tint 作深色
+              卡片底 · 文字用浅色;消费方:extractor 记录 / visual-qa 对照 / layout 读 THEME_MODE)
+        style: dict · 风格配方(recipe + radius_*/gap_in/margin_in · 见 STYLE_RECIPES)
+               已按 recipe 默认值补全,直接读数值即可
         _yaml_path: 加载的 yaml 文件路径(debug 用)
     """
     name: str
@@ -66,6 +94,8 @@ class ThemeConfig:
     layouts: dict[str, str | None] = field(default_factory=dict)
     implementation: dict[str, Any] = field(default_factory=dict)
     assets: dict[str, str] = field(default_factory=dict)
+    mode: str = "light"
+    style: dict[str, Any] = field(default_factory=lambda: {"recipe": "soft", **STYLE_RECIPES["soft"]})
     _yaml_path: str | None = None
 
     @property
@@ -170,6 +200,30 @@ def load_theme(name: str, themes_dir: str | Path | None = None) -> ThemeConfig:
         "body_size_pt": int(fonts.get("body_size_pt", 18)),
     }
 
+    # mode(可选 · 默认 light)
+    mode = str(data.get("mode") or "light").lower()
+    if mode not in ("light", "dark"):
+        raise ValueError(f"{yaml_path}: mode 只能是 light | dark,got {mode!r}")
+
+    # style 配方(可选 · 默认 soft · 单值覆盖)
+    style_raw = data.get("style") or {}
+    if not isinstance(style_raw, dict):
+        raise ValueError(f"{yaml_path}: style 必须是 dict(recipe + 可选单值覆盖)")
+    recipe = str(style_raw.get("recipe") or "soft").lower()
+    if recipe not in STYLE_RECIPES:
+        raise ValueError(
+            f"{yaml_path}: style.recipe 只能是 {' | '.join(STYLE_RECIPES)},got {recipe!r}"
+        )
+    style: dict[str, Any] = {"recipe": recipe, **STYLE_RECIPES[recipe]}
+    for key in _STYLE_KEYS:
+        if style_raw.get(key) is not None:
+            try:
+                style[key] = float(style_raw[key])
+            except (TypeError, ValueError) as e:
+                raise ValueError(
+                    f"{yaml_path}: style.{key}={style_raw[key]!r} 不是数值"
+                ) from e
+
     return ThemeConfig(
         name=data["name"],
         description=data.get("description", ""),
@@ -178,6 +232,8 @@ def load_theme(name: str, themes_dir: str | Path | None = None) -> ThemeConfig:
         layouts=dict(data.get("layouts") or {}),
         implementation=dict(data.get("implementation") or {}),
         assets=dict(data.get("assets") or {}),
+        mode=mode,
+        style=style,
         _yaml_path=str(yaml_path),
     )
 
@@ -226,6 +282,8 @@ def apply_theme(module: ModuleType, theme_config: ThemeConfig) -> None:
     - fonts.num             → module.FONT_NUM
     - fonts.title_size_pt   → module.TITLE_SIZE_PT
     - fonts.body_size_pt    → module.BODY_SIZE_PT
+    - mode                  → module.THEME_MODE("light" | "dark")
+    - style.*               → module.STYLE_RECIPE / STYLE_RADIUS_* / STYLE_GAP_IN / STYLE_MARGIN_IN
 
     幂等:多次 apply 同一个 ThemeConfig 不变。
     """
@@ -257,6 +315,12 @@ def apply_theme(module: ModuleType, theme_config: ThemeConfig) -> None:
     # 字号阶梯
     setattr(module, "TITLE_SIZE_PT", theme_config.fonts["title_size_pt"])
     setattr(module, "BODY_SIZE_PT", theme_config.fonts["body_size_pt"])
+
+    # 模式 + 风格配方(layout 渐进读取 · 未读取的 layout 行为不变)
+    setattr(module, "THEME_MODE", theme_config.mode)
+    setattr(module, "STYLE_RECIPE", theme_config.style["recipe"])
+    for key in _STYLE_KEYS:
+        setattr(module, f"STYLE_{key.upper()}", theme_config.style[key])
 
 
 def load_and_apply(name: str,

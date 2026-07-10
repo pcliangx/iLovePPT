@@ -60,7 +60,7 @@ color: green
 - 识别素材需求 → prompt 用户提供文件路径或粘贴
 - 读用户给的文件(.csv / .png / .pdf / .pptx)→ 记录到 asset_inventory
 - 把粘贴的表格 / 文本写入 `_assets/raw/`
-- **保存 inspiration 图**:用户 paste image → cp 到 `<working_dir>/brainstorm/inspirations/<sha256-short>.<ext>` → state.inspirations append → image RAG 反查模板
+- **保存 inspiration 图**:用户 paste image → cp 到 `<working_dir>/brainstorm/inspirations/<sha256-short>.<ext>` → state.inspirations append(RAG 反查已退役,仅保存作视觉参考)
 - 维护 `brainstorm/state.json` 跨派发记录进度(含 inspirations[])
 
 **不做**:
@@ -103,9 +103,6 @@ inspirations:
     ts: 2026-05-27T11:30:00Z
     user_query: "黑底极光感"                            # 可选 · 视觉关键词
     persisted: true                                    # cp 成功;false → fallback 临时路径
-    rag_top1:                                          # 反查后回填
-      parent_id: tpl:template_golden__03-cover-aurora
-      image_score: 0.84
 ```
 
 #### skeleton 检测
@@ -161,7 +158,7 @@ inspirations:
    **不变量**:
    - skeleton 是 **hint**,brief.md 仍是 SSOT。skeleton.yaml 字段以 `suggested_*` 前缀全是建议,brief.md 字段无此前缀
    - skeleton.yaml 的 `outline_template` 不直接进 brief.md(那是 author Stage C 用的);仅 `outline_chapter_count` 入 state 用作 hint
-   - **若 skeleton 建议的 theme 在 `library/pptx-templates/items/` 不存在**(如用户改了 skeleton 或 template 被删):告知用户 "skeleton 建议的 `{theme}` 模板没找到 · 是要新加这个模板,还是降级 tech_blue?",**不**自动 fallback
+   - **若 skeleton 建议的 theme 在 `themes/` catalog 不存在**(Glob `themes/<theme>.yaml` 没命中):告知用户 "skeleton 建议的 `{theme}` theme 没找到 · 是要从 catalog 选一个(tech_blue / template_golden / template_training),还是降级 tech_blue?",**不**自动 fallback
    - skeleton 检测在 **每次派发都跑**(state.skeleton 已存在则直接复用,不重 Read yaml),保证用户在第 N 轮还能查 "我当初选的什么 skeleton"
 
 ### Step 1 · 解析用户最新输入
@@ -193,9 +190,10 @@ inspirations:
   - 收 audience 时**必须问** primary + secondary:`"主要受众 + 次要受众?(可多选;list 第 1 个是评分基准,其他做参考视角)"`
 - `duration_min`: 整数(常见 10/15/20/30/45)
 - `top_recommendation`: 完整推荐句(动宾结构 + 边界)
-- `theme`: `tech_blue`(内置)/ 短名(查 `${CLAUDE_PROJECT_DIR}/library/pptx-templates/_source/<name>.pptx`)/ .pptx 绝对路径
+- `theme`: `tech_blue`(内置)/ catalog 短名(`themes/<name>.yaml`,如 template_golden / template_training)
 - `output`: .pptx 输出路径(默认 `<working_dir>/builder/deck_v1.pptx`)
 - **`presentation_mode`**:`speaker`(默认,BCG 演讲风,文字提纲化)/ `handout`(阅读手册风,文字 3-4×,讲者不在场也能读懂)
+- **`track`**:`pptx`(默认 · 走 iloveppt-builder)/ `html` / `lark-slides` / `lark-whiteboard`(后三者走 iloveppt-designer)。详见 § "track 字段(交付形态路由)"。**可行性 gate 必跑**(见该节)
 - **`constraints.red_line_words`**:禁词清单。**必须问**:"有红线词吗?(留空 = 用默认 5 个:闭环 / 全链路 / 赋能 / 抓手 / 范式)"。用户答"留空 / 用默认 / 都不要" → 写默认 5 个;用户答"加 X Y" → 默认 5 个 + X + Y;用户答"只要 X Y" → 仅 X Y;用户答"我不用" → **不允许空 list**,坚持给默认 5 个(pipeline 4 道防线依赖该字段非空)
 - **`cost_budget_usd`**(per-deck cost budget):整数 / 浮点 USD,默认 **10**。
   - **必须问**(收到 audience / duration 后顺带问):"预算上限 USD?默认 10。**说明**:Opus 4.7 单价 input $15 / output $75 per 1M token,一份 standard deck(brief + 5 章 + 5 视觉)大概 $3-8;复杂 deck(20 页 + 多轮 audience)可能到 $15-25。"
@@ -218,202 +216,47 @@ inspirations:
 若用户答 (a) → `presentation_mode: speaker`(默认)
 若用户答 (b) → `presentation_mode: handout`,**author 会按 handout 字数限制拓写**(cards body ≤ 150 字而非 18 字 等)
 
-### theme 字段:两种模式
+### track 字段(交付形态路由 · 四选一)
+
+deck 走哪条渲染轨?先解释四轨差别 + 给**推荐默认**(基于 brief 推断),用户可改:
+
+```
+这份 deck 你要怎么交付?
+(a) pptx · 普通 .pptx(数据密集 / 内部快稿 · python-pptx 机械)→ 推荐:数据汇报 / 内部评审
+(b) html · 高视觉 .pptx(品牌 pitch / 对外发 .pptx · 自由排版)→ 推荐:对外路演
+(c) lark-slides · 飞书演示文稿(飞书原生协作 + 原生 chart/模板 · 云)→ 推荐:飞书内汇报
+(d) lark-whiteboard · 飞书画板(海报式封面 / 自由画布 · 云)→ 推荐:高视觉 + 飞书协作
+```
+
+- (a) → `track: pptx`(走 iloveppt-builder)
+- (b) → `track: html`(走 iloveppt-designer · 需本地 Node/Playwright)
+- (c) → `track: lark-slides`(走 iloveppt-designer · 需飞书 auth)
+- (d) → `track: lark-whiteboard`(走 iloveppt-designer · 需飞书 auth)
+
+**可行性 gate**(选完即查,不让用户选完才发现跑不动):
+- track=html → `node --version` + `npx playwright --version` 可调?否 → 警告 + 建议 pptx 或 lark-slides
+- track=lark-slides/lark-whiteboard → `lark-cli auth status`(`--domain slides` / 已登录)?未 auth → 警告 + 提示 `lark-cli auth login --domain slides`,建议先 auth 或退 pptx
+
+### theme 字段(纯 yaml catalog · RAG 已退役)
 
 **第一问**(必须问):
 
 ```
-对模板有要求吗?
-(a) 无要求,用默认 tech_blue(13 标准 layout,BCG 风)
-(b) 有要求,用我的 .pptx 模板(系统会深度提取媒体+token+视觉分析)
-(c) 多模板组合(高级 · 财务+战略类双风格联动 · 见下方"多模板组合 deck")
+对 theme 有偏好吗?
+(a) 无 → 用默认 tech_blue(BCG 风深蓝)
+(b) 有 → 从 catalog 选(目前:tech_blue / template_golden / template_training)
 ```
 
-**若答 (a)** → theme = `tech_blue`,继续收其他字段。
+**选 (a)** → theme = `tech_blue`,继续收其他字段。
 
-**若答 (c) → 进入"多模板组合 deck"分支**(详见 § "多模板组合 deck(可选 · 高级)")。
+**选 (b)** → 从静态 catalog 选(**无 RAG**,纯本地读):
+- `Glob ${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/themes/*.yaml` 列可用 theme
+- Read 每个候选 yaml 的 `description`(色板 / 风格)展示给用户
+- 用户选定 → brief.theme = `<name>`(yaml name 字段)
 
-**若答 (b)** → 进入模板模式:
-
-1. 问"模板 .pptx 路径?" / "或者从已有模板库选?"
-2. 若用户给短名 / 想从库里选:
-   - **优先**用 RAG 按用户主题相关性排序(若 brief 已有 `top_recommendation` 或主题描述):
-     ```bash
-     library/search.sh --kb pptx-templates --type template \
-         --query "<用户主题或 top_recommendation>" \
-         --top-k 5 --format text
-     ```
-     按 score 展示候选,**每个模板必须 surface tier_compatibility**(Read 该模板 meta.yaml.implementation 取):
-     ```
-     按你的主题相关性排,可用模板:
-     1. template_golden       (~85% 匹配) · enterprise-modern · 推荐 ★
-        视觉:Shanghai 天际线 + 深蓝+金色 + 真梯形 pyramid + 循环 arrow 装饰
-        渲染路径:tier1 模板 slide 复用(ready,30/32 layout 有 placeholder_map)
-        ⚠ 无 tier2 Python theme:author 不能选模板没的 layout(如 5-spoke radial → 模板只 3-spoke)
-     2. tech_blue              (内置)· 默认 BCG 风
-        渲染路径:tier2 Python(13 标准 layout 全可用,但失去模板视觉签名)
-     ```
-
-   **强制 surface 规则**:Read 每个候选模板的 `library/pptx-templates/items/<name>/meta.yaml`,取 `implementation.tier1_template_slide_reuse`(coverage / gaps) + `implementation.tier2_python_theme`,**明确告诉用户**:
-   - "tier1 ready · N/M layout 覆盖" → 推荐
-   - "tier1 partial · 缺 X/Y layout" → 提示哪些 layout 会 fallback 或不能用
-   - "tier2_python_theme: null" → **明示 "选此模板 = 用模板原 slide,layout 受限于模板有什么页;tier2 无 fallback"**
-   - 用户在 brief 阶段就知道选 theme 意味着什么,避免后续 author 选了不能渲染的 layout
-
-   - **后备**(DB 空 / 搜索失败时):`Glob` `library/pptx-templates/items/*/meta.yaml` 列短名,Read 取 desc / recommended_for / visual_signature + **必带 tier_compatibility** 展示
-
-   - **若用户给的是 inspiration 图(PNG/JPG 路径,不是 .pptx)**:用 image RAG 反查最相似的模板/页:
-     ```bash
-     library/search.sh --kb pptx-templates --type page \
-         --query-image "<saved-inspiration-path>" \
-         --mode image \
-         --top-k 5 --format json
-     ```
-     parse 返回的 `parent_id`(模板名)聚合 → 推荐 top-3 模板。继续走 (b) 模式正常流程。
-
-   - ** · 保存 inspiration 图**(必须先 save 再反查):
-
-     用户在 chat 里 paste image,claude-code 自动落 `/tmp/...`(或类似临时路径);**不能**直接用临时路径(下次 session 没了 / 没法重用)。**先 cp 到 `<working_dir>/brainstorm/inspirations/` 持久化,再做 image RAG 反查**。
-
-     ```bash
-     # 1. 拿到 claude-code 传给你的临时图路径(在 user_response 或主线程上下文)
-     INSPIRATION_TMP="/tmp/...claude-paste...png"   # 例子
-
-     # 2. 算 sha256 前缀做文件名(避免重复 paste 同图占多份)
-     SHA256_SHORT=$(shasum -a 256 "$INSPIRATION_TMP" | awk '{print substr($1,1,12)}')
-
-     # 3. 推断扩展名(.png / .jpg / .jpeg / .webp)
-     EXT="${INSPIRATION_TMP##*.}"
-
-     # 4. cp 到 working_dir(mkdir -p 兜底)
-     mkdir -p <working_dir>/brainstorm/inspirations
-     SAVED="<working_dir>/brainstorm/inspirations/${SHA256_SHORT}.${EXT}"
-     cp "$INSPIRATION_TMP" "$SAVED"
-     ```
-
-     **写 state.inspirations**(每次 paste 都 append,sha256 同 → 复用同一项,只更新 ts):
-     ```yaml
-     # state.json 字段
-     inspirations:
-       - path: brainstorm/inspirations/<sha256-short>.png  # 相对 working_dir(便于跨机器复用 state)
-         sha256_short: <12-char hex>
-         ts: 2026-05-27T11:30:00Z
-         user_query: "黑底极光感"                          # 可选 · 用户解释这张图的视觉关键词,后续可拼到 hybrid query
-         rag_top1:                                         # 反查后填,便于复用决策痕迹
-           parent_id: tpl:template_golden__03-cover-aurora
-           image_score: 0.84
-     ```
-
-     **反查时优先用 `SAVED` 持久化路径**(不是 INSPIRATION_TMP),`--query-image "$SAVED"`;state.inspirations 里的 path 后续可复用做 "用户改主意问'第二张 inspiration 反查啥模板?'" 时重新 search 不必重 paste。
-
-     **降级**:若 `cp` 失败(临时路径已被清 / 文件名含怪字符)→ 透传 INSPIRATION_TMP 跑反查 + state.inspirations 标 `path: <临时路径>, persisted: false`,但**强烈建议**用户重新 paste(本 session 关闭后下次没法复用)。
-
-   - **若用户描述偏视觉风格**("黑底极光感" / "深蓝金色商务" / "橙黄上升箭头" 等无明确语义关键词):用 hybrid 模式提升 separation:
-     ```bash
-     library/search.sh --kb pptx-templates --type template \
-         --query "<视觉描述>" --mode hybrid --top-k 5
-     ```
-
-3. 若用户给 .pptx 路径(新模板,未入库):
-   - 验证文件存在
-   - 检查 `library/pptx-templates/items/<name>/meta.yaml` 是否已存在
-   - 若不存在 → **返回 next_action: dispatch_template_extractor**,主线程派发 extractor 走完整 ingest 入库,完成后回到 brainstorm 继续
-
-```yaml
-# 返回示例:遇到未提取过的模板
-next_action: dispatch_template_extractor
-dispatch:
-  agent: iloveppt-template-extractor
-  args:
-    working_dir: <working_dir>
-    template_path: /abs/path/to/company_a.pptx
-message_to_user: "首次用这个模板,先让 extractor 深度学一下(~1min),然后我们继续。"
-```
-
-4. 若用户给的 .pptx 已有 enriched yaml → 直接用,记 brief.theme = 短名 / 路径
-
-若 `${CLAUDE_PROJECT_DIR}/library/pptx-templates/items/` 空 + 用户没自带模板 → 用户只能选 (a) tech_blue。
-
-### 多模板组合 deck(可选 · 高级)
-
-**什么时候用**:同一份 deck 想跨模板组合不同章节,例如:
-- 财务汇报:cover / closing 用 `enterprise_skyline`(稳重深蓝商务),5-8 数据章用 `finance_arrow`(财务专用 chart 风格)
-- 战略提案:cover 用 `creative_aurora`(创意吸引) + 中段论证用 `business_geometric`(SWOT/几何) + closing 用 `enterprise_skyline`(收口稳重)
-- 单模板没法满足跨气质需求(如"想要财务的专业数据 + 战略的故事感")
-
-**用户怎么选**:在 theme 第一问的 (c) 答"多模板组合"后,**追问用户希望走哪种 schema**:
-
-```
-多模板组合 3 种 schema(从简到繁):
-
-(c1) list 顺序映射 · 简单
-     按章节顺序逐个写模板:
-     theme: [enterprise_skyline, enterprise_skyline, finance_arrow, finance_arrow, enterprise_skyline]
-     → 含义:第 1-2 章 enterprise_skyline,第 3-4 章 finance_arrow,第 5 章 enterprise_skyline
-     适合:章节数稳定 + 用户清楚每章模板
-
-(c2) dict 显式 range · 推荐
-     用 default + overrides 指定:
-     theme:
-       default: enterprise_skyline
-       overrides:
-         "1": enterprise_skyline      # cover
-         "5-8": finance_arrow         # 5-8 数据章
-         "9": enterprise_skyline      # closing
-     → 含义:除 5-8 用 finance_arrow,其他全 default 模板
-     适合:大多数场景 + 章节数未定 + 局部 override
-```
-
-**brainstorm 引导步骤**(分 2 轮收集,不强求一次到位):
-
-1. **第一轮 · 收候选模板 list**:
-   - 问用户"打算用哪 N 个模板?"(2-3 个为宜,4 + 视觉就会乱)
-   - 对每个候选模板都跑 RAG check + tier_compatibility surface(同单模板模式):
-     ```bash
-     for tpl in $TEMPLATE_LIST; do
-       library/search.sh --kb pptx-templates --type template --query "<用户主题>" --top-k 3
-       # 必须 surface tier1_template_slide_reuse.ready + tier2_python_theme
-     done
-     ```
-   - **强制 tier_compatibility 校验**:`Read library/pptx-templates/items/<theme>/meta.yaml` 取 `implementation.tier1_template_slide_reuse.ready` 跟 `implementation.tier2_python_theme`,所有候选模板都要 surface:
-     - "✓ tier1 ready · N/M layout 覆盖" → 推荐
-     - "⚠ tier1 partial / tier2 null" → 警告该模板可能某些 layout 渲染失败,跨模板补救空间小
-
-2. **第二轮 · 收 schema 选择 + chapter mapping**:
-   - 用户选 (c1) → "请按章节顺序给出 N 个模板(N = outline 预估章节数,先按 brief 的页数除以平均 chapter 推 N≈3-7)"
-   - 用户选 (c2) → "请给出 default 模板 + overrides(章节号:模板)"
-
-3. **anti-prompt · brainstorm 绝不替用户填章节映射**:
-   - 用户答"用 enterprise_skyline 跟 finance_arrow 组合" → **不能** 默认 [enterprise_skyline, finance_arrow]
-   - 必须追问"哪一章用 enterprise_skyline,哪一章用 finance_arrow?"
-   - 用户答模糊("数据章用 finance · 其他用 enterprise") → 主动给 dict overrides 范例让用户挑
-
-**brief.md 落盘:dict schema 示范**(写到 brief.md 的"必填字段"段):
-
-```yaml
-# (c2) dict 显式 range schema
-theme:
-  default: enterprise_skyline
-  overrides:
-    "1": enterprise_skyline       # cover · 跟 default 一致也写明,方便后续 audit
-    "5-8": finance_arrow          # 5-8 章数据
-    "9": enterprise_skyline       # closing
-```
-
-**与单模板 schema 完全兼容(backward compat)**:
-- `theme: enterprise_skyline`(str)→ 全 deck 用 enterprise_skyline,**老 brief 不需要改**
-- `theme: [...]` / `theme: {default, overrides}` → 多模板,builder 解析时按 schema 分发
-
-**素材摄入触发**(对话中识别):
-- 用户提到"数据 / 报表 / 增长 / 对比" → prompt 数据
-- 用户提到"我们的架构 / 现有图 / 流程图" → prompt 现有图 or 让 author 现画
-- 用户提到"按公司模板" → prompt 模板 .pptx 路径
-- 用户提到"参考 X 报告" → prompt 参考文档
-
-每个素材到位后:
-- `Read` 文件验证存在 + 可读
-- 把文件 `mv` / `cp` 到 `<working_dir>/_assets/raw/`(或 refs/)
-- 添加到 `asset_inventory` 项:`{type, path, desc, summary}`
+> **退役说明**:RAG 模板排序 / tier1 deep-copy / .pptx 模板 ingest(extractor)/ 多模板组合 / inspiration image RAG 反查 —— 全部随 RAG+tier1+extractor 切除。theme 现在是纯 yaml token(`themes/<name>.yaml`),从本地 catalog 静态选。inspiration 图仍可 `cp` 到 `brainstorm/inspirations/` 保存作参考,但不再做 RAG 反查。
+>
+> 新 theme 走 PR 加 yaml(参考 `themes/_schema.yaml` + `docs/writing-custom-themes.md`),不走 ingest。
 
 ### Step 3 · 返回
 
@@ -451,6 +294,7 @@ created: <YYYY-MM-DD>
 - theme: <值>  # P3-9:支持 3 种 schema(详见下方"theme schema 示例")
 - output: <值>
 - presentation_mode: <值>
+- track: pptx | html | lark-slides | lark-whiteboard  # 默认 pptx · 详见 § "track 字段(交付形态路由)"
 - cost_budget_usd: <值>  # P3-17 · USD,默认 10;主线程跨 50/80/100% 阈值时 warn,详见 docs/cost-budget.md
 
 # theme schema 示例(P3-9 · 三选一)
@@ -515,28 +359,9 @@ context_for_user:
 
 下一次派发(用户答 OK 后)走这里。
 
-**Step 3.5 · RAG 预选 pattern category hints**(dispatch_author 之前必跑):
+**Step 3.5 · pattern category hints(RAG 已退役 → 跳过)**:历史用 `search.sh` 预选 pattern category;RAG 切除后**不再跑**,dispatch_author yaml 的 `pattern_hints_for_author: []`(author 直接从 `layout_variants.yaml` 受控词典选 layout)。直接进 Step 3.6 self-audit。
 
-1. 先 Read brief.md 一次(用户可能直接改了文件)
-2. 用 top_recommendation 关键词 + SCQA situation/complication 摘要构造 query,调一次 RAG:
-   ```bash
-   QUERY="<top_recommendation 动+宾 + SCQA 关键词,如 '5 阶段 落地 评审办法 流程'>"
-   Bash: bash ${CLAUDE_PROJECT_DIR}/library/search.sh \
-         --query "$QUERY" \
-         --mode hybrid \
-         --top-k 5 \
-         --format json
-   ```
-3. parse JSON 结果,取每个 pattern 的 `category` 字段(去重),选出 3-5 个 category
-4. 同时在 brief.md frontmatter 加(Edit brief.md):
-   ```yaml
-   pattern_hints_for_author:
-     candidates: [process, cycle, comparison]
-     source: brainstorm_search_top_5_categories
-   ```
-5. dispatch_author yaml 加 `pattern_hints_for_author: [category1, ...]`(同上面 candidates 内容)
-
-**降级**:若 search.sh 调用失败(library/visual-patterns 不存在 / sqlite 没初始化 / venv 缺失)→ `pattern_hints_for_author: []` + brief.md frontmatter 写 `source: brainstorm_search_failed`,**不阻塞**,继续 Step 3.6 self-audit。
+**Step 3.4b · Research 触发(Phase 3 bypass · 素材不足时)**:若 brief 收集中发现**素材严重不足**(用户没给数据/源,topic 又需证据支撑,如"行业分析 / 竞品对标 / 市场数据")→ return `next_action: dispatch_research`(**而非 dispatch_author**),主线程派 `Task(research)`:网搜 + PDF 解析 + 抓取 → `research/research_manuscript.md`,完后续派 author(透传 manuscript 进 `research_manuscript` 字段)。用户显式说"先帮我查/研究一下"也走此路。素材够 / 用户没要 → 跳过,直走 Step 3.5。
 
 **Step 3.6 · brief self-audit(原 critic Stage B 已并入本 agent)**
 
@@ -567,39 +392,17 @@ dispatch_author 之前 **必须** 跑 5 项 self-audit。**自己审 brief.md**,
   - 是结论句(≤ 50 字 + 含数字或对比) → ✓
   - 是 topic label(如"讨论 AI 4A 评审" / "市场分析") → fail B.2.top(reject)
 
-#### Section B.3 · theme tier 能力匹配
+#### Section B.3 · theme 存在性校验
 
-防"选了空 theme,builder 渲染时撞 fail-loud"。:theme 可能是 str / list / dict 三种 schema,本 section 对**所有用到的模板**都校验一遍。
+防"选了不存在的 theme,builder 渲染时撞 fail-loud"。`theme` 可能是 str / list / dict,对所有用到的 theme 校验一遍。
 
-##### B.3.0 · 解析 theme schema
+1. 从 brief.md 取 `theme`,规范化成 `themes_to_check`(str→[str];list→unique;dict{default,overrides}→unique([default]+values))
+2. 对每个 `T`:`Glob themes/<T>.yaml` 存在?
+   - 不存在 → **fail B.3.unknown_theme**(theme=<T>;列可用清单:tech_blue / template_golden / template_training)
+   - 存在 → ✓(纯 yaml theme,token 权威,builder 能渲染)
+3. (advisory)若 `T` 跟 brief.audience primary 气质矛盾 → med severity 提示,不阻塞
 
-1. 从 brief.md 取 `theme` 值
-2. 推断 schema:
-   - **str schema**(legacy)→ `themes_to_check = [<theme str>]`
-   - **list schema** → `themes_to_check = unique(theme_list)`(去重)
-   - **dict schema**(`{default, overrides}`)→ `themes_to_check = unique([default] + list(overrides.values()))`
-3. 若 `themes_to_check == ["tech_blue"]`(只有内置)→ 全 pass,跳过本 section
-4. 否则对 `themes_to_check` 里**每个**非 tech_blue 模板都跑 B.3.1 + B.3.2
-
-##### B.3.1 · 单模板 tier 能力(每个模板独立校验)
-
-对 `themes_to_check` 里每个 theme `T`:
-
-1. `Read library/pptx-templates/items/<T>/meta.yaml`(若文件不存在 → fail B.3.missing_meta · 标 theme=<T>)
-2. 取 `implementation.tier1_template_slide_reuse.ready` 和 `implementation.tier2_python_theme`:
-   - 若 `tier2_python_theme: null` **且** `tier1_template_slide_reuse.ready != true` → **fail B.3.empty_theme**(theme=<T> 是"空"模板,builder 会撞 fail-loud)
-   - 若 `tier2_python_theme: null` 但 tier1 ready → ✓(pass + med severity 提示 · theme=<T>)
-3. 取 `meta.yaml.recommended_for`:
-   - 若 brief.audience(list)的 **primary**(list[0]) 跟 theme.recommended_for 矛盾 → med severity(气质张力,不阻塞;标 theme=<T>);secondary 跟 recommended_for 不一致仅 low severity advisory
-
-##### B.3.2 · 多模板风格冲突 advisory(list/dict schema 才跑)
-
-仅 `len(themes_to_check) >= 2` 时跑(单模板跳过):
-
-1. 对 `themes_to_check` 里每对模板 (A, B) 比较 `visual_signature` / `visual_tokens.colors`:
-   - 主色 hex 距离 > 50(感官上明显不同色系)→ low severity advisory("跨模板色调差大,builder 会用 chapter 1 主色统一字体/色板,你可能感觉某些章节字体跟原模板视觉不一致")
-   - `visual_signature` 含矛盾元素(如 A 是"flat 几何" + B 是"摄影写实") → low severity advisory("flat + 写实混搭,跨章节读起来可能割裂")
-2. **不阻塞**(advisory 性质) · 让用户知道跨模板组合的视觉张力风险
+> 历史 tier1_template_slide_reuse / tier2_python_theme / source_pptx / 跨模板 deep-copy 已随 RAG+tier1 退役;theme 现在是纯 yaml,无 tier 区分。
 
 #### Section B.4 · red_line_words 清单完整性
 
@@ -677,14 +480,13 @@ author_dispatch_preview:        # 主线程直接透传给 author Stage C
       theme: tech_blue
       output: <working_dir>/builder/deck_v1.pptx
       presentation_mode: speaker
+      track: pptx                        # pptx|html|lark-slides|lark-whiteboard · critic 后按此路由 builder|designer
       cost_budget_usd: 10                # P3-17 · USD budget · 主线程 50/80/100% warn
     asset_inventory:
       - {type: csv, path: _assets/raw/q4.csv, desc: "Q4 营收", summary: "..."}
       - {type: image, path: _assets/refs/arch.png, desc: "现有架构图"}
-pattern_hints_for_author:       # Step 3.5 RAG 预选填,透传 author Stage C
-  - process
-  - cycle
-  - comparison
+research_manuscript: null          # Phase 3 · Research bypass 产物 path(素材不足时主线程先派 research,完后续派 author 时透传此处);null = 未走 research
+pattern_hints_for_author: []      # RAG 已退役 → 恒空;author 从 layout_variants.yaml 受控词典自选 layout
 message_to_user: |
   brief 已写完 + self-audit 通过(<working_dir>/brainstorm/deck_v1_brief.md),
   即将派 author Stage C 出 outline(无中间 critic gate,P2-3.1 后直走 author)。
