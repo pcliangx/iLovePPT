@@ -64,13 +64,15 @@ git config --unset core.hooksPath
 
 ---
 
-## 2 · RAG query log 脱敏
+## 2 · log 脱敏工具(`scripts/redact.py`)
 
 ### 行为
 
-`library/search.sh` 每次跑都会 append 一行到 `library/_rag/query_log.jsonl`(给 bench / 分析用)。query 原文常含 brief 内容(可能含客户名 / 邮箱 / 钱数等敏感字段)。
+> 历史注记:原 RAG query log(`library/_rag/query_log.jsonl`)已随 Phase 0 退役;
+> `redact.py` 迁入 `scripts/`,作为通用 log 脱敏工具保留(任何要落盘的 log /
+> 分析文本含 brief 内容时用)。
 
-默认走 `scripts/redact.py` 过滤:
+过滤规则:
 
 | 模式 | 替换值 | 备注 |
 |---|---|---|
@@ -81,19 +83,11 @@ git config --unset core.hooksPath
 
 仅 `query` 和 `expanded_query` 字段过滤;`hits` / `ts` / `mode` 等元数据不变。脱敏后 log 多一字段 `redacted: true` 标记。
 
-### debug 关闭
-
-```bash
-library/search.sh --no-redact --query "原始 query 含敏感数据"
-```
-
-仅当前调用关闭脱敏,适合排查 query 在 redact 链上的副作用(如脱敏后召回不对)。
-
 ### 程序里用
 
 ```python
 import sys
-sys.path.insert(0, 'library/_rag/scripts')
+sys.path.insert(0, 'scripts')
 from redact import redact
 
 redacted = redact("张三 zhangsan@acme.com 13812345678 充值 ¥50000")
@@ -110,7 +104,7 @@ out = redact_dict({"query": "...", "ts": "...", "n": 3}, fields=["query"])
 ### 测试
 
 ```bash
-library/_rag/.venv/bin/python -m pytest tests/library/test_redact.py -v
+python3 -m pytest tests/library/test_redact.py -v
 ```
 
 10 个 case 覆盖各类型 + 组合 + 边界 + dict helper。

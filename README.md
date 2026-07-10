@@ -231,7 +231,6 @@ scripts/dashboard.py
 | [docs/writing-custom-themes.md](docs/writing-custom-themes.md) | 写自定义 theme(yaml token) |
 | [docs/adding-new-layout.md](docs/adding-new-layout.md) | 加 layout plugin(`helpers/<name>.py`) |
 | [docs/security/secrets-protection.md](docs/security/secrets-protection.md) | pre-commit hook / 敏感数据防护 |
-| [docs/security/api-key-rotation.md](docs/security/api-key-rotation.md) | API key 轮换 |
 | [.claude/pipeline-protocol.md](.claude/pipeline-protocol.md) | **Claude Code 主线程 AI** — 派发 / handoff / gate 权威活协议 |
 | [CLAUDE.md](CLAUDE.md) | **Claude Code** — 仓库导航 + 不变量 + 约定 |
 | [library/deck-skeletons/README.md](library/deck-skeletons/README.md) | Deck Skeletons SSOT(6 类型骨架) |
