@@ -51,10 +51,12 @@ for _p in [str(PPTX_SKILL_DIR), str(PPTX_DECK_DIR)]:
         sys.path.insert(0, _p)
 
 import helpers as H
+from themes import _base as _theme_base
 from themes import tech_blue as _tech_blue
 from themes import template_golden as _template_golden
 from themes import template_training as _template_training
 
+# Legacy 直查表(yaml theme 路径已接管内置 theme 加载;保留给尚未迁移的外部调用方)。
 THEMES: dict[str, ModuleType] = {
     "tech_blue": _tech_blue,
     "template_training": _template_training,
@@ -68,11 +70,15 @@ PPTX_BASE_THEMES: dict[str, ModuleType] = {
 }
 
 # 需要页脚 + 页码的 layout(规范:visual-qa.md §页脚 / 页码完整性)。
-# cover / section_divider / closing 不计入页码。
+# cover / section_divider / closing 不计入页码;其余内容页(含 17 enum 的
+# plugin 标准实现)全部计入。
 FOOTERED_LAYOUTS: frozenset[str] = frozenset({
     "toc", "single_focus", "compare", "compare_pk", "matrix_2x2", "cards",
     "bullet_list", "table", "pic_text", "summary",
     "timeline_band_3", "tri_pyramid_4sub_3", "cards_flag_3",
+    # 17 enum 补齐(LayoutRegistry plugin 接入后可渲染的内容页)
+    "quote", "data", "timeline", "pyramid", "venn", "radial",
+    "process_flow", "quadrant", "comparison",
 })
 
 
@@ -429,9 +435,20 @@ def load_theme(theme_id: str, plan_dir: str | None = None) -> ModuleType:
               或 <plan_dir>/templates/<name>.pptx(deck 项目本地)
             - 路径(含 "/" 或以 ".pptx" 结尾)—— 直接当 .pptx 路径
         plan_dir: deck plan 所在目录,影响相对路径解析 + 短名查找优先级
+
+    内置 theme(themes/<name>.yaml 存在)走 yaml SSOT 路径:
+    load_theme(yaml) → apply_theme 把 token(色板/字体/mode/style)推到 module,
+    并把 ThemeConfig 挂到 module._THEME_CONFIG 供 tier2 按 yaml layouts mapping
+    (含 alias,如 quadrant → make_matrix_2x2)分发。
     """
-    if theme_id in THEMES:
-        return THEMES[theme_id]
+    # 1. 内置 yaml theme(themes/<name>.yaml)——SSOT 主路径
+    try:
+        cfg, mod = _theme_base.load_and_apply(theme_id)
+    except FileNotFoundError:
+        pass  # 无 yaml → 走 .pptx 路径 / 短名查找
+    else:
+        mod._THEME_CONFIG = cfg
+        return mod
     # 含 / 或以 .pptx 结尾 → 当路径处理
     if str(theme_id).endswith(".pptx") or "/" in str(theme_id):
         path = Path(theme_id).expanduser()
@@ -445,11 +462,12 @@ def load_theme(theme_id: str, plan_dir: str | None = None) -> ModuleType:
     if found is not None:
         return _extract_theme_from_pptx(str(found))
     # 未找到 → 列可用的帮用户排错
+    builtin = ", ".join(_theme_base.list_themes()) or "tech_blue"
     available = _list_available_templates()
     available_str = ", ".join(available) if available else "(空,把 .pptx 放进 library/pptx-templates/_source/)"
     raise ValueError(
         f"未知 theme: {theme_id!r}. "
-        f"内置: tech_blue. "
+        f"内置: {builtin}. "
         f"library/pptx-templates/_source/ 可用: {available_str}. "
         f"或直接给 .pptx 绝对/相对路径。"
     )

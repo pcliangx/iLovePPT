@@ -30,15 +30,20 @@ def handle_missing_layout(theme: ModuleType, slide_def: dict[str, Any],
         page_no: 1-indexed
         original_err: tier2.render_tier2_slide raise 的 LayoutNotFoundError
     """
+    import helpers as _H
+
     layout = slide_def["layout"]
-    available = sorted(
+    theme_layouts = sorted(
         name[len("make_"):] for name in dir(theme)
         if name.startswith("make_") and callable(getattr(theme, name))
     )
+    plugin_layouts = sorted(_H.LayoutRegistry._layouts.keys())
     theme_stem = theme.__name__.replace("extracted_", "")
     raise ValueError(
-        f"第 {page_no} 页 layout={layout!r}: theme {theme.__name__!r} 无 make_{layout}。\n"
-        f"2 个 fix 选项:\n"
-        f"  ① 让 author 改 layout 到 theme 支持清单:{available}\n"
-        f"  ② 主线程实现 themes/{theme_stem}.py 的 make_{layout} 函数"
+        f"第 {page_no} 页 layout={layout!r}: theme yaml mapping / "
+        f"theme module make_{layout} / helpers plugin 三层都没有该 layout。\n"
+        f"3 个 fix 选项:\n"
+        f"  ① 让 author 改 layout — theme 支持:{theme_layouts};plugin 标准实现:{plugin_layouts}\n"
+        f"  ② 主线程实现 themes/{theme_stem}.py 的 make_{layout} 函数\n"
+        f"  ③ 新建 helpers/{layout}.py + @register_layout({layout!r}) plugin 标准实现"
     ) from original_err

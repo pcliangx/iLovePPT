@@ -89,8 +89,15 @@ def load_theme(theme_id: str, plan_dir: str | None = None) -> ModuleType:
     走,让 monkeypatch.setattr(build, "_repo_templates_dir", ...) 也作用于
     `build.load_theme("nonexistent_theme")` 这种调用。
     """
-    if theme_id in THEMES:
-        return THEMES[theme_id]
+    # 内置 yaml theme(themes/<name>.yaml)——SSOT 主路径(同 _base.load_theme)
+    from themes import _base as _theme_base
+    try:
+        cfg, mod = _theme_base.load_and_apply(theme_id)
+    except FileNotFoundError:
+        pass
+    else:
+        mod._THEME_CONFIG = cfg
+        return mod
     if str(theme_id).endswith(".pptx") or "/" in str(theme_id):
         path = Path(theme_id).expanduser()
         if not path.is_absolute() and plan_dir:
@@ -101,11 +108,12 @@ def load_theme(theme_id: str, plan_dir: str | None = None) -> ModuleType:
     found = _find_template(theme_id, plan_dir)
     if found is not None:
         return _extract_theme_from_pptx(str(found))
+    builtin = ", ".join(_theme_base.list_themes()) or "tech_blue"
     available = _list_available_templates()
     available_str = ", ".join(available) if available else "(空,把 .pptx 放进 library/pptx-templates/_source/)"
     raise ValueError(
         f"未知 theme: {theme_id!r}. "
-        f"内置: tech_blue. "
+        f"内置: {builtin}. "
         f"library/pptx-templates/_source/ 可用: {available_str}. "
         f"或直接给 .pptx 绝对/相对路径。"
     )

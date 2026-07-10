@@ -121,7 +121,7 @@ report_path: <working_dir>/critic/deck_v{N}_critic_cd.r{R}.md  # 主线程指定
 
 ### Step 0.7 · 量化评分原则(关键 · 必读)
 
-**SSOT**:20 项(Section A 7 + Section B 9 + Section J 5)的权威定义在 [`${CLAUDE_PROJECT_DIR}/.claude/agents/critic-rubric.yaml`](${CLAUDE_PROJECT_DIR}/.claude/agents/critic-rubric.yaml) — 每项的 `evidence_requirement` + `severity_examples` 是评分校准基准,**评分前必读对应项**。
+**SSOT**:20 项(Section A 7 + Section B 9 + Section J 4)的权威定义在 [`${CLAUDE_PROJECT_DIR}/.claude/agents/critic-rubric.yaml`](${CLAUDE_PROJECT_DIR}/.claude/agents/critic-rubric.yaml) — 每项的 `evidence_requirement` + `severity_examples` 是评分校准基准,**评分前必读对应项**。
 
 **强制 schema · 每项 checklist / 每个判断性 issue 必填 4 字段**:
 
@@ -182,7 +182,7 @@ report_path: <working_dir>/critic/deck_v{N}_critic_cd.r{R}.md  # 主线程指定
 | B5 | 无 brief 外新事实 | grep 反向校验:对 content 所有数字/客户名/source 标 [brief 提及? yes/no + 出处] |
 | B6 | duration × 1.5 ≈ 总页数 | 数 content `## N.` + 算 expected = duration*1.5 + 偏差比 (±20% 为 pass) |
 | B7 | 字数遵守 | 抽 5 页(cover/早/中/晚/summary)每字段标 [layout/字段/字数/上限/pass-fail] |
-| **B8** | **validate_layout_in_theme** | 列所有 layout + 对每个验 tier2(grep `make_<X>` 存在)· tier1 已退役 |
+| **B8** | **validate_layout_renderable** | 列所有 layout + 对每个跑 `resolve_layout_fn` 三层解析(theme yaml mapping / module make_* / plugin)· 详见下方 B8 详解 |
 | **B9** | **red_line_words 0 hit** | 列 red_line_words 全词 + 每词 `grep -nE` outline / content 命中行号 + 引文 |
 
 #### B9 详解 · red_line_words 0 hit(severity 命中即 >= 2 · 4 道防线之一)
@@ -217,43 +217,55 @@ report_path: <working_dir>/critic/deck_v{N}_critic_cd.r{R}.md  # 主线程指定
 
 **Why hard gate · 4 道防线**:本次 deck 项目就是 critic D r1 兜底 catch 了 2 处违反(p23 "完整闭环" / p40 "全链路省时"),迫使 author rework + critic D r2 复审。B9 让 critic Stage C 提早 catch outline 里的违反(代价低);Stage D 复审 content 全文(覆盖率高);author 自检 + build.py + audience 是另外 3 道防线。
 
-#### B8 详解 · validate_layout_in_theme(命中 critical → severity 3)
+#### B8 详解 · validate_layout_renderable(三层全 miss + critical → severity 3)
 
-防 deck 用了 theme 不能渲染的 layout(典型场景:author 写了 `<!-- layout: pyramid -->` 但 theme 没实现 `make_pyramid` → builder 撞 `make_pyramid` 不存在 fail-loud)。
+防 deck 用了没有渲染路径的 layout。tier2 三层分发(`builder/tier2.py resolve_layout_fn`):
+① theme yaml `layouts:` mapping(含 alias,如 quadrant → make_matrix_2x2)→
+② theme module `make_<layout>`(legacy / .pptx 提取路径)→
+③ `helpers/<layout>.py` LayoutRegistry plugin 标准实现。
+17 enum layout 全部有 plugin 兜底,所以 B8 fail 只发生在 **enum 外的自造 layout 名**
+(如 author 发明 `<!-- layout: fancy_grid -->`)。
 
-**check 流程**(tier1 已退役,只验 tier2):
-1. 从 brief.md / outline.md frontmatter 取 `theme`(如 `tech_blue` / `template_golden` / `template_training`)
+**check 流程**:
+1. 从 brief.md / outline.md frontmatter 取 `theme`
 2. 抽取 content/outline 用到的所有 layout 集合(grep `<!-- layout: X -->`)
-3. 对每个 layout,验 tier2 路径:`themes/<theme>.py` 有 `make_<layout>` 函数
-   `Bash grep "^def make_<layout>" .claude/skills/pptx-deck/themes/<theme>.py`
-4. 评分:
-   - 所有 layout 都有 `make_<layout>` → severity 0
-   - 1 layout 缺 `make_<layout>` + 章节非 critical(可降级到近似 layout)→ severity 2
-   - 1+ layout 缺 `make_<layout>` + 章节 critical(builder 会 fail-loud)→ **severity 3**
+3. 对全集合跑机械解析验证(仓库根执行):
+   ```bash
+   python3 - <<'PYEOF'
+   import sys; sys.path[:0] = ['.claude/skills/pptx-deck', '.claude/skills/pptx']
+   from build import load_theme
+   from builder.tier2 import resolve_layout_fn
+   mod = load_theme("<theme>")
+   for lt in ["cover", "cards", "<其余 layout>"]:
+       fn, is_plugin = resolve_layout_fn(mod, lt)
+       print(lt, "MISSING ✗" if fn is None else ("plugin 兜底" if is_plugin else "theme 命中"))
+   PYEOF
+   ```
+4. 评分:severity_examples 见 rubric SSOT(所有 layout 可解析 → 0;三层全 miss + 非
+   critical 章节 → 2;三层全 miss + critical 章节 → **3**)
 
 **量化 schema example**:
 ```yaml
 - id: B8
-  name: validate_layout_in_theme
+  name: validate_layout_renderable
   passed: false
   evidence: |
     theme = tech_blue
-    layouts used: [cover, toc, pic_text, cards, pyramid, section_divider]
-    layout=pyramid:
-      grep "^def make_pyramid" .claude/skills/pptx-deck/themes/tech_blue.py → 0 hits ✗
-      → tech_blue 无 make_pyramid + page 12 是 critical 章节论据页
-    其他 5 layouts: make_<layout> 全存在 ✓
+    layouts used: [cover, toc, pic_text, cards, pyramid, fancy_grid]
+    resolve_layout_fn 结果:
+      cover/toc/pic_text/cards → theme 命中 ✓;pyramid → plugin 兜底 ✓
+      fancy_grid → MISSING ✗(不在 17 enum,无 plugin;page 12 是 critical 论据页)
   severity: 3
   suggestion: |
-    layout=pyramid 在 tech_blue 无 make_pyramid,2 个选项:
-    ① author 改 page 12 layout: pyramid → matrix_2x2 或 cards(tech_blue 有实现)
-    ② 主线程实现 themes/tech_blue.py 的 make_pyramid 函数
+    layout=fancy_grid 三层无渲染路径,2 个选项:
+    ① author 改 page 12 layout → 17 enum 内(cards / quadrant / comparison)
+    ② 新建 helpers/fancy_grid.py + @register_layout("fancy_grid") plugin
     推荐 ①(代价最低)
 ```
 
-**fail-loud 链路**(B8 + build.py 双保险):B8 在 critic stage=cd 拦(早期);万一漏,build.py 撞 `make_<layout>` 不存在也 fail-loud raise(后期兜底)。
+**fail-loud 链路**(B8 + build.py 双保险):B8 在 critic stage=cd 拦(早期);万一漏,builder tier3 撞三层全 miss 也 fail-loud raise(后期兜底)。
 
-> 历史 tier1/placeholder_map/extractor-ingest 选项已随 RAG+tier1+extractor 退役;theme 现在是纯 yaml + tier2 `make_<layout>`。
+> 历史 tier1/placeholder_map/extractor-ingest 选项已随 RAG+tier1+extractor 退役;渲染路径 = theme yaml mapping + module make_* + LayoutRegistry plugin 三层。
 
 **verification-before-completion 硬要求**:每一项必须收集 evidence(具体引文 + 出处 >= 10 字),不允许"看起来对"/"应该过了"等语气。任何这种语气触发"未完成 evidence collection"判定,整轮重做。
 
