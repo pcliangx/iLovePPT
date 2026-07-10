@@ -315,10 +315,12 @@ def make_compare(prs: _Pres, title: str, items: list[dict[str, Any]]) -> Slide:
             br = bp.add_run(); br.text = "✓"
             H.set_font(br, name=FONT_HEADER, size=18, bold=True, color=H.WHITE)
 
-        # body 文字
+        # body 文字 —— 垂直居中填充 body 区,消除"内容挤框顶 1/3、下方大白框空旷"。
+        # body 区高(3.9in)远大于文字(handout 长段约 6-8 行),居中后视觉重心立在框中部。
         body_box = L.Box(col.x + Inches(0.25), body_y + Inches(0.25),
                           col.w - Inches(0.5), body_h - Inches(0.5))
-        _text(s, body_box, item["body"], size=body_size, color=body_color)
+        _text(s, body_box, item["body"], size=body_size, color=body_color,
+              valign="middle")
     return s
 
 
@@ -533,11 +535,32 @@ def make_cards(prs: _Pres, title: str, cards: list[dict[str, Any]]) -> Slide:
                 _text(s, body_box, card["body"], size=body_size,
                       color=H.GRAY_700)
         else:
-            inner = L.inset(col, Inches(0.3), Inches(0.25))
-            parts = L.stack(inner, [Inches(0.6), body_box_h], gap=Inches(0.15),
-                            align="top")
-            _text(s, parts[0], card["title"], size=20, bold=True, color=PRIMARY_DEEP)
-            _text(s, parts[1], card["body"], size=body_size, color=H.GRAY_700)
+            # 无 icon:title + body 作为一个单元在卡内**垂直居中**,消除"文字挤卡顶、
+            # 下方 2/3 空白"。body 框只占其估算高度(非整 body_box_h),避免预留空区。
+            inner = L.inset(col, Inches(0.3), Inches(0.3))
+            title_h = Inches(0.6)
+            # 估算 body wrap 行数(按卡内宽 inner.w)
+            inner_w_pt = inner.w / 12700
+            body_cpl = max(6, int((inner_w_pt / body_size) * 0.92) - 1)
+            body_lines = max(1, -(-len(str(card["body"])) // body_cpl))  # ceil
+            body_line_h = Emu(int(Pt(body_size) * 1.5))
+            est_body_h = Emu(int(body_line_h * body_lines))
+            # 单元整体高度不超过 inner.h(留 0.1in 底 padding 防溢出)
+            unit_cap = Emu(int(inner.h) - int(Inches(0.1)))
+            gap_h = Inches(0.18)
+            desired = int(title_h) + int(gap_h) + int(est_body_h)
+            if desired > int(unit_cap):
+                # 内容多 → body 框收到剩余可用高,顶对齐封顶(不溢出)
+                parts = L.stack(inner, [title_h,
+                                        Emu(int(unit_cap) - int(title_h) - int(gap_h))],
+                                gap=gap_h, align="top")
+            else:
+                parts = L.stack(inner, [title_h, est_body_h], gap=gap_h,
+                                align="middle")
+            _text(s, parts[0], card["title"], size=20, bold=True, color=PRIMARY_DEEP,
+                  valign="middle")
+            _text(s, parts[1], card["body"], size=body_size, color=H.GRAY_700,
+                  valign="top")
     return s
 
 
@@ -557,15 +580,75 @@ def make_bullet_list(
     bullet_size = 14 if H.is_handout() else 18
     line_factor = 1.6 if H.is_handout() else 1.45
 
-    # 条数少(≤ 6)→ 拉大字号并按内容区均分,避免上半大量留白
-    if len(items) <= 6:
+    # 估算每条占的换行行数(中文按 size pt ≈ 1 字宽估每行容字数)。
+    def _est_lines(texts: list[str], size_pt: int) -> int:
+        region_w_pt = region.w / 12700  # EMU → pt
+        # 前缀 "▎ " + 行内 padding 损耗,留 ~1.5 字 + 8% 余量
+        chars_per_line = max(8, int((region_w_pt / size_pt) * 0.92) - 2)
+        total = 0
+        for t in texts:
+            n_chars = max(1, len(str(t)))
+            total += max(1, -(-n_chars // chars_per_line))  # ceil
+        return total
+
+    # 条数少(≤ 6)→ 适度拉大字号填白;但**仅当短条目**(handout 长句不能 bump,
+    # 否则换行行数翻倍撑爆内容区,溢出页脚)。用估算行数判断是否短:
+    str_texts = [str(it.get("text", "")) if isinstance(it, dict) else str(it)
+                 for it in items]
+    avg_len = sum(len(t) for t in str_texts) / max(1, len(str_texts))
+    short_items = avg_len <= (16 if H.is_handout() else 12)
+    if len(items) <= 6 and short_items:
         bullet_size = max(bullet_size, 22 if H.is_handout() else 26)
         line_factor = 1.8
 
-    # 若全是 str 走原 H.bullets(更紧凑);否则 mixed/icon mode 单独渲染
+    # 若全是 str:优先"逐条整页分布"填满版心(消除"标题压顶、内容挤中部、下方大片空白");
+    # 仅当内容确实塞满 / 接近溢出时,退回原 H.bullets 紧凑 + 顶对齐封顶(防越页脚)。
     if all(isinstance(it, str) for it in items):
+        # source 引文固定落 y=6.7in(footer 上方);为它预留底部安全带,内容绝不压到 source。
+        # 用 content_region 底(7.0in)上抬 0.4in ≈ 6.6in 作内容硬下界。
+        src_safe = Inches(0.4)
+        safe_h = Emu(max(int(Inches(1.5)), int(region.h - src_safe)))
+        safe_region = L.Box(region.x, region.y, region.w, safe_h)
+
+        # 每条按估算 wrap 行数算"最小需要高度",留 0.18in 行间呼吸。
         line_h = Emu(int(Pt(bullet_size) * line_factor))
-        block = L.stack(region, [Emu(line_h * len(items))], align="middle")[0]
+        per_pad = Inches(0.18)
+
+        def _need_h(text: str) -> int:
+            n_lines = _est_lines([text], bullet_size)
+            return int(line_h * n_lines) + int(per_pad)
+
+        needs = [_need_h(t) for t in str_texts]
+        total_need = sum(needs)
+
+        if total_need < int(safe_h):
+            # 富余空间 → 逐条均分填满 safe_region(每条 row 高 = 均分,文字垂直居中)。
+            n = len(items)
+            row_gap = Inches(0.0)  # 均分已含呼吸,无需额外 gap
+            row_h = Emu(int(safe_h) // n)
+            accent_w = Inches(0.28)
+            for i, text in enumerate(str_texts):
+                ry = safe_region.y + Emu(row_h * i)
+                # 左侧 accent 竖条(与 ▎ 同色),高度取该行文字估算高、垂直居中于 row
+                est_text_h = Emu(min(int(row_h) - int(Inches(0.1)),
+                                     int(line_h * _est_lines([text], bullet_size))
+                                     + int(Inches(0.1))))
+                bar_y = ry + Emu((int(row_h) - int(est_text_h)) // 2)
+                H.rect(s, safe_region.x, bar_y, Emu(int(accent_w) // 4),
+                       est_text_h, PRIMARY)
+                tb_x = safe_region.x + accent_w
+                tb = L.Box(tb_x, ry, safe_region.w - accent_w, row_h)
+                _text(s, tb, text, size=bullet_size, color=H.GRAY_700,
+                      valign="middle")
+            return s
+
+        # 内容塞满 / 溢出风险 → 原紧凑路径 + 顶对齐封顶(沿用上一轮 overflow 修复)。
+        est_lines = _est_lines(items, bullet_size)
+        block_h = Emu(int(line_h * est_lines))
+        if block_h >= region.h:
+            block = L.Box(region.x, region.y, region.w, region.h)
+        else:
+            block = L.stack(region, [block_h], align="middle")[0]
         H.bullets(s, block.x, block.y, block.w, block.h, items=items,
                   size=bullet_size, accent_color=PRIMARY, body_color=H.GRAY_700)
         return s
@@ -617,17 +700,26 @@ def make_pic_text(
     """左图右文。handout mode body 字号降 + box 加高。"""
     s = _blank_slide(prs)
     _add_title(s, title)
-    left, right = L.split(L.content_region(), 0.42)
+    region = L.content_region()
+    left, right = L.split(region, 0.42)
     H.embed_picture(s, image_path, left.x, left.y, box_w=left.w, box_h=left.h)
-    rboxes = L.rows(right, len(points))
+    # 右栏底部为 source 引文(y≈6.7in)预留安全带,防末卡 body 压到 Source 行。
+    src_reserve = Inches(0.45)
+    right = L.Box(right.x, right.y, right.w,
+                  Emu(max(int(Inches(1.5)), int(right.h - src_reserve))))
+    rboxes = L.rows(right, len(points), gap=Inches(0.12))
     body_size = 11 if H.is_handout() else 13
-    body_box_h = Inches(0.9) if H.is_handout() else Inches(0.5)
+    # 点数多(≥5)时单卡变矮,body 框高必须按行高自适应,否则固定 0.9in 撑爆卡片、
+    # 末卡溢出到 source 行。title 0.4in + gap 0.05in,剩余给 body(留 0.1in 底 padding)。
+    title_h = Inches(0.4)
+    gap_h = Inches(0.05)
     for rb, p in zip(rboxes, points):
         H.card(s, rb.x, rb.y, rb.w, rb.h, fill=H.WHITE,
                border=H.GRAY_300, accent=PRIMARY)
         inner = L.inset(rb, Inches(0.25), Inches(0.12))
-        parts = L.stack(inner, [Inches(0.4), body_box_h], gap=Inches(0.05),
-                        align="top")
+        body_box_h = Emu(max(int(Inches(0.3)),
+                             int(inner.h - title_h - gap_h)))
+        parts = L.stack(inner, [title_h, body_box_h], gap=gap_h, align="top")
         _text(s, parts[0], p["title"], size=16, bold=True, color=PRIMARY_DEEP)
         _text(s, parts[1], p["body"], size=body_size, color=H.GRAY_700)
     return s
@@ -688,17 +780,44 @@ def make_closing(
     prs: _Pres,
     subtitle: str = "",
     next_steps: list[dict[str, str]] | None = None,
+    headline: str = "",
+    note: str = "",
 ) -> Slide:
-    """封底页。两种模式:
+    """封底页。三种模式(按优先级):
 
-    - 简单模式(`next_steps=None`):大字"谢谢" + 可选 subtitle 联系方式。
+    - 极简大字模式(传 `headline`):大字居中主句(headline)+ 小字副行(note)。
+      诊断型 / problem_discovery deck 的标准收尾 —— 一句话主张占满版心,
+      下方一行可复现源 / 收束声明,**无硬编码 "Next Steps" 标题、无要点墙**。
+      这是把最后一页用满又不堆砌的方式(主句够大 → 视觉重心立在中央,
+      不留"标题压顶、大片空白"的廉价感)。
+    - 简单模式(`next_steps=None` 且无 `headline`):大字"谢谢" + 可选 subtitle。
     - 结构化模式(`next_steps=[{action, owner?, due?}, ...]`):
-      标题"Next Steps" + 编号 action 列表 + 底部 subtitle。
-      咨询稿标准 closing 应当承接 Pyramid 论证,给出可执行 action,而非
-      只说"谢谢"——这是把最后一页用满的方式。
+      标题"Next Steps" + 编号 action 列表 + 底部 subtitle(行动号召型 deck 用)。
     """
     s = _blank_slide(prs)
     H.rect(s, 0, 0, H.SLIDE_W, H.SLIDE_H, PRIMARY_DEEP)
+
+    if headline:
+        # 极简大字模式:headline 大字居中 + note 小字副行 + 顶部 accent 短线点缀
+        region = L.full_region()
+        # 主句字号按长度自适应:短句(≤14 字)更大,长句收一档防 wrap 越界
+        hl_size = 48 if len(headline) <= 14 else (40 if len(headline) <= 22 else 34)
+        # 主句块 + 副行块整体垂直居中(中央偏上一点点更稳重);两块各自 valign middle
+        head_h = Inches(1.6)
+        note_h = Inches(0.7)
+        blocks = L.stack(region, [head_h, note_h], gap=Inches(0.45),
+                         align="middle")
+        # headline 上方一根青绿 accent 短线(居中)做视觉锚,避免纯文字飘
+        bar_w = Inches(0.9)
+        bar_x = region.x + (region.w - bar_w) // 2
+        bar_y = blocks[0].y - Inches(0.45)
+        H.rect(s, bar_x, bar_y, bar_w, Inches(0.06), ACCENT)
+        _text(s, blocks[0], headline, size=hl_size, bold=True, color=H.WHITE,
+              align=PP_ALIGN.CENTER, valign="middle")
+        if note:
+            _text(s, blocks[1], note, size=16, color=PRIMARY_TINT,
+                  font=FONT_BODY, align=PP_ALIGN.CENTER, valign="middle")
+        return s
 
     if next_steps:
         # 结构化 closing:Next Steps 列表

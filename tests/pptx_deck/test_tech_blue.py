@@ -2,6 +2,7 @@
 """tech_blue 主题 13 layout light test：验证每个 layout 创建后 prs.slides 增加 1。"""
 from pptx import Presentation
 from pptx.util import Inches
+import helpers as H
 from themes import tech_blue as T
 
 
@@ -105,7 +106,32 @@ def test_make_bullet_list():
     prs = _new()
     T.make_bullet_list(prs, "标题", items=["要点1", "要点2", "要点3", "要点4", "要点5"])
     assert len(prs.slides) == 1
-    assert len(prs.slides[0].shapes) == 2  # title textbox + bullets textbox
+    # 短条目走"逐条整页分布"路径:title + 每条(accent rect + 文字框)。
+    # 长条目塞满时退回紧凑 H.bullets(title + 单 bullets 框)。两种路径都 >= 2 shapes。
+    shapes = prs.slides[0].shapes
+    assert len(shapes) >= 2  # 至少 title + 内容
+
+
+def test_make_bullet_list_long_items_no_overflow():
+    """长句条目(handout)塞满时退回紧凑路径,内容不溢出页脚(y < FOOTER_TOP)。"""
+    prs = _new()
+    H.PRESENTATION_MODE = "handout"
+    try:
+        long_items = [
+            "城市等级与学历卡方 chi2=704、p=2.8e-140,极度显著,下沉买家学历确实更低,城市与学历强耦合、是真实结构。",
+            "城市等级与年龄卡方 chi2=44、p=0.044,仅弱显著,远不及城市与学历的耦合强度,四象限的年龄轴解释力有限。",
+            "两组卡方印证:城市、学历这类硬人口学维度是可信真信号,与前页均匀偏置的推断标签形成鲜明对比。",
+            "边界声明:聚类 silhouette 仅 0.08–0.10,买家同质、无泾渭分明的自然客群,打法差异宜基于象限、不宜过度精细化。",
+        ]
+        T.make_bullet_list(prs, "卡方证实", items=long_items)
+        # 所有文字框底边不得越过 FOOTER_TOP(7.0in)— source 引文 y=6.7in 之上更佳
+        for sh in prs.slides[0].shapes:
+            if sh.has_text_frame and sh.top is not None and sh.height is not None:
+                assert sh.top + sh.height <= H.FOOTER_TOP + 1, (
+                    f"shape bottom {(sh.top+sh.height)/914400:.2f}in 越过 footer"
+                )
+    finally:
+        H.PRESENTATION_MODE = "speaker"
 
 def test_make_table():
     prs = _new()
@@ -200,3 +226,36 @@ def test_make_closing_without_next_steps_uses_simple_mode():
                        if sh.has_text_frame and sh.text_frame.text)
     assert "谢谢" in texts
     assert "Next Steps" not in texts
+
+
+def test_make_closing_headline_mode():
+    """headline 模式:大字主句居中 + note 小字副行,无硬编码 'Next Steps' / '谢谢'。"""
+    prs = _new()
+    T.make_closing(prs, headline="数据揭示问题,对策由一线研判",
+                   note="可复现源 — analysis/ 脚本 + processed CSV")
+    slide = prs.slides[0]
+    texts = " | ".join(sh.text_frame.text for sh in slide.shapes
+                       if sh.has_text_frame and sh.text_frame.text)
+    assert "数据揭示问题,对策由一线研判" in texts  # headline 主句
+    assert "可复现源" in texts                       # note 副行
+    assert "Next Steps" not in texts                 # 不再硬编码 Next Steps
+    assert "谢谢" not in texts                        # headline 优先于简单模式
+    # headline 文字框应垂直居中(vertical_anchor=MIDDLE=3),避免下沉/空白
+    head_boxes = [sh for sh in slide.shapes
+                  if sh.has_text_frame and "数据揭示问题" in sh.text_frame.text]
+    assert head_boxes
+    from pptx.enum.text import MSO_ANCHOR
+    assert head_boxes[0].text_frame.vertical_anchor == MSO_ANCHOR.MIDDLE
+
+
+def test_make_closing_headline_overrides_next_steps():
+    """headline 优先级最高:即使误传 next_steps,也走极简大字、不渲 Next Steps 列表。"""
+    prs = _new()
+    T.make_closing(prs, headline="一句话主张",
+                   next_steps=[{"action": "不应出现"}])
+    slide = prs.slides[0]
+    texts = " | ".join(sh.text_frame.text for sh in slide.shapes
+                       if sh.has_text_frame and sh.text_frame.text)
+    assert "一句话主张" in texts
+    assert "Next Steps" not in texts
+    assert "不应出现" not in texts

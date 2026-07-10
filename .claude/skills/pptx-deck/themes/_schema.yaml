@@ -20,6 +20,19 @@
 #     - num(str): 数字 / 西文标号字体 · 默认 "Helvetica Neue"
 #     - title_size_pt(int): 标题 default 字号 · 默认 28
 #     - body_size_pt(int): 正文 default 字号 · 默认 18
+# - mode(str, optional): "light"(default) | "dark" · 暗色模板语义声明
+#     dark 时角色翻转:brand_tint 作深色卡片底 · 文字用浅色(借鉴 mavis 5-key 暗色语义,
+#     "别假设 bg 是浅色"——暗色企业模板 ingest 时由 extractor 判定:master 背景亮度 + 渲染页目检)。
+#     消费方:extractor 记录 / visual-qa 对照判断 / layout 渐进读 module.THEME_MODE
+# - style(dict, optional): 视觉风格配方(借鉴 mavis Sharp/Soft/Rounded/Pill 参数化)
+#     - recipe(str): sharp | soft(default) | rounded | pill
+#         sharp   数据密集/财报(直角紧凑) · rounded 产品/营销(大圆角)
+#         soft    企业通用(= 原 visual-qa 写死的 0.05 圆角上限) · pill 发布会/品牌(胶囊)
+#     - radius_small/radius_medium/radius_large(float, optional): 圆角单值覆盖
+#         (rounded-rect adjustments[0] 比例 0-0.5)
+#     - gap_in / margin_in(float, optional): 元素间距 / 页边距(inches)单值覆盖
+#     未声明的值按 recipe 默认表补全(权威数值表:_base.py STYLE_RECIPES);
+#     apply_theme 推到 module.STYLE_RECIPE / STYLE_RADIUS_* / STYLE_GAP_IN / STYLE_MARGIN_IN
 # - layouts(dict, required): layout_type → Python make_<func> 函数名映射
 #     - 17 enum 全列 · `null` 表示该 theme 不实现这 layout(build 时 fail-loud)
 #     - layout function 必须在对应 _legacy/<name>.py 里定义 · _base.py 按 yaml
@@ -64,6 +77,14 @@ fonts:
   num: "Helvetica Neue"
   title_size_pt: 28
   body_size_pt: 18
+
+mode: light                     # 可选 · light(默认)| dark(暗色模板声明)
+
+style:                          # 可选 · 整块缺省 = soft 配方
+  recipe: soft                  # sharp | soft | rounded | pill
+  # radius_medium: 0.05         # 按需单值覆盖(覆盖 recipe 默认表对应值)
+  # gap_in: 0.25
+  # margin_in: 0.55
 
 layouts:
   # 17 enum · null 表示该 theme 不实现(deck_plan 用到这 layout 会 fail-loud)

@@ -135,9 +135,16 @@ iloveppt-builder Step 3 在逐页 QA 全部通过后(进 Step 4 之前)对全 de
 
 ### 字体一致性
 
-- 抽 5 页随机 run，grep XML 中 `<a:ea>` `typeface` 属性
-- 期望全是 `Microsoft YaHei`（或 `Microsoft YaHei Bold`）
-- 若出现 fallback 字体（Arial、PingFang、SimSun）→ 警告并记录，不阻止交付
+- **全量机械审计**（替代旧"抽 5 页 grep"抽样流程）：
+
+  ```bash
+  python3 ${CLAUDE_PROJECT_DIR}/scripts/audit_pptx.py <deck.pptx> --sections fonts
+  ```
+
+- 期望 ea 全是 `Microsoft YaHei`（或 theme yaml `fonts.ea` 声明值）
+- ERROR（run 只写 `<a:latin>` 未写 `<a:ea>` 的经典 bug）→ 警告并记录进 `review_needed[category: font_ea]`，不阻止交付；这是 helpers 层代码 bug 信号，改 deck_plan 治不了
+- WARNING（继承链 / theme ea 为空）→ 记录数量即可
+- builder Step 2.9 在 build 后已跑过一次；本节复核时若 deck_plan 改过重 build，需重跑
 
 ### 页脚 / 页码完整性
 
@@ -165,11 +172,11 @@ iloveppt-builder Step 3 在逐页 QA 全部通过后(进 Step 4 之前)对全 de
 - [ ] **无截断**：所有文本框内容完整显示，无省略号或被裁剪
 - [ ] **字体统一**：全 deck 使用 Microsoft YaHei / Source Han Sans CN（正文） + Bold（标题）
 - [ ] **配色一致**：色值仅来自 `BRAND_*` / `GRAY_*` 套色板，无随机色
-- [ ] **字号层级清晰**：封面 48pt + / 页标题 32pt + / 正文 18-20pt / 表格 14pt / 页脚 9pt
+- [ ] **字号层级清晰**：封面 48pt + / 页标题 32pt + / 正文 18-20pt / 表格 14pt / 页脚 9pt；**相邻层级字号差 ≥ 20%**（32pt 标题 ÷ 18pt 正文 = 1.8x ✓；20pt 副标题 vs 18pt 正文 ✗ = 层级失败，二选一调开）
 - [ ] **留白达标**：左右边距 ≥ 0.55"、底部 ≥ 0.5"，离页边无元素
 - [ ] **对齐网格**：同类元素左对齐 / 居中对齐一致；优先使用 12-col grid (`grid_columns`),无随机偏移
 - [ ] **表格无意外 banding**：无意外横纹，行高均匀
-- [ ] **卡片圆角小**：`adjustments[0] ≤ 0.05`（约 5% 圆角），不过圆
+- [ ] **卡片圆角随 theme 风格**：`adjustments[0] ≤` theme `style.radius_medium`（未声明 style 时默认 soft 配方 = 0.05），不过圆；theme 声明 rounded / pill 配方时按其上限放宽（数值表见 `themes/_base.py STYLE_RECIPES`）
 - [ ] **装饰大字号 word_wrap=False**：`single_focus.big_number` 不换行
 - [ ] **textbox margin 归零**：所有文本框已调用 `H.fix_textbox_margins()`
 - [ ] **引用图分辨率清晰**：`pic_text.image_path` / matplotlib chart 宽度 ≥ 1600px
@@ -187,6 +194,14 @@ iloveppt-builder Step 3 在逐页 QA 全部通过后(进 Step 4 之前)对全 de
 - [ ] **同 layout 跨页对齐**:连续 N 张 cards 页第一张卡的左缘 x 坐标完全一致(同样适用 compare 第一列、pic_text 图片左缘)。优先用 `grid_columns` 锚定
 - [ ] **配色比例各页相近**:不允许"前半 deck 蓝主导,后半灰主导"——每页主色 / 次色 / 中性占比方差应小
 - [ ] **字号层级各页一致**:`make_*` 同一函数在不同页应渲染同字号(不允许 page 1 标题 32pt、page 5 标题 28pt)
+
+### 审美负面规则(反 AI 痕迹,deck 级 3 项)
+
+借鉴 mavis pptx skill 的负面清单 —— 以下是"AI 生成 deck"的标志性特征,全 deck 禁止:
+
+- [ ] **标题下无 accent 装饰线**:标题下方细横线 / 短色杠是 AI 痕迹 #1;层级感用留白 / 字号 / 背景色块表达,不用线
+- [ ] **正文不居中**:正文段落 / bullet 列表一律左对齐;居中只允许标题、封面元素、大数字 callout
+- [ ] **无纯文字页**:每个内容页至少 1 个非文字元素(图表 / 卡片 / 图标 / 数据 callout);连续 ≥ 2 页纯 bullet 墙 → 记 `review_needed`
 
 ---
 
@@ -209,3 +224,4 @@ vision QA 通过后，`review_needed` 清单附在最终交付旁，告知用户
 - 不要在 deck_review 通过后反复回 single-slide 修 — 标 `review_needed` 后向前推进
 - 不要跳过 Microsoft YaHei 字体检查 — 字体 fallback 是最常见的中文 PPT 问题
 - 不要把渲染失败（soffice crash）当成视觉问题处理 — 先排查 build.py 渲染步骤
+- 不要用"标题下加装饰线"提升设计感 — 那是 AI 痕迹,层级用留白和字号表达
