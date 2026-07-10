@@ -19,6 +19,14 @@ jobs:
         # 全量测试(tests/library 已并入;历史 RAG venv 步骤随 Phase 0 退役删除)
         run: python -m pytest -q
 
+      - name: Brand-word scan (第三方 SaaS 品牌引用 0 · CLAUDE.md 不变量)
+        run: |
+          if git grep -inE 'islide' -- ':!.github/'; then
+            echo "::error::已下架 SaaS 工具品牌名引入(CLAUDE.md 不变量:全 repo 引用 0)"
+            exit 1
+          fi
+          echo "no brand words found"
+
       - name: Secret scan (block sk- keys)
         run: |
           if git grep -nIE 'sk-[a-zA-Z0-9]{20,}' -- ':!docs/superpowers/' ':!.github/'; then

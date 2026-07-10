@@ -14,7 +14,9 @@ color: blue
 3. `iloveppt-critic` —— stage=cd(单次合审 outline + content,本 agent 前置 gate)
 4. **`iloveppt-builder`(本 agent)** —— Stage E(终稿构建 Step 0-3 + 主动加视觉 Step 4)
 5. `iloveppt-audience` —— Stage F(Step 0 spot-check 已并入 + 读者视角评分 9 分硬阈值)
-+ `iloveppt-template-extractor` —— 旁路(用户给 .pptx 模板时)
+
+> 历史旁路 `iloveppt-template-extractor` 已随 RAG/tier1/extractor 退役(Phase 0);
+> 用户给 .pptx 模板时走 `load_theme(<path>.pptx)` 的 token 提取路径(build.py 内置)。
 
 ## 仓库地基
 
@@ -173,9 +175,9 @@ deck_v{N}_plan.json 顶层加 `theme_spec` 字段(完整透传 brief.theme 原 s
 }
 ```
 
-**每个 slide 必须含 `chapter_index` + `effective_theme`** —— 前者从 content.md `## N.` 推断,后者由 `parse_theme().resolve(chapter_index)` 算。这两字段是跨模板 tier1 复用 + tier2 dispatch 的依据。
+**每个 slide 必须含 `chapter_index` + `effective_theme`** —— 前者从 content.md `## N.` 推断,后者由 `parse_theme().resolve_for_page()` 算。这两字段是多模板 deck 的诊断字段(tier2 dispatch 时会被弹出,make_* 不消费)。
 
-详见 § "多模板 tier1 跨模板复用"。
+详见 § "多模板 deck 现状"。
 
 **严约束**:
 - **不引入新论点**:JSON 里每个 title / body / bullet / card 文本必须能在 md 里找到出处(精确匹配 或 显然的压缩缩短)
@@ -208,55 +210,25 @@ python3 <仓库>/.claude/skills/pptx-deck/build.py <deck_v{N}_plan.json>
 
 记录 `.pptx` 路径 + `*_render/` 渲染目录。
 
-#### 多模板 tier1 跨模板复用
+#### 多模板 deck 现状(tier1 deep-copy 已随 Phase 0 退役)
 
-**触发条件**:`theme_spec.mode != "single"`(brief.theme 是 list / dict,跨模板组合 deck)。
+> 历史"多模板 tier1 跨模板复用"(`library/pptx-templates/items/` deep-copy +
+> placeholder_map + shape-removal)已随 RAG/tier1/extractor 整体切除,
+> `builder/tier1.py` 不存在,**不要**去找 placeholder_map / items 目录。
 
-**核心策略**(参考 Agent A 的 `builder/base.py` + `builder/tier1.py` 实现):
+**当前行为**(`builder/base.py build_deck`):
+- `parse_theme(brief.theme)` 照常支持 str / list / dict 四 schema → `ThemeSpec`
+- build 路径**只用 `ThemeSpec.default`**(primary theme)渲染全 deck —— 字体 / 色板
+  天然统一,不存在混搭问题;`overrides` / `extras` 作为诊断信息写进
+  `plan["_theme_spec"]`,tier2 dispatch 时 `chapter_index` / `effective_theme`
+  字段被弹出(make_* 不消费)
+- 真正的 per-page theme 切换(`ThemeSpec.resolve_for_page`)留待后续接入 tier2;
+  在那之前,多模板 brief 的视觉差异**不会**体现在产物里 —— 若用户预期每章不同
+  视觉,应在 return yaml 里如实说明"当前按 primary theme 统一渲染",不要假装做到了
 
-1. **每个 slide 按 `effective_theme` 路由源 pptx**:
-   - 单模板时:从 `library/pptx-templates/items/<theme>/_source/<theme>.pptx` 深 copy 所有 slide
-   - 多模板时:遍历 deck_v{N}_plan.json `slides[]`,每个 slide 按 `effective_theme` 字段单独打开对应 source pptx 拿对应 layout 的 slide
-
-2. **tier1 cross-pptx deep-copy 流程**:
-   ```python
-   # 伪代码
-   theme_spec = parse_theme(brief['theme'])  # 解析 str / list / dict
-   prs_out = Presentation()  # 空白主 deck
-   primary_theme = theme_spec.resolve(1)  # 取 chapter 1 模板作 primary
-   primary_pptx = open_template_pptx(primary_theme)
-   prs_out = copy_master_and_theme(primary_pptx)  # 字体 / 色板取 primary theme
-
-   for slide_idx, slide_plan in enumerate(plan['slides'], start=1):
-       effective_theme = slide_plan['effective_theme']
-       source_pptx = open_template_pptx(effective_theme)
-       source_slide = find_slide_by_layout(source_pptx, slide_plan['layout'])
-       deep_copy_slide(source_slide, into=prs_out, target_index=slide_idx)
-       # placeholder_map 应用 + shape-removal 删空槽位
-       apply_placeholder_map(prs_out.slides[-1], slide_plan, theme=effective_theme)
-   ```
-
-3. **跨模板字体/色板:用 primary theme 统一(简单策略 · 视觉协调留 P4)**:
-   - 不混搭 — 主 deck 的 slide master / theme XML(`theme1.xml` font_scheme / color_scheme)永远从 chapter 1 模板(primary_theme)copy
-   - 各 slide 内的具体 shape 字体 / fill color **强制覆写**为 primary theme 的 `BRAND_PRIMARY` / `FONT_CN` / `FONT_NUM`(用 `helpers.set_font` 写 `<a:latin>` + `<a:ea>` + `<a:cs>` 三元组)
-   - 后果:跨模板 slide 装饰图 / shape 几何样式保留(视觉签名),但文字字体 / 主色统一(避免半 deck 用 SimHei 半 deck 用 PingFang 的崩感)
-
-4. **placeholder_map 跨模板 fallback**:
-   - 每个 source pptx 都有自己 `library/pptx-templates/items/<theme>/placeholder_maps/<layout>.yaml`
-   - 跨模板 deep-copy 时用对应 theme 的 placeholder_map(不是 primary theme 的)
-   - 反例 ✗:用 chapter 1 的 placeholder_map 渲染 chapter 5 的 finance_arrow slide → shape_id 对不上,渲染撞 `fail-loud` 错
-
-5. **shape-removal 删空槽位** —— 同单模板,按 effective_theme 的 placeholder_map 走
-
-**与 Agent A 的代码边界**:
-- 本 agent prompt 描述**规则**(per-chapter route / primary theme 字体优先 / placeholder_map 按 theme 取)
-- Agent A 在 `builder/base.py` + `builder/tier1.py` 实现 `parse_theme()` / `ThemeSpec.resolve()` / `cross_pptx_deep_copy()` 代码
-- 本 agent 调代码时按规则传 chapter_index / effective_theme 字段,**不自己实现 deep-copy 逻辑**
-
-**降级 / fail-loud**:
-- 某 effective_theme 的 source pptx 不存在 → fail-loud `error: missing_template_pptx, theme: <name>`(用户得先 ingest 或改 theme)
-- 某 effective_theme 的 placeholder_map 缺 → fail-loud `error: missing_placeholder_map, theme: <name>, layout: <layout>`
-- 跨模板视觉协调度低(色板差 > 50 hex 距离 等) → log warning,不阻塞(brainstorm B.3.2 已 advisory · 用户自己接受了风险)
+**fail-loud**:
+- `ThemeSpec.default` 加载失败(theme 不存在)→ load_theme raise,原样上报
+- 用户给的 .pptx 模板路径 → 走 `_extract_theme_from_pptx` token 提取(保留路径)
 
 #### Step 2.9 · EA 字体读侧机械审计(build 成功后立即跑)
 
@@ -294,6 +266,21 @@ python3 ${CLAUDE_PROJECT_DIR}/scripts/audit_pptx.py <working_dir>/builder/deck_v
 如果你发现"读者认知"层的问题(例如"page 5 信息密度高读者可能记不住"),**不要评、不要修**,留给 audience。你只评"page 5 第 3 张卡 body 字号 14pt 偏小"这种机械可量化项。
 
 读 `visual-qa.md` 取 checklist(机械项)。
+
+#### Step 3.0 · 机械几何审计(读 PNG 之前先跑)
+
+精度类检查(越界 / 文字重叠 / 跨页标题一致)LLM 读 120dpi JPG 测不准,先机械算:
+
+```bash
+python3 ${CLAUDE_PROJECT_DIR}/scripts/audit_pptx.py <working_dir>/builder/deck_v{N}.pptx --sections geometry --format text
+```
+
+- findings(全 advisory)逐条处置:`off_canvas` / `text_overlap` → 改 deck_plan
+  对应页字段(通常字数超限)重 build;`title_alignment` → 对照"跨页字号一致"
+  checklist 判断 by-design 与否
+- 每条 finding 必须在 visual_qa 记录里给 [已修 / by-design 放行 + 理由],不允许无声跳过
+- 处置规则详见 [visual-qa.md § 机械几何审计](${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/visual-qa.md);
+  Step 3.1 读图人审只管机械查不了的(配色 / 留白观感 / 层级美感 / 渲染破损)
 
 #### Step 3.1 · Evidence collection(verification-before-completion)
 
@@ -656,8 +643,7 @@ errors:
 - **footer_meta 从 content.md frontmatter 读**:不再走入参;若 frontmatter 无 → 不画 footer,不报错
 - **视觉 QA 限机械项**:不评"读者认知接收"(论点清晰度 / 节奏 / 记忆点 / 走神点)—— 那是 audience 的事
 - **3 轮 QA 上限**:仍 fail 进 `review_needed_pages`,不要死循环
-- **跨模板字体不混搭**:多模板 deck 全程**强制用 primary theme(chapter 1 的 theme)的字体 + 主色板**(`set_font` 写 `<a:latin>` + `<a:ea>` + `<a:cs>` 三元组);跨模板 slide 装饰图 / shape 几何样式保留,文字字体 / `BRAND_PRIMARY` 强制覆写。混搭字体 = 视觉 #1 破坏源
-- **placeholder_map 按 effective_theme 取**:不能用 primary theme 的 placeholder_map 渲染其他 theme 的 slide(shape_id 对不上)
+- **多模板 deck 按 primary theme 统一渲染**:build 路径只用 `ThemeSpec.default`,字体 / 色板天然不混搭(tier1 deep-copy / placeholder_map 已退役,详见 §多模板 deck 现状);不要假装做到了 per-page theme 切换
 - **不能再派 subagent**:你是 subagent,不嵌套
 - **不要回到端到端模式**:你不再做 brief 解析 / 大纲设计 / 文案拓写。主线程派裸 brief 风格的入参 → 返回 `error: missing_content_md`
 

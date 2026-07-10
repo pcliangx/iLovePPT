@@ -252,7 +252,7 @@ rounds_used: <int>
    needs_author_rewrite_pages: [23, 40]
    message_to_user: |
      红线词残留(brief 已禁): 闭环 (page 23) / 全链路 (page 40)。
-     这是 4 道防线全漏的兜底,先 author rework 删词,再重派 critic D + audience。
+     这是 4 道防线全漏的兜底,先 author rework 删词,再重派 critic stage=cd + audience。
    rounds_used: <int>
    ```
 5. 0 命中 → 继续 Step 1.0 / Step 1 正常评分流程

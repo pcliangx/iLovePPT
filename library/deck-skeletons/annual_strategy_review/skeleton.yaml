@@ -7,7 +7,7 @@ description: 高管对全员的年度战略回顾(成绩 / 挑战 / 来年方向
 suggested_audience:
   - general_public
   - investor
-suggested_theme: enterprise_skyline
+suggested_theme: tech_blue
 suggested_duration_min: 45
 suggested_top_recommendation: "<去年我们做对了 X · 今年我们押注 Y>(双年度 BLUF)"
 suggested_presentation_mode: speaker
@@ -17,52 +17,43 @@ outline_template:
     title: 年度业绩亮点
     intent: 一年成绩 BLUF · 3-5 个核心数字 · 不堆砌只挑能撑论点的
     suggested_layout: data
-    suggested_pattern: tpl:enterprise_skyline__05-data
 
   - chapter: 2
     title: 战略目标达成回顾
     intent: 年初定的战略目标 vs 实际达成 · 哪些超预期 / 哪些没完成
     suggested_layout: comparison
-    suggested_pattern: tpl:enterprise_skyline__19-comparison
 
   - chapter: 3
     title: 关键里程碑
     intent: 全年时间线 · 标注 4-6 个标志性事件
     suggested_layout: timeline
-    suggested_pattern: tpl:enterprise_skyline__16-timeline
 
   - chapter: 4
     title: 市场与竞争格局
     intent: 行业大势 · 我们在哪个位置 · 主要竞争对手在做什么
     suggested_layout: quadrant
-    suggested_pattern: tpl:enterprise_skyline__14-quadrant
 
   - chapter: 5
     title: 来年战略方向
     intent: 顶端论点拆解为 3 大战略举措 · MECE
     suggested_layout: pyramid
-    suggested_pattern: tpl:enterprise_skyline__18-pyramid
 
   - chapter: 6
     title: 三大战略举措详解
     intent: 每个战略举措 1 页详解 · why now / how / who / 时间表
     suggested_layout: cards
-    suggested_pattern: tpl:enterprise_skyline__30-cards
 
   - chapter: 7
     title: 来年资源配置
     intent: 预算 / 人员 / 资本支出向战略方向倾斜
     suggested_layout: data
-    suggested_pattern: tpl:enterprise_skyline__06-data
 
   - chapter: 8
     title: 关键里程碑预设
     intent: 来年关键节点 · Q1/Q2/Q3/Q4 各一个 milestone
     suggested_layout: timeline
-    suggested_pattern: tpl:enterprise_skyline__16-timeline
 
   - chapter: 9
     title: 致全员
     intent: 鼓舞士气 + 行动号召
     suggested_layout: single_focus
-    suggested_pattern: tpl:enterprise_skyline__20-single_focus

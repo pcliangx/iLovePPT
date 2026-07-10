@@ -12,6 +12,9 @@
 Sections(--sections csv · 默认只跑 fonts):
   fonts       EA 字体审计 —— 唯一影响 exit code 的 section(builder Step 2.9 gate 用)
   shapes      每页 shape 清单(位置 / 尺寸 / 文字预览 / placeholder)
+  geometry    机械几何审计(越界 / 文字重叠 / 跨页标题一致性)—— 视觉 QA 精度项的
+              机械化替代(LLM 读 120dpi JPG 测不准 0.1" 级差异,XML 里可以准确算);
+              advisory,不影响 exit code,findings 由 builder Step 3 视觉 QA 消费
   hyperlinks  超链接清单(外链 URL / 内部 action)
   embedded    嵌入对象 + 媒体清单(OLE / media)
   security    MSIP 敏感性标签 + customXml part(企业模板 ingest 合规参考)
@@ -62,7 +65,7 @@ NS = {
     "vt": "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes",
 }
 
-SECTIONS = ("fonts", "shapes", "hyperlinks", "embedded", "security", "metadata", "themes", "masters")
+SECTIONS = ("fonts", "shapes", "geometry", "hyperlinks", "embedded", "security", "metadata", "themes", "masters")
 
 # CJK 统一表意文字(基本区 + 扩展 A + 兼容区)—— 命中即该 run 需要 ea 字体
 HAN_RE = re.compile(r"[㐀-䶿一-鿿豈-﫿]")
@@ -249,6 +252,166 @@ class PptxAudit:
                 })
         return out
 
+    # ---- geometry(机械几何审计)---------------------------------------
+
+    def _slide_size_in(self) -> tuple[float, float]:
+        """从 presentation.xml 读 slide 尺寸(inches);读不到回落 16:9 默认。"""
+        root = self._xml("ppt/presentation.xml")
+        if root is not None:
+            sz = root.find(_q("p:sldSz"))
+            if sz is not None:
+                return (int(sz.get("cx", 0)) / EMU_PER_INCH,
+                        int(sz.get("cy", 0)) / EMU_PER_INCH)
+        return (13.333, 7.5)
+
+    def _shape_boxes(self) -> dict[int, list[dict[str, Any]]]:
+        """每页 shape bbox 列表(inches)· 只收有 xfrm 的 shape。"""
+        by_slide: dict[int, list[dict[str, Any]]] = {}
+        for num, part in self.slides:
+            root = self._xml(part)
+            if root is None:
+                continue
+            boxes: list[dict[str, Any]] = []
+            for name, ph_type, kind, elem in self._iter_shapes(root):
+                xfrm = elem.find(f".//{_q('a:xfrm')}")
+                if xfrm is None:
+                    xfrm = elem.find(f".//{_q('p:xfrm')}")
+                if xfrm is None:
+                    continue
+                off, ext = xfrm.find(_q("a:off")), xfrm.find(_q("a:ext"))
+                if off is None or ext is None:
+                    continue
+                text = "".join((t.text or "") for t in elem.iter(_q("a:t")))
+                # 首 run 字号(pt · 无则 0)
+                sz = 0
+                rpr = elem.find(f".//{_q('a:rPr')}")
+                if rpr is not None and rpr.get("sz", "").isdigit():
+                    sz = int(rpr.get("sz", "0")) // 100
+                boxes.append({
+                    "name": name, "kind": kind, "placeholder": ph_type,
+                    "x": int(off.get("x", 0)) / EMU_PER_INCH,
+                    "y": int(off.get("y", 0)) / EMU_PER_INCH,
+                    "w": int(ext.get("cx", 0)) / EMU_PER_INCH,
+                    "h": int(ext.get("cy", 0)) / EMU_PER_INCH,
+                    "text": text, "font_pt": sz,
+                })
+            by_slide[num] = boxes
+        return by_slide
+
+    def section_geometry(self) -> dict[str, Any]:
+        """机械几何审计 — 全部 advisory(WARNING/INFO),不影响 exit code。
+
+        checks:
+          off_canvas       shape 越出画布(x<0 / y<0 / 超右超下 > 0.02" 容差)→ WARNING
+          text_overlap     同页两个**含文字** shape bbox 相交面积 > 20% 较小者
+                           (文字叠文字;文字压在装饰 rect 上是 card 的正常做法,不查)→ WARNING
+          title_alignment  跨内容页标题锚点漂移:top 文字 shape(y<1.2")的 x 差 > 0.1"
+                           或首 run 字号不一致 → WARNING(visual-qa "跨页字号一致"机械化)
+        """
+        slide_w, slide_h = self._slide_size_in()
+        tol = 0.02
+        findings: list[dict[str, Any]] = []
+        by_slide = self._shape_boxes()
+
+        # 1. off_canvas(只查含文字 shape + 图片/表格 —— 无文字装饰形状出血是
+        #    常见设计手法,如 cover 同心圆,不报)
+        for num, boxes in by_slide.items():
+            for b in boxes:
+                if not b["text"].strip() and b["kind"] not in ("pic", "graphicFrame"):
+                    continue
+                over = []
+                if b["x"] < -tol:
+                    over.append(f"x={b['x']:.2f}<0")
+                if b["y"] < -tol:
+                    over.append(f"y={b['y']:.2f}<0")
+                if b["x"] + b["w"] > slide_w + tol:
+                    over.append(f"right={b['x'] + b['w']:.2f}>{slide_w:.2f}")
+                if b["y"] + b["h"] > slide_h + tol:
+                    over.append(f"bottom={b['y'] + b['h']:.2f}>{slide_h:.2f}")
+                if over:
+                    findings.append({
+                        "check": "off_canvas", "severity": "WARNING",
+                        "slide": num, "shape": b["name"],
+                        "note": "越出画布: " + ", ".join(over),
+                        "text": b["text"][:30],
+                    })
+
+        # 2. text_overlap(只查 文字 × 文字;跳过全幅背景/细线)
+        def _is_decor(b: dict[str, Any]) -> bool:
+            full_bleed = b["w"] >= slide_w * 0.95 and b["h"] >= slide_h * 0.95
+            hairline = b["h"] < 0.15 or b["w"] < 0.15
+            return full_bleed or hairline
+
+        for num, boxes in by_slide.items():
+            # font_pt >= 100 是装饰大字(single_focus big_number),bbox 大半是留白,
+            # 其他 textbox 视觉上在数字下方但落在其 bbox 内 —— 不算文字碰撞
+            text_boxes = [b for b in boxes
+                          if b["text"].strip() and not _is_decor(b)
+                          and b["font_pt"] < 100]
+            for i, a in enumerate(text_boxes):
+                for b in text_boxes[i + 1:]:
+                    ix = min(a["x"] + a["w"], b["x"] + b["w"]) - max(a["x"], b["x"])
+                    iy = min(a["y"] + a["h"], b["y"] + b["h"]) - max(a["y"], b["y"])
+                    if ix <= 0 or iy <= 0:
+                        continue
+                    inter = ix * iy
+                    smaller = min(a["w"] * a["h"], b["w"] * b["h"])
+                    # 阈值 35%:相邻堆叠 textbox 的 padding 相交常到 ~25%(视觉无碰撞),
+                    # 真文字压字通常 > 50%
+                    if smaller > 0 and inter / smaller > 0.35:
+                        findings.append({
+                            "check": "text_overlap", "severity": "WARNING",
+                            "slide": num,
+                            "shape": f"{a['name']} × {b['name']}",
+                            "note": f"文字 shape 相交 {inter / smaller:.0%}(> 35% 较小者)",
+                            "text": f"{a['text'][:15]!r} × {b['text'][:15]!r}",
+                        })
+
+        # 3. title_alignment(跨内容页 · top 文字 shape 锚点/字号一致性)
+        # 候选限定"左锚页标题"形态:24-40pt + x < 3"(排除 cover 大标 / divider
+        # 章号 / single_focus 居中大数字 —— 那些页 title 形态天然不同)
+        titles: list[tuple[int, dict[str, Any]]] = []
+        for num, boxes in by_slide.items():
+            cands = [b for b in boxes
+                     if b["text"].strip() and b["y"] < 1.2
+                     and 24 <= b["font_pt"] <= 40 and b["x"] < 3.0]
+            if cands:
+                titles.append((num, min(cands, key=lambda b: b["y"])))
+        if len(titles) >= 3:  # cover/divider 也可能混入,≥3 页才有统计意义
+            xs = [t[1]["x"] for t in titles]
+            szs = [t[1]["font_pt"] for t in titles if t[1]["font_pt"]]
+            base_x = sorted(xs)[len(xs) // 2]  # median
+            for num, b in titles:
+                if abs(b["x"] - base_x) > 0.1:
+                    findings.append({
+                        "check": "title_alignment", "severity": "WARNING",
+                        "slide": num, "shape": b["name"],
+                        "note": f"标题 x={b['x']:.2f}\" 偏离中位 {base_x:.2f}\"(> 0.1\")",
+                        "text": b["text"][:30],
+                    })
+            if szs and len(set(szs)) > 1:
+                base_sz = Counter(szs).most_common(1)[0][0]
+                for num, b in titles:
+                    if b["font_pt"] and b["font_pt"] != base_sz:
+                        findings.append({
+                            "check": "title_alignment", "severity": "WARNING",
+                            "slide": num, "shape": b["name"],
+                            "note": f"标题字号 {b['font_pt']}pt ≠ 众数 {base_sz}pt(跨页字号不一致)",
+                            "text": b["text"][:30],
+                        })
+
+        counts = Counter(f["severity"].lower() for f in findings)
+        return {
+            "slide_size_in": [round(slide_w, 3), round(slide_h, 3)],
+            "summary": {
+                "slides": len(self.slides),
+                "warnings": counts["warning"],
+                "info": counts["info"],
+                "by_check": dict(Counter(f["check"] for f in findings)),
+            },
+            "findings": findings,
+        }
+
     def section_hyperlinks(self) -> list[dict[str, Any]]:
         out: list[dict[str, Any]] = []
         rid_attr = _q("r:id")
@@ -390,6 +553,14 @@ def _render_text(report: dict[str, Any]) -> str:
             lines.append(
                 f"  {f['severity']:<7} slide {f['slide']:>2} | {f['shape']} | "
                 f"latin={f['latin'] or '-'} ea={f['ea'] or '-'} | {f['text']!r} | {f['note']}"
+            )
+    if "geometry" in report:
+        g = report["geometry"]["summary"]
+        lines.append(f"[geometry] warnings={g['warnings']} by_check={g['by_check']}")
+        for f in report["geometry"]["findings"]:
+            lines.append(
+                f"  {f['severity']:<7} slide {f['slide']:>2} | {f['check']} | "
+                f"{f['shape']} | {f['note']}"
             )
     for sec in ("shapes", "hyperlinks"):
         if sec in report:

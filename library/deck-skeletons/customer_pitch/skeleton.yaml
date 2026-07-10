@@ -7,7 +7,7 @@ description: 销售 / BD 对客户的提案 · 客户场景 / 价值主张 / 报
 suggested_audience:
   - sales
   - cfo
-suggested_theme: modern_stripes
+suggested_theme: template_golden
 suggested_duration_min: 30
 suggested_top_recommendation: "为 <客户名> 提供 <我们的方案>,预计 <投资额> 换 <ROI> · 落地周期 <时间>"
 suggested_presentation_mode: speaker
@@ -17,52 +17,43 @@ outline_template:
     title: 您当前的挑战
     intent: 站在客户立场说话 · 一句话痛点 BLUF
     suggested_layout: single_focus
-    suggested_pattern: tpl:modern_stripes__18-single_focus
 
   - chapter: 2
     title: 痛点的代价
     intent: 量化客户当前损失 · 时间 / 金额 / 机会成本
     suggested_layout: data
-    suggested_pattern: tpl:modern_stripes__05-data
 
   - chapter: 3
     title: 行业领先方案怎么做
     intent: 同行 / 标杆案例 · 让客户产生 "他们做对了我也行" 的认知
     suggested_layout: cards
-    suggested_pattern: tpl:modern_stripes__11-cards
 
   - chapter: 4
     title: 我们的方案概览
     intent: 一句话方案 BLUF
     suggested_layout: single_focus
-    suggested_pattern: tpl:modern_stripes__20-single_focus
 
   - chapter: 5
     title: 方案 · 三个模块
     intent: 模块化呈现 + 每模块的核心交付物
     suggested_layout: cards
-    suggested_pattern: tpl:modern_stripes__26-cards
 
   - chapter: 6
     title: 实施路径
     intent: 时间线 + 关键 milestone + 您方需要配合的事
     suggested_layout: timeline
-    suggested_pattern: tpl:modern_stripes__16-timeline
 
   - chapter: 7
     title: 投入与回报
     intent: 报价 + ROI 测算 + 投资回收周期
     suggested_layout: comparison
-    suggested_pattern: tpl:modern_stripes__14-comparison
 
   - chapter: 8
     title: 为什么选我们
     intent: 我们的差异化 + 案例背书 + 团队能力
     suggested_layout: cards
-    suggested_pattern: tpl:modern_stripes__30-cards
 
   - chapter: 9
     title: 下一步
     intent: 行动号召 · POC / 试点 / 正式签约 · 时间窗
     suggested_layout: process_flow
-    suggested_pattern: tpl:modern_stripes__15-process_flow

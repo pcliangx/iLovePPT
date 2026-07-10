@@ -78,6 +78,25 @@ node <repo>/.claude/skills/pptx-deck/html2pptx/html2pptx_cli.js \
 ```
 失败回退:soffice 直接转(质量降)。
 
+**Step 2.9 · EA 字体 gate(html 轨强制 · build 成功后立即跑)**:
+
+仓库 #1 不变量(中文必须写 `<a:ea>`+`<a:cs>`)在 pptx 轨由 helpers.set_font 写侧
+保证,但 html2pptx 走 pptxgenjs 单值 fontFace(vendored 不许改),产物会系统性
+带 latin-only bug —— 必须产物端修:
+
+```bash
+python3 ${CLAUDE_PROJECT_DIR}/scripts/audit_pptx.py <working_dir>/builder/deck_v{N}.pptx --sections fonts
+# exit 1(ERROR ≥ 1)→ 产物端修复 + 复检:
+python3 ${CLAUDE_PROJECT_DIR}/scripts/fix_ea_fonts.py <working_dir>/builder/deck_v{N}.pptx --font "<theme yaml fonts.ea>"
+python3 ${CLAUDE_PROJECT_DIR}/scripts/audit_pptx.py <working_dir>/builder/deck_v{N}.pptx --sections fonts   # 应 exit 0
+```
+
+- fix_ea_fonts 原地修自动备份 `.pre_ea_fix.pptx`;latin 本身是 CJK 字体名
+  (html2pptx CDP 检测常写进 latin)时 ea 复用 latin,否则用 `--font`
+- 复检仍 ERROR → return yaml `font_audit.errors[]` 如实上报,不允许静默交付
+- 修复后再进 Step 3 渲染收敛(渲染的 JPG 必须来自修复后的 .pptx)
+- lark 双轨不适用(deliverable 是飞书 doc/presentation,字体由飞书端渲染)
+
 ### track=lark-whiteboard(飞书画板 · 自由画布)
 
 **先 Read lark-whiteboard skill**(`Skill(lark-whiteboard)` 或 Read 其 `SKILL.md` + `references/lark-whiteboard-workflow.md` + `routes/svg.md`)—— SVG 高保真路径 + DSL 回退纪律都在该 skill,**勿凭记忆写 SVG**。
@@ -136,6 +155,10 @@ whiteboard_tokens: [<tok>, ...]                           # lark-whiteboard · N
 slide_ids: [<sid>, ...]                                   # lark-slides
 visual_edits:                                             # reproducibility 强制(asset + source 配对)
   - {asset: <path>, source: <path|url|prompt>, tool: <html2pptx|svg|lark-xml|t2i|iconify>}
+font_audit:                                               # html 轨必填(Step 2.9 gate);lark 轨填 skipped
+  status: pass | fixed | fail | skipped                   # fixed = fix_ea_fonts 修复后复检 0 ERROR
+  fixed_runs: <int>                                       # fix_ea_fonts 修复的 run 数
+  errors: []                                              # 复检仍 ERROR 时逐条(slide/shape/text)
 rendered_dir: <working_dir>/builder/deck_v{N}_render/
 review_needed_pages: []                                   # needs_author_rewrite / needs_visual_redo
 ```
