@@ -133,8 +133,9 @@ def test_build_deck_unknown_layout_raises(tmp_path):
     with pytest.raises(ValueError) as e:
         build_deck(plan)
     msg = str(e.value)
-    assert "无 make_nonexistent_xyz" in msg
-    assert "theme 支持清单" in msg  # fail-loud 提示含可用 layout
+    assert "make_nonexistent_xyz" in msg
+    assert "三层都没有该 layout" in msg  # yaml mapping / module make_* / plugin 全查过
+    assert "plugin 标准实现" in msg     # fail-loud 提示含可用 layout 清单
 
 
 def test_build_deck_bad_field_raises_with_page_number(tmp_path):
@@ -206,13 +207,28 @@ def test_footer_page_num_uses_content_page_index_not_absolute(tmp_path):
 
 
 def test_footered_layouts_constant_matches_spec():
-    """常量必须覆盖规范要求的 10 种核心 layout + visual pattern 衍生 layout(除 cover/section_divider/closing)。"""
+    """常量必须覆盖规范要求的核心 layout + visual pattern 衍生 layout + 17 enum
+    plugin 内容页(除 cover/section_divider/closing)。"""
     assert FOOTERED_LAYOUTS == frozenset({
         "toc", "single_focus", "compare", "compare_pk", "matrix_2x2", "cards",
         "bullet_list", "table", "pic_text", "summary",
         # visual patterns 衍生 layout(template_training theme 引入)
         "timeline_band_3", "tri_pyramid_4sub_3", "cards_flag_3",
+        # 17 enum 补齐(LayoutRegistry plugin 接入后可渲染的内容页)
+        "quote", "data", "timeline", "pyramid", "venn", "radial",
+        "process_flow", "quadrant", "comparison",
     })
+
+
+def test_footered_layouts_cover_all_renderable_content_layouts():
+    """17 enum 里除 cover/section_divider/closing 外全部计页码 —— 防止新增
+    plugin layout 忘加 FOOTERED_LAYOUTS 导致该页缺页脚。"""
+    import helpers as H
+    excluded = {"cover", "section_divider", "closing"}
+    for layout in H.LayoutRegistry._layouts:
+        if layout in excluded:
+            continue
+        assert layout in FOOTERED_LAYOUTS, f"plugin layout {layout!r} 缺 FOOTERED_LAYOUTS 登记"
 
 
 def test_source_field_renders_citation(tmp_path):
