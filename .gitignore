@@ -44,24 +44,11 @@ _assets/
 # 详见 decks/.gitignore
 
 # === scripts/ · 工程脚本运行时产物 ===
-# query_cache.py 沉淀的 iconify/Unsplash query 缓存(从 library/_rag/ 迁来)
+# query_cache.py 沉淀的 iconify/Unsplash query 缓存
 scripts/.cache/
 
-# === library/ · 知识库 ===
-# 共享 RAG 基础设施(venv / 凭据 / DB)
-library/_rag/.venv/
-library/_rag/.env
-library/_rag/.env.*
-library/_rag/db.sqlite
-# P3-6 WAL 模式辅助文件(运行时生成,不入 git)
-library/_rag/db.sqlite-wal
-library/_rag/db.sqlite-shm
-library/_rag/.cache/
-library/_rag/query_log.jsonl
-library/_rag/external_query_cache.jsonl
-library/_rag/feedback.jsonl
-
-# 各 kb 的 _source/ · 用户原始材料(机密 / 版权 / 体积)
+# === library/ ===
+# 用户模板 _source/ · 原始材料(机密 / 版权 / 体积)
 library/*/_source/*
 !library/*/_source/.gitkeep
 
