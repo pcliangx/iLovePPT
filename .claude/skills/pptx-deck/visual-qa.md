@@ -146,6 +146,24 @@ iloveppt-builder Step 3 在逐页 QA 全部通过后(进 Step 4 之前)对全 de
 - WARNING（继承链 / theme ea 为空）→ 记录数量即可
 - builder Step 2.9 在 build 后已跑过一次；本节复核时若 deck_plan 改过重 build，需重跑
 
+### 机械几何审计（读 PNG 之前先跑 · 精度项机械化）
+
+LLM 读 120dpi JPG 测不准 0.1" 级差异——越界 / 文字重叠 / 跨页标题一致性这三类
+精度检查交给 XML 机械审计，**读图人审只管机械查不了的**（配色 / 留白观感 / 层级美感）：
+
+```bash
+python3 ${CLAUDE_PROJECT_DIR}/scripts/audit_pptx.py <deck.pptx> --sections geometry --format text
+```
+
+- `off_canvas`：含文字 shape / 图片越出画布（无文字装饰出血是正常设计，已豁免）
+  → 对应页改 deck_plan 字段（通常字数超限撑大 textbox），重 build
+- `text_overlap`：同页两个文字 shape bbox 相交 > 35%（装饰大数字 ≥ 100pt 已豁免）
+  → 真文字压字，必修；通常是 layout 字段给太长
+- `title_alignment`：左锚页标题（24-40pt · x<3"）的 x 锚点偏离中位 > 0.1" 或字号
+  偏离众数 → 对照"跨页字号一致"checklist 项判断是否 by-design（如 summary 36pt
+  是 make_summary 有意为之则记 evidence 放行，不是则修）
+- findings 全 advisory（exit code 不受影响），每条必须在 QA 记录里给 [已修 / by-design 放行 + 理由]，不允许无声跳过
+
 ### 页脚 / 页码完整性
 
 - 每页（除 `cover` / `section_divider` / `closing`）应有页脚

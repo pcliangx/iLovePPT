@@ -267,6 +267,21 @@ python3 ${CLAUDE_PROJECT_DIR}/scripts/audit_pptx.py <working_dir>/builder/deck_v
 
 读 `visual-qa.md` 取 checklist(机械项)。
 
+#### Step 3.0 · 机械几何审计(读 PNG 之前先跑)
+
+精度类检查(越界 / 文字重叠 / 跨页标题一致)LLM 读 120dpi JPG 测不准,先机械算:
+
+```bash
+python3 ${CLAUDE_PROJECT_DIR}/scripts/audit_pptx.py <working_dir>/builder/deck_v{N}.pptx --sections geometry --format text
+```
+
+- findings(全 advisory)逐条处置:`off_canvas` / `text_overlap` → 改 deck_plan
+  对应页字段(通常字数超限)重 build;`title_alignment` → 对照"跨页字号一致"
+  checklist 判断 by-design 与否
+- 每条 finding 必须在 visual_qa 记录里给 [已修 / by-design 放行 + 理由],不允许无声跳过
+- 处置规则详见 [visual-qa.md § 机械几何审计](${CLAUDE_PROJECT_DIR}/.claude/skills/pptx-deck/visual-qa.md);
+  Step 3.1 读图人审只管机械查不了的(配色 / 留白观感 / 层级美感 / 渲染破损)
+
 #### Step 3.1 · Evidence collection(verification-before-completion)
 
 对每页 `*_render/page-*.jpg`:
