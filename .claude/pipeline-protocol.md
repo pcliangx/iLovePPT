@@ -85,7 +85,7 @@ audience Step 0.0 spot-check:任一 fail → 不评分,return needs_visual_redo
 
 **历史 round 演进**:
 - audience: r1 7.40 → r2 8.20 → r3 8.85 → r4 9.13
-- critic D: r1 needs_revision(2 high) → r2 pass
+- critic cd: r1 needs_revision(2 high) → r2 pass
 
 **Known issues / TODO**:
 - 7 张 chart 缺源文件(invariant 在 deck 后 enforce,不 backfill)
@@ -137,8 +137,7 @@ audience Step 0.0 spot-check:任一 fail → 不评分,return needs_visual_redo
 | `plan` | builder Step 1 | `builder/deck_v1_plan.json`(替代旧 `deck_plan.json`) |
 | (无 kind) | builder Step 2(.pptx) | `builder/deck_v1.pptx`(.pptx 文件 kind 隐含) |
 | `render` | builder Step 5(目录) | `builder/deck_v1_render/`(目录,内含 page-NN.jpg) |
-| `critic_C` | critic Stage C | `critic/deck_v1_critic_C.r{R}.md` |
-| `critic_D` | critic Stage D | `critic/deck_v1_critic_D.r{R}.md` |
+| `critic_cd` | critic stage=cd(单次合审) | `critic/deck_v1_critic_cd.r{R}.md` |
 | `visual_qa` | builder Step 3 | `builder/deck_v1_visual_qa.r{R}.md` |
 | `audience` | audience | `audience/deck_v1_audience.r{R}.md` |
 | `claims` | author Stage D(条件产出 · brief 含已确认数据口径时) | `author/deck_v1_claims.yaml` |
@@ -175,8 +174,7 @@ audience Step 0.0 spot-check:任一 fail → 不评分,return needs_visual_redo
 | `builder/deck_v{N}.pptx` | builder build | 每次 build 前 cp current 到 archive(`deck_v{N}.r{R}.pptx`) |
 | **不需要 archive(每轮天然独立)** | | |
 | `builder/deck_v{N}_visual_qa.r{R}.md` | builder QA | 每轮直接新文件 |
-| `critic/deck_v{N}_critic_C.r{R}.md` | critic Stage C | 每轮直接新文件 |
-| `critic/deck_v{N}_critic_D.r{R}.md` | critic Stage D | 每轮直接新文件 |
+| `critic/deck_v{N}_critic_cd.r{R}.md` | critic stage=cd | 每轮直接新文件 |
 | `audience/deck_v{N}_audience.r{R}.md` | audience | 每轮直接新文件 |
 
 ### 目录结构(强制,统一命名)
@@ -200,10 +198,8 @@ audience Step 0.0 spot-check:任一 fail → 不评分,return needs_visual_redo
 │       ├── deck_v1_state.r1.json
 │       └── ...
 ├── critic/                           # 每轮 r{R} 文件天然独立,不需 archive
-│   ├── deck_v1_critic_C.r1.md
-│   ├── deck_v1_critic_C.r2.md        # rework 后第 2 轮
-│   ├── deck_v1_critic_D.r1.md
-│   └── deck_v1_critic_D.r2.md
+│   ├── deck_v1_critic_cd.r1.md
+│   └── deck_v1_critic_cd.r2.md       # rework 后第 2 轮
 ├── builder/
 │   ├── deck_v1.pptx                  # active
 │   ├── deck_v1_plan.json             # active(原 deck_plan.json 已弃用)
@@ -302,7 +298,7 @@ ${CLAUDE_PROJECT_DIR}/python3 \
 | – | brainstorm `needs_self_revision`(self-audit fail) | 主线程展示 must_fix → 用户改 brief.md 或续 dialog → SendMessage 给 brainstorm | 直至 `dispatch_author` |
 | 1.5 | brainstorm `dispatch_research`(素材不足 OR 用户显式要研究 · Phase 3 bypass) | 关 brainstorm team → `Task(research, args={working_dir, topic, scqa, audience, user_attachments, depth})` → 产 `research/research_manuscript.md`(网搜+PDF 解析+抓取 · --- 分页 · source 标注) | `dispatch_author_with_research` |
 | – | research return | 主线程拿 `research_manuscript` path,并入下一步 author Stage C 入参(透传) | (续 row 2) |
-| 2 | brainstorm `dispatch_author` 返回(或 research 完后续) | 关 brainstorm team → `Task(author, args={stage: "C", brief_md_path: ..., research_manuscript: <path|null>, pattern_hints_for_author: [...]})`(透传 brainstorm `author_dispatch_preview` + research 的 manuscript),产 `author/deck_v1_outline.md` | `ask_user_for_outline_approval` |
+| 2 | brainstorm `dispatch_author` 返回(或 research 完后续) | 关 brainstorm team → `Task(author, args={stage: "C", brief_md_path: ..., research_manuscript: <path|null>})`(透传 brainstorm `author_dispatch_preview` + research 的 manuscript;pattern_hints 已随 RAG 退役,author 从 `layout_variants.yaml` 受控词典自选 layout),产 `author/deck_v1_outline.md` | `ask_user_for_outline_approval` |
 | 3 | outline 已批准 | author return `dispatch_self_stage_d` → 主线程立即 `Task(author, args={stage: "D", outline_md_path: ...})` 续走(无中间 critic),产 `author/deck_v1_content.md` | `ask_user_for_content_approval` |
 | 4 | content 已批准 | `Task(critic, args={stage: "cd", outline_md_path: ..., content_md_path: ..., report_path: "critic/deck_v1_critic_cd.r{R}.md"})` | `pass` / `pass_with_notes` / `needs_revision` |
 | 5 | critic cd `pass` 或 `pass_with_notes` | **按 `brief.track` 路由**(Phase 1):`track=pptx`(默认)→ `Task(builder, args={content_md_path:..., critic_cd_report:..., output_pptx:builder/deck_v1.pptx, ...})`;`track ∈ {html, lark-slides, lark-whiteboard}` → `Task(designer, args={track, content_md_path:..., theme:..., critic_cd_report:..., working_dir:..., mode:full})`(designer 收敛产 `builder/deck_v{N}_render/page-*.jpg`,audience track-agnostic) | `dispatch_audience` 或 `hard_stop` |
@@ -310,7 +306,7 @@ ${CLAUDE_PROJECT_DIR}/python3 \
 | 7 | audience `delivered`(overall_score ≥ 9) | 主线程交付 .pptx 路径给用户 | — |
 | – | audience `needs_author_rewrite` | `Task(iloveppt-author, args={stage: "D_rework", audience_report: ...})` | 同 author Stage D |
 | – | audience `needs_visual_redo` | `Task(iloveppt-builder, args={mode: "visual_redo", audience_report: ...})` | `dispatch_audience` |
-| – | audience `needs_theme_fix` | 主线程跟用户确认改 theme(主线程自己干,不派 agent) | — |
+| – | audience `needs_theme_fix` | 主线程跟用户确认改 theme(改 `themes/<name>.yaml` token,主线程自己干,不派 agent)→ **改完必走闭环**:`Task(builder, mode=visual_redo)` 重 build + 重渲染 → 重派 audience | `dispatch_audience` → 回 row 6 |
 | – | brainstorm 返回 `dispatch_template_extractor`(Phase A 期间用户给了 .pptx 模板路径) | `Task(iloveppt-template-extractor, args={template_path, name})` → 完整 ingest 入 `library/pptx-templates/items/<name>/` → 用户审 draft → 主线程跑 embed_text/embed_image 入库 → `SendMessage(brainstorm team, extractor_summary)` | happy path:extractor return `user_review_drafts`;失败兜底:return `dispatch_brainstorm` |
 | – | critic cd `needs_revision` | `Task(iloveppt-author, args={stage: "D_rework", critic_report: "critic/deck_v1_critic_cd.r{R}.md"})` | 同 author Stage D |
 
@@ -373,7 +369,7 @@ brainstorm 返回 `next_action: dispatch_author`(self-audit pass / pass_with_not
 Task(iloveppt-author, args={
     stage: "C",
     brief_md_path: <from yaml>,
-    # 透传 brainstorm 的 author_dispatch_preview + pattern_hints_for_author
+    # 透传 brainstorm 的 author_dispatch_preview(pattern_hints 已随 RAG 退役)
     asset_inventory: [...],
 })
 ```
@@ -550,7 +546,7 @@ artifacts:                   # 本轮产物(可空)
 | audience | `delivered` | 交付 .pptx 给用户 |
 | audience | `needs_author_rewrite` | Task(author) |
 | audience | `needs_visual_redo` | Task(iloveppt-builder, mode=visual_redo)(:audience Step 0 spot-check fail 时也走此路径) |
-| audience | `needs_theme_fix` | 主线程跟用户确认改 theme |
+| audience | `needs_theme_fix` | 主线程跟用户确认改 theme yaml → builder mode=visual_redo 重 build → 重派 audience(闭环) |
 
 ### §4.3 agent 特有字段
 
@@ -592,10 +588,7 @@ author_dispatch_preview:
     brief: {...}
     asset_inventory: [...]
 brief_summary: <一句话 brief 概要>
-pattern_hints_for_author:           # category list,brainstorm RAG 预选,3-5 个;随 author dispatch 透传
-  - process
-  - cycle
-  - comparison
+pattern_hints_for_author: []        # 恒空(RAG 退役;author 从 layout_variants.yaml 自选 layout)
 ```
 
 **brainstorm 的 needs_self_revision**(;self-audit 5 项有 fail / high severity):
@@ -632,47 +625,55 @@ issues:
     description: <一句话>
     suggestion: <修改建议>
 rounds_used: <int>  # 当前 stage=cd 第几轮
-suggested_alternative_patterns:     # advisory(用户 cherry-pick 才采纳)
+suggested_alternative_layouts:      # advisory(用户 cherry-pick 才采纳;layout 从 17 enum 选)
   - page: 3
-    current: cards-flag-4
-    suggest: matrix-2x2
-    reason: "4A 不是并列而是因果矩阵(2 类风险 × 2 类应对),matrix-2x2 更准"
+    current: cards
+    suggest: quadrant
+    reason: "4A 不是并列而是因果矩阵(2 类风险 × 2 类应对),quadrant 更准"
 ```
 
 > `scores` 是 report .md 里 20 项量化 severity 的机器可读镜像;`issues`(high/med/low)是人读摘要。verdict 由 `scores` 按 critic-rubric.yaml 公式算(A1-A7 + B1-B9 + J1-J4;历史 J5 已随 RAG 退役)。
 
-**audience 必加字段**(含 Step 0 spot-check):
+**audience 必加字段**(含 Step 0 spot-check;权威 schema 在 [`iloveppt-audience.md` Step 5](${CLAUDE_PROJECT_DIR}/.claude/agents/iloveppt-audience.md),此处为镜像摘要):
 ```yaml
 agent: iloveppt-audience
 status: ok
 next_action: delivered | needs_author_rewrite | needs_visual_redo | needs_theme_fix
-overall_score: <int 1-10 · 0 = 被 Step 0 spot-check 中止占位>
+overall_score: <float 1-10 · 0 = 被 Step 0 spot-check 中止占位>
+deck_score_10: <float · 单 persona = deck_score;multi-persona = min 聚合>
 verdict: excellent | good | needs_minor | needs_major | blocked_by_spot_check | blocked_by_red_line_words
 triage: needs_author_rewrite | needs_visual_redo | needs_theme_fix | none
+persona_used: <persona key · multi-persona 时另出 per_persona_scores>
 artifacts:
-  - path: <abs path to audience_review_r{N}.md>
+  - path: <abs path to deck_v{N}_audience.r{R}.md>
     kind: audience_report
-spot_check:                         # P2-3.3 后必填 · Step 0 spot-check 结果
+spot_check:                         # 必填 · Step 0 五项 spot-check 结果
   placeholder_grep: pass | fail | skipped
   chart_sources: pass | fail | skipped
   png_breakage: pass | fail | skipped
   red_line_grep: pass | fail | skipped
+  source_fidelity: pass | fail | skipped
   failures: []                      # 任一 fail 时填,verdict 走 blocked_by_*
-per_page_scores:                    # spot-check fail 时为空数组
+per_page_scores:                    # 12 项 × 0-3 + evidence(spot-check fail 时空数组)
   - page: <int>
-    comprehension_5s: <int 1-10>
-    info_density: <int 1-10>
-    visual_appeal: <int 1-10>
-    flow_coherence: <int 1-10>
+    layout: <layout>
+    persona: <persona key>
+    scores:
+      - {dim: <维度名>, score: <int 0-3>, evidence: "<引文>"}
+      # ... 12 项
+    page_score_avg: <float>
+    page_score_weighted: <float>    # persona 权重加权
+    page_score_10: <float>
+    verdict: excellent | good | needs_minor | needs_major
 needs_visual_redo_pages:            # triage=needs_visual_redo 时填(多类 triage 时也填)
   - page: 8
     issue: "draw.io 流程图 HTML 标签裸露"
-    suggested_alternative_pattern:  # advisory(给 iloveppt-builder mode=visual_redo 用)
-      current: pic_text + drawio_chart
-      suggest: process-5-step-linear
-      reason: "draw.io HTML 标签裸露,直接换内置 pattern preview 一击命中"
+    suggestion: "换 17 enum 内 process_flow layout 或重出 PNG"
 rounds_used: <int>
 ```
+
+> 反模式 ✗:旧 4 维 × 10 分(comprehension_5s / info_density / visual_appeal /
+> flow_coherence)已被 12 项 × 0-3 取代,旧 schema 出现 = 评审作废(audience.md 明文)。
 
 **iloveppt-builder 必加字段**:
 ```yaml
@@ -767,12 +768,13 @@ critic_args:                        # next_action=dispatch_critic 时填(stage=c
   outline_md_path: <abs>
   content_md_path: <abs>
   asset_inventory: [...]
-pattern_hints:                      # Stage C 必填,Stage D 透传 outline,rework 可改
+pattern_hints: []                   # 恒空(RAG 退役);layout 选择进 per_chapter_layout
+per_chapter_layout:                 # Stage C 产出 · layout 从 layout_variants.yaml 受控词典选
   - chapter: 1
-    selected: [process-5-step-linear]
-    rationale: "5 阶段流程,linear pattern 匹配"
+    layout: process_flow
+    rationale: "5 阶段流程,process_flow 匹配"
   - chapter: 2
-    selected: [cards-flag-4]
+    layout: cards
     rationale: "4A 4 维并列,cards 匹配"
 ```
 
@@ -786,9 +788,6 @@ decks/<slug>/
 ├── brainstorm/
 │   ├── state.json              # 跨 ask_user 轮恢复(仅 Phase A 用)
 │   └── brief.md                # brainstorm 产出,user 审批后冻结
-├── extractor/                  # 可选,用户提供模板时
-│   ├── extractor_summary.yaml
-│   └── media/                  # 模板媒体抽取
 ├── author/
 │   ├── deck_v{N}_outline.md    # Stage C 产出;N 默认 1,文件存在则 +1
 │   └── deck_v{N}_content.md    # Stage D 产出

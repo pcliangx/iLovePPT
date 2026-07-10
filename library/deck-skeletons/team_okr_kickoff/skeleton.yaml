@@ -6,7 +6,7 @@ name: 团队 OKR 启动
 description: 团队 lead 对成员的季度 / 年度 OKR 启动(背景 / Objective / Key Result / Owner / 节奏)
 suggested_audience:
   - general_public
-suggested_theme: training_team
+suggested_theme: template_training
 suggested_duration_min: 20
 suggested_top_recommendation: "本季度 / 年团队聚焦 <核心目标>,3 个 Objective 拆 N 个 KR · 每月 review"
 suggested_presentation_mode: speaker
@@ -16,58 +16,48 @@ outline_template:
     title: 我们为什么需要 OKR
     intent: 背景 + 上季度 / 上年回顾 + 学到的教训
     suggested_layout: single_focus
-    suggested_pattern: tpl:training_team__18-single_focus
 
   - chapter: 2
     title: 上周期回顾
     intent: 上周期 OKR 完成情况 · 哪些超 / 哪些没完成 · 经验
     suggested_layout: comparison
-    suggested_pattern: tpl:training_team__14-comparison
 
   - chapter: 3
     title: 本周期核心目标
     intent: 团队聚焦的 1 个 north star 目标 · BLUF
     suggested_layout: single_focus
-    suggested_pattern: tpl:training_team__20-single_focus
 
   - chapter: 4
     title: 三大 Objective
     intent: O1 / O2 / O3 全景一图 · MECE
     suggested_layout: pyramid
-    suggested_pattern: tpl:training_team__18-pyramid
 
   - chapter: 5
     title: Objective 1 详解
     intent: O1 + KRs + Owner + 截止 + 进度衡量
     suggested_layout: cards
-    suggested_pattern: tpl:training_team__26-cards
 
   - chapter: 6
     title: Objective 2 详解
     intent: O2 + KRs + Owner + 截止 + 进度衡量
     suggested_layout: cards
-    suggested_pattern: tpl:training_team__26-cards
 
   - chapter: 7
     title: Objective 3 详解
     intent: O3 + KRs + Owner + 截止 + 进度衡量
     suggested_layout: cards
-    suggested_pattern: tpl:training_team__26-cards
 
   - chapter: 8
     title: Review 节奏
     intent: weekly check-in / monthly review / quarter close · 时间 / 地点 / 形式
     suggested_layout: timeline
-    suggested_pattern: tpl:training_team__16-timeline
 
   - chapter: 9
     title: 团队约定与红线
     intent: blocker 怎么 escalate / 跨团队协作 / 信息共享方式
     suggested_layout: cards
-    suggested_pattern: tpl:training_team__11-cards
 
   - chapter: 10
     title: 从这里开始
     intent: 行动号召 + 第一周要交的东西
     suggested_layout: single_focus
-    suggested_pattern: tpl:training_team__20-single_focus

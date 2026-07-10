@@ -78,17 +78,23 @@ bash ../pptx/scripts/check_deps.sh
 | [diagram-planning.md](diagram-planning.md) | 图层规划：判断哪些章节配图 + 4 类图决策规则 |
 | [content-writing.md](content-writing.md) | 13 layout 文案规则 + 拓写 prompt |
 | [visual-qa.md](visual-qa.md) | 单页 vision 自检 prompt + 17 项 checklist |
-| [template-extract.md](template-extract.md) | 从用户 .pptx 提取主色与字体 6 步流程 |
+
+> 从用户 .pptx 提取主色与字体:内置在 `build.py load_theme(<path>.pptx)`(token
+> 提取路径),无需单独流程文档(历史 template-extract.md 已随 extractor 退役)。
 
 ## 内置主题
 
-[themes/tech_blue.py](themes/tech_blue.py) — 13 个 make_* layout 函数：
-- `make_cover` / `make_toc` / `make_section_divider`
-- `make_single_focus` / `make_compare` / `make_compare_pk` / `make_matrix_2x2`
-- `make_cards` / `make_bullet_list` / `make_table` / `make_pic_text`
-- `make_summary` / `make_closing`
+3 个 yaml theme(`themes/<name>.yaml` 是 design token SSOT):
+- **tech_blue**(默认)— BCG 风深蓝商务 · 13 个 theme make_* + 17 enum plugin 兜底
+- **template_golden** — 黄金商务 · 3 独有 layout(process_flow/pyramid/radial)
+- **template_training** — 培训风橙红 · 17 layout(含 3 自定义变体)
 
-切换其他色板：改 `themes/tech_blue.py` 顶部 PRIMARY_* 常量,或从 [[pptx]] design-system.md 10 色板挑一套覆盖。
+**layout 渲染三层分发**(`builder/tier2.py resolve_layout_fn`):theme yaml
+`layouts:` mapping(含 alias)→ theme module `make_<layout>` → `helpers/<layout>.py`
+LayoutRegistry plugin 标准实现。17 enum layout 任一 theme 下都可渲染。
+
+切换色板 / 字体 / 风格:**改 `themes/<name>.yaml`**(colors / fonts / mode / style),
+不改 .py 常量;完整步骤见 [writing-custom-themes](${CLAUDE_PROJECT_DIR}/docs/writing-custom-themes.md)。
 
 ## 与 [[pptx]] / [[diagram]] 的关系
 
@@ -97,7 +103,7 @@ pptx-deck（本 skill）
   ├─ 调 [[pptx]] helpers.py（set_font / card / bullets / table_modern ...）
   ├─ 调 [[pptx]] scripts/office/soffice.py（渲染验证）
   ├─ 调 [[diagram]] drawio/mermaid/matplotlib（出图）
-  └─ 调 [[pptx]] reading.md + 本 skill template-extract.md（提取主色与字体）
+  └─ 调 [[pptx]] reading.md（读用户 .pptx;主色字体提取内置 build.py load_theme）
 ```
 
 ## 交付前 checklist

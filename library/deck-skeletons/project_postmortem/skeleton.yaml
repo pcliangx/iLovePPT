@@ -7,7 +7,7 @@ description: 项目结束后的复盘 · 数据 / 时间线 / 5-whys / 学到的
 suggested_audience:
   - engineer
   - general_public
-suggested_theme: business_geometric
+suggested_theme: tech_blue
 suggested_duration_min: 30
 suggested_top_recommendation: "<项目名> 整体 <结果>,关键学到 <X>,下次改进 <Y>"
 suggested_presentation_mode: speaker
@@ -17,52 +17,43 @@ outline_template:
     title: 项目背景与目标
     intent: 项目背景 + 我们为什么做这个 + 当初的预期
     suggested_layout: single_focus
-    suggested_pattern: tpl:business_geometric__18-single_focus
 
   - chapter: 2
     title: 时间线全貌
     intent: 项目从启动到结束的关键节点 / 突发事件
     suggested_layout: timeline
-    suggested_pattern: tpl:business_geometric__16-timeline
 
   - chapter: 3
     title: 结果数据
     intent: 目标 vs 实际 · 量化指标 · 不藏不掖
     suggested_layout: comparison
-    suggested_pattern: tpl:business_geometric__14-comparison
 
   - chapter: 4
     title: 做对了的事
     intent: 3 件做对的事 + 为什么对 + 怎么复制
     suggested_layout: cards
-    suggested_pattern: tpl:business_geometric__11-cards
 
   - chapter: 5
     title: 做错了的事
     intent: 3 件做错的事 + 影响 + 当时为什么没察觉
     suggested_layout: cards
-    suggested_pattern: tpl:business_geometric__26-cards
 
   - chapter: 6
     title: 5-whys 根因分析
     intent: 选 1-2 个最关键的错 · 一层层往下问到根因
     suggested_layout: process_flow
-    suggested_pattern: tpl:business_geometric__15-process_flow
 
   - chapter: 7
     title: 关键学到的
     intent: 跨项目可迁移的 lessons learned · 不局限本项目
     suggested_layout: bullet_list
-    suggested_pattern: tpl:business_geometric__11-cards
 
   - chapter: 8
     title: 下次怎么改
     intent: 具体行动项 + Owner + 截止 + 评估方式
     suggested_layout: cards
-    suggested_pattern: tpl:business_geometric__30-cards
 
   - chapter: 9
     title: 给下一个项目的建议
     intent: blameless · 让下一个项目跑得更顺
     suggested_layout: single_focus
-    suggested_pattern: tpl:business_geometric__20-single_focus

@@ -7,7 +7,7 @@ description: 财务总监对董事会的季度业绩报告(数据 / KPI / 趋势
 suggested_audience:
   - cfo
   - investor
-suggested_theme: finance_arrow
+suggested_theme: tech_blue
 suggested_duration_min: 30
 suggested_top_recommendation: "本季度营收同比 +N%,推荐<具体动作 · 例:加大 X 业务投入 / 重组 Y 部门 / 调整全年指引>"
 suggested_presentation_mode: speaker
@@ -17,46 +17,38 @@ outline_template:
     title: 季度业绩概览
     intent: 一句话总结业绩 + 关键 takeaway(BLUF · 答案在前)
     suggested_layout: single_focus
-    suggested_pattern: tpl:finance_arrow__18-single_focus
 
   - chapter: 2
     title: 主要财务数据
     intent: 营收 / 利润 / 现金流 / 关键 KPI · 同比环比
     suggested_layout: data
-    suggested_pattern: tpl:finance_arrow__05-data
 
   - chapter: 3
     title: 业务分部表现
     intent: 各业务线 / 大区贡献占比 · 哪条线拉动哪条线拖累
     suggested_layout: cards
-    suggested_pattern: tpl:finance_arrow__07-cards
 
   - chapter: 4
     title: 趋势 · 4-8 季度纵向看
     intent: 不是孤立看本季度,看曲线 · 季节性 / 拐点 / 持续性
     suggested_layout: data
-    suggested_pattern: tpl:finance_arrow__08-data
 
   - chapter: 5
     title: 预算完成情况
     intent: 实际 vs 预算 · 方差解读 · 偏差原因
     suggested_layout: comparison
-    suggested_pattern: tpl:finance_arrow__14-comparison
 
   - chapter: 6
     title: 关键风险与异常
     intent: 财务异常 / 应收账款风险 / 现金流压力 · 不藏不掖
     suggested_layout: quadrant
-    suggested_pattern: tpl:finance_arrow__20-quadrant
 
   - chapter: 7
     title: 下季度展望与建议
     intent: 推荐董事会拍板的动作 · 全年指引调整 / 投入方向 / 资源配置
     suggested_layout: process_flow
-    suggested_pattern: tpl:finance_arrow__15-process_flow
 
   - chapter: 8
     title: Q&A 关键问题预判
     intent: 董事会最可能问的 3-5 个问题 · 提前给答案
     suggested_layout: bullet_list
-    suggested_pattern: tpl:finance_arrow__11-cards
