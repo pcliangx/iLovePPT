@@ -3,7 +3,7 @@
 > 协议适用于:主线程派发 agent 时的派发规则、handoff 格式、gate 条件、失败处理。
 > 不适用于:agent 内部行为(在各 agent 的 prompt 文件)。
 >
-> **架构**:Phase A team(brainstorm 多轮对话) + Phase B subagent(其余 5 agent + extractor)。
+> **架构**:Phase A team(brainstorm 多轮对话) + Phase B subagent(author / critic / builder|designer / audience;research 为 brainstorm 触发的旁路)。
 
 ---
 
@@ -37,7 +37,7 @@ Phase B:流水线(subagent 模式,Task 调用 · P2-3 后 7 步)
 **关键规则**:
 - Phase A → Phase B 切换信号:brainstorm SendMessage 返回 `next_action: dispatch_author`(self-audit 通过)
 - 切换时主线程**立即关闭 brainstorm team**(YAGNI:audience 三类分流目前无回 brainstorm 路径)
-- 模板 extractor 中途介入(用户在 Phase A 期间提供模板路径):主线程 `Task(extractor)` → return yaml → SendMessage 给仍在线的 brainstorm team
+- 用户在 Phase A 期间提供 .pptx 模板路径:**不派 agent**(extractor 已退役),brainstorm 把路径记进 brief.theme,builder `load_theme(<path>.pptx)` 构建时自动提取主色 / 字体
 - "主线程是 team-lead" 这层语义只在 Phase A 内对 brainstorm team 成立;Phase B 主线程对其他 agent 是 Task 调用方(同步等待 return,无 team-lead/member 关系)
 
 ---
@@ -307,7 +307,7 @@ ${CLAUDE_PROJECT_DIR}/python3 \
 | – | audience `needs_author_rewrite` | `Task(iloveppt-author, args={stage: "D_rework", audience_report: ...})` | 同 author Stage D |
 | – | audience `needs_visual_redo` | `Task(iloveppt-builder, args={mode: "visual_redo", audience_report: ...})` | `dispatch_audience` |
 | – | audience `needs_theme_fix` | 主线程跟用户确认改 theme(改 `themes/<name>.yaml` token,主线程自己干,不派 agent)→ **改完必走闭环**:`Task(builder, mode=visual_redo)` 重 build + 重渲染 → 重派 audience | `dispatch_audience` → 回 row 6 |
-| – | brainstorm 返回 `dispatch_template_extractor`(Phase A 期间用户给了 .pptx 模板路径) | `Task(iloveppt-template-extractor, args={template_path, name})` → 完整 ingest 入 `library/pptx-templates/items/<name>/` → 用户审 draft → 主线程跑 embed_text/embed_image 入库 → `SendMessage(brainstorm team, extractor_summary)` | happy path:extractor return `user_review_drafts`;失败兜底:return `dispatch_brainstorm` |
+| – | 用户在 Phase A 给 .pptx 模板路径 | 不派 agent(extractor 已退役):brainstorm 记 brief.theme=<path>,builder 构建时 `load_theme()` 自动提取 token | — |
 | – | critic cd `needs_revision` | `Task(iloveppt-author, args={stage: "D_rework", critic_report: "critic/deck_v1_critic_cd.r{R}.md"})` | 同 author Stage D |
 
 ---
@@ -389,7 +389,7 @@ brainstorm 在返回 `dispatch_author` **之前**必须完成两步 + self-audit
 
 ## §3. Phase B 协议(subagent 流水线)
 
-**适用范围**:author / critic / iloveppt-builder / audience / extractor 这 5 个 agent。
+**适用范围**:author / critic / iloveppt-builder / iloveppt-designer / audience 这 5 个 agent(+ research 旁路)。
 
 ### §3.1 Task 调用方式
 
@@ -471,34 +471,9 @@ yaml-fixer return:
 - yaml-fixer 修完后**必须**经主线程重 parse 验证;不允许 yaml-fixer 自己声明"修好了"绕过 parse
 - 同一份 yaml 最多派 yaml-fixer **1 次**(防死循环);第二次仍 fail → abort
 
-#### §3.7.2 self-check 批量校验 dispatch
+#### §3.7.2 主流水线 vs Haiku helper 隔离
 
-**触发**:extractor 一次入 N 个模板(brainstorm Phase A 时用户连给多份 .pptx) / 主线程要批量校验已 ingest 的 items / pre-commit 风格的 CI 校验。
-
-**流程**:
-
-```
-主线程列出 N 个待校验 target(items 目录 / content.md / 其他)
-   ↓
-并行派 self-check(单次最多 5 实例,按 §0 并行规则):
-  Task(iloveppt-self-check, args={check_type, targets: [batch]})
-   ↓
-self-check return 每条 target 的 pass/fail + failures 列表
-   ↓
-主线程按 suggestion 分流:
-  - needs_yaml_fix → §3.7.1 yaml-fixer
-  - needs_extractor_rerun → 重派 extractor
-  - hard_stop → 展示用户三选一
-```
-
-**约束**:
-- self-check **不修文件**,只跑校验 + 解析;修文件是 yaml-fixer 或 extractor 的边界
-- self-check 单 Task 内**串行**跑 targets,要并行就主线程派多个 self-check Task(各自 fresh context)
-- self-check 不解释"为什么 schema fail",只复述脚本 stdout
-
-#### §3.7.3 主流水线 vs Haiku helper 隔离
-
-- **主流水线 6 agent 链路上**(brainstorm → author → critic → builder → audience + extractor 旁路):**禁止**链路上的 agent 派 Haiku helper(那是主线程的活,subagent 不能起 subagent)
+- **主流水线 agent 链路上**(brainstorm → author → critic → builder|designer → audience):**禁止**链路上的 agent 派 Haiku helper(那是主线程的活,subagent 不能起 subagent)
 - **主线程派发表 §1** 不变(7 步流水线全是 Opus agent)
 - Haiku helpers 只活在**主线程的错误恢复 / 工程批处理**层
 
@@ -511,7 +486,7 @@ self-check return 每条 target 的 pass/fail + failures 列表
 每个 agent return 的最后 yaml block 必须含:
 
 ```yaml
-agent: <agent-name>          # 谁返回的(brainstorm/author/critic/iloveppt-builder/audience/extractor)
+agent: <agent-name>          # 谁返回的(brainstorm/author/critic/iloveppt-builder/iloveppt-designer/audience)
 status: ok | error           # 这轮跑没跑成
 next_action: <enum>          # 主线程下一步该做什么(见各 agent 枚举)
 errors: []                   # status=error 时填,数组每项含 code/message/suggestion
@@ -527,12 +502,9 @@ artifacts:                   # 本轮产物(可空)
 | agent | next_action | 主线程动作 |
 |---|---|---|
 | brainstorm (team) | `ask_user` | 转发 message_to_user + questions 原文给用户 |
-| brainstorm (team) | `dispatch_template_extractor` | Task(iloveppt-template-extractor),return 后 SendMessage 回 brainstorm team |
 | brainstorm (team) | `dispatch_author` | **关闭 brainstorm team**,用 brainstorm yaml 里 `author_dispatch_preview` 直接派 author Stage C(无中间 critic Stage B,self-audit 已并入) |
 | brainstorm (team) | `needs_self_revision` | 新增 · brief self-audit 5 项有 fail / high severity;主线程展示 must_fix → 用户改 brief 或续 dialog → SendMessage 回 brainstorm |
-| brainstorm (team) | `terminate` | 用户在 `[system] template_extractor_failed` 兜底分支选了"终止",关 team,告知用户任务终止 |
-| extractor | `user_review_drafts` | 展示 `.draft` 路径给用户审 → 用户改完 → 主线程跑 `embed_text` + `embed_image` 入库 → SendMessage 回 brainstorm team(传 extractor 摘要) |
-| extractor | `dispatch_brainstorm` | 失败兜底:SendMessage 给仍在线的 brainstorm team(摘要含 `[system] template_extractor_failed` 前缀);若 team 已关 → 先 TeamCreate 重启 |
+| brainstorm (team) | `terminate` | 用户选择终止,关 team,告知用户任务终止 |
 | author | `ask_user_for_outline_approval` | 给 outline.md 路径,等用户 OK |
 | author | `ask_user_for_content_approval` | 给 content.md 路径,等用户 OK |
 | author | `ask_user` | 大改决策点(改动跨 ≥ 3 页 / 顶端论点变 / 章节增删 / 用户说"重做"):转发 message_to_user 问用户"v{N} 上 Edit"或"开 v{N+1} 平行版本" |
@@ -696,56 +668,7 @@ visual_step4:                       # Step 4 三路 + RAG 第 4 路状态
     cairosvg: enabled | disabled
     unsplash: enabled | disabled
     brand_assets: <count> | none
-    rag_patterns: <count>_available  # patterns 库当前可用数(库为空时 0_available)
-  rag_fallback_used:                # 第 4 路实际使用(三路降级 + 该页 visual_qa 低分时)
-    - page: 6
-      pattern_id: cards-flag-3
-      preview_path: library/visual-patterns/items/cards-flag-3/preview.png
-      usage: hero_reference | reference_only
 ```
-
-**extractor 必加字段**:
-```yaml
-agent: iloveppt-template-extractor
-status: ok | error
-next_action: user_review_drafts | dispatch_brainstorm   # happy=user_review_drafts, 失败兜底=dispatch_brainstorm
-artifacts:
-  - path: <abs path to library/pptx-templates/_source/<name>.pptx>
-    kind: source_pptx
-  - path: <abs path to library/pptx-templates/items/<name>/preview.png>
-    kind: cover_thumbnail
-template_ready: false                                   # happy 也是 false(还差用户审 + embed);完成入库后才 true
-
-# === Step 2.5 advisory(declared/rendered 对账)===
-declared_pages: 39                                      # unzip -p .pptx ppt/presentation.xml | grep -oc '<p:sldId '
-rendered_pages: 32                                      # ls items/<name>/pages/*/preview.png | wc -l
-discrepancy: 7                                          # declared - rendered;非 0 时 summary 必提示用户审
-discrepancy_resolution: pending                         # pending | confirmed_tool_pages | confirmed_real_loss
-                                                        # 严禁 agent 自己解释为 "hidden/master/layout slides"(全是历史幻觉)
-
-# === Step 3 聚合 ===
-low_confidence_pages: [3, 7]                            # 页号数组(非整数);confidence < 0.6 的页
-failed_pages: []                                        # Read 失败的页号(非空时 status 应为 error 或 partial)
-
-drafts:                                                 # happy path 必填 — 主线程展示 .draft 列表给用户审
-  - library/pptx-templates/items/<name>/meta.yaml.draft
-  - library/pptx-templates/items/<name>/pages/<NN-slug>/meta.yaml.draft
-
-summary: |
-  <name> 渲染 K/N 页(若 discrepancy 非 0 必提示),起草 1 个 template-level + K 个 per-page meta.yaml.draft
-  ⚠️ 低置信度页:第 03 / 07 页,请优先审
-  失败时 summary 用 [system] template_extractor_failed 前缀,主线程整段转给 brainstorm 走兜底分支
-```
-
-**extractor error code 枚举**(`status: error` 时 `errors[].code` 必从下方选):
-| code | 含义 | 主线程行为 |
-|---|---|---|
-| `NAME_INVALID_CHARS` | name 含 `__`(跟 page id 分隔符冲突) | 让用户改名重派 |
-| `PPTX_CORRUPTED` | unzip 失败,.pptx 损坏 | 让用户重新提供文件 |
-| `RENDER_CLI_NOT_FOUND` | soffice/pdftoppm 不在 PATH | 报环境问题 |
-| `RENDER_TOTAL_FAILURE` | LibreOffice 渲染 0 页 | 报环境问题 |
-| `PAGE_READ_TIMEOUT` | 某页 Read PNG timeout | 可重派 |
-| `SCHEMA_VALIDATION_FAILED` | Step 3.3 self-check 失败(YAML 语法 / 必填字段缺 / enum 违规 / id 重复 / confidence 非数字) | 不放行,详见 errors[].message |
 
 **author 必加字段**(含 dispatch_self_stage_d):
 ```yaml

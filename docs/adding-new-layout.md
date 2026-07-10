@@ -175,13 +175,12 @@ def test_make_<layout_type>_renders():
 - **方式 A**:在 `themes/<theme>.py` 写 `def make_<layout_type>(prs, ...)` —— `get_layout_func()` 会优先用 theme module 的,plugin 是 fallback
 - **方式 B**:同 layout_type 在 `helpers/<theme>_<layout_type>.py` 再写一次 `@register_layout("<layout_type>")` —— 后注册覆盖。**不推荐**:registry 全局,影响所有 theme
 
-### 6. RAG 词典 / 模板 sync(可选 · 长期生效需做)
+### 6. 受控词典 sync(可选 · 让 author 主动选到)
 
-如要让 author / iloveppt-builder 主动选这个 layout,还要:
+如要让 author 主动选这个 layout,还要:
 
 1. **`library/vocabularies/layout_variants.yaml`** 加 enum:`<layout_type>` + variants(如 `swot_grid` 加 `2x2` / `tier-3` / `tier-4`)
-2. **`library/pptx-templates/items/<theme>/pages/<NN>/meta.yaml`** 模板里若有现成实例 → 改 layout_type = `<layout_type>` 让 ingest 重 embed
-3. **`library/visual-patterns/` kb** 加 pattern doc 让 author Stage D 检索时能命中
+2. **`content-writing.md` 字数表**若新 layout 有文字字段 → 补一行字数上限(critic B7 依赖)
 
 ## 现有 17 个 plugin 速查
 

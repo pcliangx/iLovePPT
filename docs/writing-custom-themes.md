@@ -2,7 +2,7 @@
 
 > 当你需要 PPT 视觉**完全跟着模板走**(封面 hero 图、章节扉页特殊布局、卡片精致圆角阴影、品牌装饰元素)—— Tier 1 的"提取色 + 字 + 素材"不够,你需要写 `themes/<your_template>.py`。
 
-⚠️ **这是 1-3 天人工投入**。先看 Tier 1 [`library/pptx-templates/ingest_workflow.md`](../library/pptx-templates/ingest_workflow.md) 够不够,真不够再走 Tier 2。
+⚠️ **这是 1-3 天人工投入**。先看轻量路径够不够:`load_theme(<你的模板>.pptx)` 自动提取主色 / 字体 / 字号阶梯(build.py 内置,零人工),真不够再走本文的完整 theme。
 
 ## 工作量预估
 

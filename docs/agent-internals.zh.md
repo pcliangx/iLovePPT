@@ -6,6 +6,13 @@
 >
 > **运行时活协议(权威)**:[`${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md`](${CLAUDE_PROJECT_DIR}/.claude/pipeline-protocol.md)
 
+> ⚠️ **v0.15+ Phase 0 大切除后本文部分过时**:RAG 双知识库(search.sh / _rag /
+> pptx-templates / visual-patterns)、tier1 deep-copy、extractor + self-check、
+> slot_ids / categories 词典均已**退役删除**;critic 现为 20 项(A7+B9+J4)、
+> theme 为 yaml token + 17 layout plugin 三层分发、新增 designer(4-track)/
+> research 旁路 agent。**以 CLAUDE.md + pipeline-protocol.md + 各 agent 文件为准**;
+> 本文涉及上述退役机制的章节仅作历史参考。
+
 ---
 
 ## 目录
