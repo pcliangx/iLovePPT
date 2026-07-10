@@ -1,19 +1,17 @@
 # library/vocabularies/keywords_bank.yaml
 # keywords_bank · 按 category 分桶的受控词典
 #
-# 用途:
-#   - meta.yaml.keywords 必须从所属 category 桶里选词,不允许自由发明
-#   - 词条覆盖 中文 / 英文 / 同义词 / 行业黑话,保证跨模板一致
-#   - EXPANSION_HINTS (library/_rag/expansion_hints.yaml) 与本 SSOT 派生但保持独立
+# 用途(Phase 0 RAG 退役后唯一活消费者):
+#   - iloveppt-research(素材补给旁路 agent)按 deck 主题所属桶扩展搜索词
+#   - 词条覆盖 中文 / 英文 / 同义词 / 行业黑话
 #
 # 维护规则:
-#   - category enum 必须跟 categories.yaml 对齐(13 个 category)
-#   - 增/改词典 → 7 模板 retrofit + 跑 library/_rag/bench.py 防回归
-#   - 删词条 → 需扫一遍 7 模板 meta.yaml 看是否仍被引用
+#   - 新词走 PR review 入桶,不 inline 发明
 #   - 每个桶目标 20-40 词;同 category 下尽量覆盖 中文 + 英文 + 缩写 + 行业黑话
+#   - 桶名(enterprise-finance 等)是本文件自身的 enum,增删桶名 = schema 变更需 review
 #
-# 派生统计(2026-05-27 v1):
-#   - 13 buckets · ~340 keywords · 已扫齐现 7 模板 keywords + categories.yaml example_queries
+# 历史注记:原 RAG 消费链(meta.yaml.keywords / EXPANSION_HINTS / bench.py / 
+# categories.yaml 对齐)已随 Phase 0 切除;13 buckets · ~340 keywords 保留。
 
 # === 企业类(细分 6 桶)===
 

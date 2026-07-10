@@ -19,10 +19,15 @@ Usage:
 Parsing rules:
 - frontmatter (---...---) 解析:取 theme / output / footer_meta
 - `## N. <action title>` 章节 → slide(layout 来自下一行 `<!-- layout: X -->` 注释)
-- `<!-- pattern: X -->` 注释 → slide.pattern_id 字段
+- `<!-- pattern: X -->` 注释(RAG 已退役)→ **忽略**,不进 plan(传给 make_* 会 TypeError)
 - 章节正文 bullet (`- ...`) → slide.items 或 slide.bullets
 - 章节正文 image (`![alt](path)`) → slide.image_path
 - 表格 (`| ... | ... |`) → slide.table_rows
+
+Layout 校验(best-effort):derive 后对每页 layout 跑 tier2 三层解析
+(theme yaml mapping / module make_* / LayoutRegistry plugin),三层全 miss 的
+layout 记 `_warnings_unrenderable_layout` + stderr 警告;`--strict` 时直接 exit 1
+(在 author 写完 content 就拦住自造 layout 名,不等 build 期撞 tier3)。
 
 Output schema (与 build.py 兼容):
   {
@@ -34,7 +39,6 @@ Output schema (与 build.py 兼容):
     "derived_at": "<ISO timestamp>",
     "slides": [
       {"layout": "cover", "title": "...", ...},
-      {"layout": "<X>", "title": "...", "pattern_id": "vp:...", ...},
       ...
     ]
   }
@@ -58,7 +62,6 @@ FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.S)
 CHAPTER_HEADING_RE = re.compile(r"^##\s+(\d+)\.\s+(.+?)\s*$", re.M)
 SPECIAL_HEADING_RE = re.compile(r"^##\s+\[([a-z_]+)\]\s*(.*?)\s*$", re.M)
 LAYOUT_DIRECTIVE_RE = re.compile(r"<!--\s*layout:\s*([a-z_]+)\s*-->")
-PATTERN_DIRECTIVE_RE = re.compile(r"<!--\s*pattern:\s*([^>]+?)\s*-->")
 BULLET_RE = re.compile(r"^[-*]\s+(?:\*\*(.+?)\*\*[\s:：]*)?(.+?)\s*$", re.M)
 IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
 TABLE_ROW_RE = re.compile(r"^\|(.+)\|\s*$", re.M)
@@ -146,7 +149,6 @@ def parse_chapters(text: str) -> list[dict[str, Any]]:
 
         # Find layout directive in first few lines (must be on a line by itself or after heading)
         layout_m = LAYOUT_DIRECTIVE_RE.search(section_text)
-        pattern_m = PATTERN_DIRECTIVE_RE.search(section_text)
 
         slide: dict[str, Any] = {
             "kind": kind,
@@ -164,9 +166,6 @@ def parse_chapters(text: str) -> list[dict[str, Any]]:
             slide["layout"] = num_or_name
         else:
             slide["layout"] = None  # caller may flag as missing_layout_directive
-
-        if pattern_m:
-            slide["pattern_id"] = pattern_m.group(1).strip()
 
         slides.append(slide)
 
@@ -204,8 +203,6 @@ def derive_slide_fields(slide: dict[str, Any]) -> dict[str, Any]:
     title = slide.get("title", "")
 
     out: dict[str, Any] = {"layout": layout, "title": title}
-    if "pattern_id" in slide:
-        out["pattern_id"] = slide["pattern_id"]
 
     bullets = extract_bullets(body)
     image_path = extract_image_path(body)
@@ -269,6 +266,41 @@ def derive_slide_fields(slide: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def validate_layouts(plan: dict[str, Any]) -> list[dict[str, Any]]:
+    """best-effort layout 可渲染性校验(tier2 三层:theme yaml mapping / module
+    make_* / LayoutRegistry plugin)。
+
+    返回三层全 miss 的 slide 列表 [{page, layout, title}];theme 加载失败时返回
+    [{"error": ...}] 单元素列表(调用方降级为警告,不阻塞 derive)。
+    """
+    repo = Path(__file__).resolve().parents[1]
+    for p in (repo / ".claude" / "skills" / "pptx-deck",
+              repo / ".claude" / "skills" / "pptx"):
+        if str(p) not in sys.path:
+            sys.path.insert(0, str(p))
+    try:
+        from build import load_theme  # noqa: PLC0415
+        from builder.base import parse_theme  # noqa: PLC0415
+        from builder.tier2 import resolve_layout_fn  # noqa: PLC0415
+        theme_id = parse_theme(plan["theme"]).default
+        mod = load_theme(theme_id)
+    except Exception as e:  # noqa: BLE001 — 校验是 advisory,不因环境问题阻塞 derive
+        return [{"error": f"layout 校验跳过(theme 加载失败): {e!r}"}]
+
+    bad: list[dict[str, Any]] = []
+    for i, s in enumerate(plan["slides"], 1):
+        layout = s.get("layout")
+        if not layout:
+            continue  # missing directive 由 _warnings_missing_layout 单独报
+        try:
+            fn, _ = resolve_layout_fn(mod, layout)
+        except ValueError:
+            fn = None  # yaml 声明但 module 缺实现 — 同样不可渲染
+        if fn is None:
+            bad.append({"page": i, "layout": layout, "title": s.get("title", "")})
+    return bad
+
+
 def derive_plan(content_md_path: Path, output_path: Path | None = None) -> dict[str, Any]:
     text = content_md_path.read_text(encoding="utf-8")
 
@@ -302,6 +334,11 @@ def derive_plan(content_md_path: Path, output_path: Path | None = None) -> dict[
     if missing:
         plan["_warnings_missing_layout"] = [s["title"] for s in missing]
 
+    # Flag unrenderable layouts(tier2 三层全 miss · advisory)
+    bad = validate_layouts(plan)
+    if bad:
+        plan["_warnings_unrenderable_layout"] = bad
+
     return plan
 
 
@@ -325,6 +362,11 @@ def main() -> int:
         action="store_true",
         help="Print JSON to stdout, do not write file.",
     )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="缺 layout 注释 / layout 三层不可渲染 → exit 1(author 自检 / CI 用)。",
+    )
     args = parser.parse_args()
 
     if not args.content_md.exists():
@@ -347,13 +389,29 @@ def main() -> int:
     else:
         output_path.write_text(plan_json + "\n", encoding="utf-8")
         print(f"derived plan written: {output_path}", file=sys.stderr)
-        if plan.get("_warnings_missing_layout"):
+
+    if plan.get("_warnings_missing_layout"):
+        print(
+            f"⚠️  {len(plan['_warnings_missing_layout'])} chapter(s) missing "
+            f"`<!-- layout: X -->` directive: {plan['_warnings_missing_layout']}",
+            file=sys.stderr,
+        )
+    unrenderable = plan.get("_warnings_unrenderable_layout") or []
+    for w in unrenderable:
+        if "error" in w:
+            print(f"⚠️  {w['error']}", file=sys.stderr)
+        else:
             print(
-                f"⚠️  {len(plan['_warnings_missing_layout'])} chapter(s) missing "
-                f"`<!-- layout: X -->` directive: {plan['_warnings_missing_layout']}",
+                f"⚠️  page {w['page']} layout={w['layout']!r} 三层不可渲染"
+                f"(theme mapping / make_* / plugin 全 miss): {w['title']}",
                 file=sys.stderr,
             )
 
+    if args.strict and (
+        plan.get("_warnings_missing_layout")
+        or any("error" not in w for w in unrenderable)
+    ):
+        return 1
     return 0
 
 
