@@ -15,18 +15,9 @@ jobs:
       - name: Install main deps
         run: pip install -e ".[diagram,dev]"
 
-      - name: Main pytest (non-RAG)
+      - name: Main pytest
+        # 全量测试(tests/library 已并入;历史 RAG venv 步骤随 Phase 0 退役删除)
         run: python -m pytest -q
-
-      - name: RAG venv + subset tests
-        # TODO: 翻成 false 一旦首次 ubuntu CI 跑确认 sqlite-vec manylinux wheel 可装。
-        # 暂 tolerant:避免 wheel 不兼容时整个 job 红 X 拖垮 CI 可信度。
-        continue-on-error: true
-        run: |
-          python3 -m venv library/_rag/.venv
-          library/_rag/.venv/bin/pip install -r library/_rag/requirements.txt
-          library/_rag/.venv/bin/pip install -e ".[diagram,dev]"
-          library/_rag/.venv/bin/python -m pytest tests/library -q
 
       - name: Secret scan (block sk- keys)
         run: |

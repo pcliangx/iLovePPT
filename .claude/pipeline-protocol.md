@@ -619,9 +619,8 @@ agent: iloveppt-critic
 status: ok
 next_action: pass | pass_with_notes | needs_revision
 scores:                              # P0-1 · 机器可读 · validate_agent_return.py 据此重算 verdict
-  - {id: A1, severity: 0}            # 21 项全列(A1-A7 + B1-B9 + J1-J5)· severity int 0-3
-  # ...(其余 20 项)
-  - {id: J5, severity: 0}            # J5 advisory · 不计入 verdict 重算
+  - {id: A1, severity: 0}            # 20 项全列(A1-A7 + B1-B9 + J1-J4)· severity int 0-3
+  # ...(其余 19 项)
 stage: cd
 verdict: pass | pass_with_notes | needs_revision  # 等同 next_action,冗余便于读
 artifacts:
@@ -640,7 +639,7 @@ suggested_alternative_patterns:     # advisory(用户 cherry-pick 才采纳)
     reason: "4A 不是并列而是因果矩阵(2 类风险 × 2 类应对),matrix-2x2 更准"
 ```
 
-> `scores` 是 report .md 里 21 项量化 severity 的机器可读镜像;`issues`(high/med/low)是人读摘要。verdict 由 `scores` 按 critic-rubric.yaml 公式算(A1-A7 + B1-B9 + J1-J4,J5 除外)。
+> `scores` 是 report .md 里 20 项量化 severity 的机器可读镜像;`issues`(high/med/low)是人读摘要。verdict 由 `scores` 按 critic-rubric.yaml 公式算(A1-A7 + B1-B9 + J1-J4;历史 J5 已随 RAG 退役)。
 
 **audience 必加字段**(含 Step 0 spot-check):
 ```yaml
