@@ -235,7 +235,7 @@ deck 走哪条渲染轨?先解释四轨差别 + 给**推荐默认**(基于 brief
 
 **可行性 gate**(选完即查,不让用户选完才发现跑不动):
 - track=html → `node --version` + `npx playwright --version` 可调?否 → 警告 + 建议 pptx 或 lark-slides
-- track=lark-slides/lark-whiteboard → `lark-cli auth status`(`--domain slides` / 已登录)?未 auth → 警告 + 提示 `lark-cli auth login --domain slides`,建议先 auth 或退 pptx
+- track=lark-slides/lark-whiteboard → `lark-cli auth status`(统一 OAuth · 已登录)?未 auth → 警告 + 提示 `lark-cli auth login`,建议先 auth 或退 pptx
 
 ### theme 字段(纯 yaml catalog · RAG 已退役)
 
