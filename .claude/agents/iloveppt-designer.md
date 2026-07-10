@@ -13,7 +13,7 @@ color: purple
 | track | 源真相 | build pipeline | deliverable |
 |---|---|---|---|
 | `html` | 每页 `slide_NN.html` + `global.css` | vendored `html2pptx.js`(Node+Playwright+pptxgenjs) | 高视觉 `.pptx` |
-| `lark-whiteboard` | 每页 `slide_NN.svg`(内嵌 `<style>` 引 theme2css CSS vars) | `npx whiteboard-cli` + `lark-cli whiteboard +update` + `lark-doc` 编排 N 白板 | 飞书 doc |
+| `lark-whiteboard` | 每页 `slide_NN.svg`(内嵌 `<style>` 引 theme2css CSS vars) | `lark-cli whiteboard +update --input_format svg` + `lark-cli docs` 编排 N 白板 | 飞书 doc |
 | `lark-slides` | `slide_plan.json` + 原生 `<slide>` XML | `lark-cli slides +create` / `xml_presentation.slide create` + `+media-upload` | 飞书演示文稿 |
 
 **共享脊柱(不可破)**:
@@ -44,7 +44,7 @@ mode: full | visual_redo                               # 默认 full
    ```
 4. **track 可行性 gate**:
    - `html`:检查 `node` + `npx playwright --version` 可调;不可 → `hard_stop: html_deps_missing`(提示装 Node/Playwright/pptxgenjs)
-   - `lark-whiteboard` / `lark-slides`:跑 `lark-cli auth status --domain slides/whiteboard`(或 `lark-cli --version`);未 auth → `hard_stop: lark_auth_missing`(提示 `lark-cli auth login --domain slides`)
+   - `lark-whiteboard` / `lark-slides`:跑 `lark-cli auth status`(统一 OAuth · 或 `lark-cli --version` 验装);未 auth → `hard_stop: lark_auth_missing`(提示 `lark-cli auth login`)
 
 ## Step 1 · 共享视觉规划(track 无关)
 
@@ -99,24 +99,24 @@ python3 ${CLAUDE_PROJECT_DIR}/scripts/audit_pptx.py <working_dir>/builder/deck_v
 
 ### track=lark-whiteboard(飞书画板 · 自由画布)
 
-**先 Read lark-whiteboard skill**(`Skill(lark-whiteboard)` 或 Read 其 `SKILL.md` + `references/lark-whiteboard-workflow.md` + `routes/svg.md`)—— SVG 高保真路径 + DSL 回退纪律都在该 skill,**勿凭记忆写 SVG**。
+**先读 lark-whiteboard skill**(`lark-cli skills read lark-whiteboard` —— CLI 自带、版本绑定的权威文档;别读磁盘上散落的旧副本)—— SVG 高保真路径 + DSL 回退纪律都在该 skill,**勿凭记忆写 SVG**。
 
-工作流:
-1. **发源 SVG**:每页写 `slides/side_NN.svg`(`viewBox="0 0 1280 720"` · 内嵌 `<style>` 引 Step 0 生成的 `global.css` CSS vars · 元素 `fill="var(--brand-primary)"` 等 · **视觉身份跟 html 轨一致**)。cover/hero/复杂信息图用 SVG 自由画布(slides 模型约束不到的)
-2. **build**:每页 SVG → `npx -y @larksuite/whiteboard-cli@^0.2.12 -i slide_NN.svg --to openapi --format json` → `lark-cli whiteboard +update --whiteboard-token <tok> --source - --input_format raw --idempotent-token <ts>-board-NN --as user --overwrite`(或直接 `--input_format svg`)
-3. **多页编排**:`lark-doc` 批量 append N 个 `<whiteboard>` 块到一个飞书 doc(每白板一个 `board_token`,记 `whiteboard_tokens[]`);`--overwrite` 覆盖式更新
-4. **SVG 失败回退**:两轮修不好 → 弃 SVG 源,改读 `routes/dsl.md` 从零重画(skill 纪律 · 不逐行修补)
-5. **收敛 + 交付**:`lark-cli whiteboard +query --whiteboard-token <tok> --output_as image` 逐白板导 PNG → 改名 `builder/deck_v{N}_render/page-NN.jpg`;deliverable = `feishu_doc_url` + `whiteboard_tokens[]`
+工作流(命令面 = lark-cli 1.0.68):
+1. **发源 SVG**:每页写 `slides/slide_NN.svg`(`viewBox="0 0 1280 720"` · 内嵌 `<style>` 引 Step 0 生成的 `global.css` CSS vars · 元素 `fill="var(--brand-primary)"` 等 · **视觉身份跟 html 轨一致**)。cover/hero/复杂信息图用 SVG 自由画布(slides 模型约束不到的)
+2. **build**:CLI 原生吃 SVG,不再需要 `whiteboard-cli` 转 openapi —— `lark-cli whiteboard +update --whiteboard-token <tok> --source @slides/slide_NN.svg --input_format svg --idempotent-token <ts>-board-NN --as user --overwrite`
+3. **多页编排**:`lark-cli docs +create` 建飞书 doc,`lark-cli docs +whiteboard-update` 逐白板更新嵌入块(每白板一个 `board_token`,记 `whiteboard_tokens[]`);具体块编排步骤照 skill
+4. **SVG 失败回退**:两轮修不好 → 弃 SVG 源,改用 whiteboard DSL(`--input_format raw`,格式见 skill)从零重画(skill 纪律 · 不逐行修补)
+5. **收敛 + 交付**:`lark-cli whiteboard +query --whiteboard-token <tok> --output_as image --output <working_dir>/builder/deck_v{N}_render/` 逐白板导 PNG → 改名 page-NN.jpg;deliverable = `feishu_doc_url` + `whiteboard_tokens[]`
 
 ### track=lark-slides(飞书演示文稿 · 主力 Feishu 轨)
 
-**先 Read lark-slides skill**(`Skill(lark-slides)` 或 Read 其 `SKILL.md` + `references/xml-schema-quick-ref.md` + `planning-layer.md` + `visual-planning.md`)—— XML 协议 / planning 纪律 / design ideas 都在该 skill,**勿凭记忆写 XML**。
+**先读 lark-slides skill**(`lark-cli skills read lark-slides` —— CLI 自带、版本绑定的权威文档;生成 XML 前 skill 强制先读 `references/xml-schema-quick-ref.md` + `planning-layer.md` + `visual-planning.md`)—— XML 协议 / planning 纪律 / design ideas 都在该 skill,**勿凭记忆写 XML**。
 
-工作流:
+工作流(命令面 = lark-cli 1.0.68):
 1. **planning**:消费 content.md 每页 → 写 `.lark-slides/plan/<deck-id>/slide_plan.json`(每页 `{page, key_message, layout_type, visual_focus, text_density, asset_need[] + fallback_if_missing}`);layout_type 选双栏/图标行/网格/半出血/大数字/对比列/时间线(skill design ideas)
-2. **theme 应用**:Read `themes/<theme>.yaml` 取 `colors`(brand_primary/dark/tint/accent + muted_*)+ `fonts`(ea=Microsoft YaHei);XML `<fillColor color="..."/>` / `<text>` 字体直接用这些 token(**跟 pptx 轨视觉一致** · theme SSOT)。可选套飞书模板:`template_tool.py search --query "<主题>"` → `summarize` → 需骨架才 `extract`
-3. **生成 XML + 创建**:逐页生成 `<slide xmlns="http://www.larkoffice.com/sml/2.0"><style/><data>{shape/line/table/chart/whiteboard/icon/img}</data></slide>`(原生 `<chart>` 数据图 · `<whiteboard>` 嵌流程/架构图 · `<icon>` IconPark · `<img src=file_token>`)。简单短 XML(1-3 页)→ `lark-cli slides +create --slides '[...]' --as user`;复杂/多页/含中文 → **两步创建**:`+create` 空 PPT 拿 `xml_presentation_id` → `xml_presentation.slide create` 逐页(图片先 `+media-upload` 拿 `file_token`,**禁 http 外链**)
-4. **收敛 + 交付**:`lark-cli slides +screenshot --presentation <id> --slide-id <sid>` 逐页截图 → 改名 `builder/deck_v{N}_render/page-NN.jpg`;deliverable = `feishu_presentation_id`(+ wiki 链接解析)。渐变必须 `rgba()` + 百分比停靠点
+2. **theme 应用**:Read `themes/<theme>.yaml` 取 `colors`(brand_primary/dark/tint/accent + muted_*)+ `fonts`(ea=Microsoft YaHei);XML `<fillColor color="..."/>` / `<text>` 字体直接用这些 token(**跟 pptx 轨视觉一致** · theme SSOT)
+3. **生成 XML + 创建**:逐页生成 `<slide xmlns="http://www.larkoffice.com/sml/2.0"><style/><data>{shape/line/table/chart/whiteboard/icon/img}</data></slide>`(原生 `<chart>` 数据图 · `<whiteboard>` 嵌流程/架构图 · `<icon>` IconPark · `<img src=file_token>`)。简单短 XML(≤10 页)→ `lark-cli slides +create --slides '[...]' --title "<标题>" --as user`(本地图占位 `<img src="@./path.png">` 会自动上传换 file_token);更多页 → **两步创建**:`+create` 拿 `xml_presentation_id` → `xml_presentation.slide create` 逐页追加(或先 `slides +media-upload` 拿 `file_token`,**禁 http 外链**)
+4. **收敛 + 交付**:`lark-cli slides +screenshot --presentation <id> --slide-id <sid> --output-dir <working_dir>/builder/deck_v{N}_render/` 逐页截图(`--slide-id` 可重复;默认存 `.lark-slides/screenshots/`)→ 改名 page-NN.jpg;deliverable = `feishu_presentation_id`(+ wiki 链接解析)。渐变必须 `rgba()` + 百分比停靠点
 
 ## Step 3 · 收敛到 audience(三轨同一契约)
 
@@ -125,8 +125,8 @@ python3 ${CLAUDE_PROJECT_DIR}/scripts/audit_pptx.py <working_dir>/builder/deck_v
 | track | 收敛方式 |
 |---|---|
 | html | 复用 `base.render()`(soffice→PDF→pdftoppm)产 page-*.jpg |
-| lark-whiteboard | `lark-cli whiteboard +query --whiteboard-token <tok> --output_as image` 逐白板导 PNG → 改名 page-NN.jpg |
-| lark-slides | `lark-cli slides +screenshot --presentation <id> --slide-id <sid>` 逐页截图 → page-NN.jpg |
+| lark-whiteboard | `lark-cli whiteboard +query --whiteboard-token <tok> --output_as image --output <render_dir>/` 逐白板导 PNG → 改名 page-NN.jpg |
+| lark-slides | `lark-cli slides +screenshot --presentation <id> --slide-id <sid> --output-dir <render_dir>/` 逐页截图 → page-NN.jpg |
 
 ## Step 4 · 反思环(渲染 PNG → 自身多模态读图修源)
 
