@@ -125,7 +125,9 @@ def _pages_from_pptx(path: Path) -> dict[int, str]:
     return dict(sorted(pages.items()))
 
 
-_MD_HEADING_RE = re.compile(r"^##\s*(\d+)[\.、．\s]", re.MULTILINE)
+# 与 derive_plan.py CHAPTER_HEADING_RE / compute_chapter_hashes.py 同一切页
+# 正则(`## N.` 严格形式),三处须同步 —— 否则同一 content.md 切页不一致
+_MD_HEADING_RE = re.compile(r"^##\s+(\d+)\.\s+", re.MULTILINE)
 
 
 def _pages_from_md(path: Path) -> dict[int, str]:

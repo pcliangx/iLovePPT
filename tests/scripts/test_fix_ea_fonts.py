@@ -109,3 +109,29 @@ def test_idempotent(tmp_path):
     fix_ea_fonts.fix_pptx(deck, out1)
     stats2 = fix_ea_fonts.fix_pptx(out1, out2)
     assert stats2 == {}  # 已修过的 run 不再动
+
+
+def test_empty_ea_typeface_repaired(tmp_path):
+    """`<a:ea typeface=""/>` 与缺元素等价(audit 判 ERROR)—— fix 必须能清掉,
+    否则 audit 持续红而 fix 报 0 修复(修前形态)。"""
+    import zipfile
+    from lxml import etree
+    deck = _deck(tmp_path, [("季度营收", "Arial")])
+    doctored = tmp_path / "doctored.pptx"
+    with zipfile.ZipFile(deck) as zin, zipfile.ZipFile(doctored, "w") as zout:
+        for info in zin.infolist():
+            data = zin.read(info.filename)
+            if info.filename == "ppt/slides/slide1.xml":
+                root = etree.fromstring(data)
+                latin = root.find(f".//{{{fix_ea_fonts.A_NS}}}latin")
+                ea = etree.Element(f"{{{fix_ea_fonts.A_NS}}}ea")
+                ea.set("typeface", "")
+                latin.addnext(ea)
+                data = etree.tostring(root, xml_declaration=True,
+                                      encoding="UTF-8", standalone=True)
+            zout.writestr(info, data)
+    assert _font_errors(doctored) == 1  # 空 typeface 的 ea 仍是 ERROR
+    out = tmp_path / "fixed.pptx"
+    stats = fix_ea_fonts.fix_pptx(doctored, out)
+    assert sum(stats.values()) == 1
+    assert _font_errors(out) == 0

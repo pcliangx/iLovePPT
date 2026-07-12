@@ -59,6 +59,8 @@ from typing import Any
 
 # ---- regex ----
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.S)
+# 切页正则 SSOT 形式(`## N.`);check_source_fidelity.py / compute_chapter_hashes.py
+# 用同款,三处须同步
 CHAPTER_HEADING_RE = re.compile(r"^##\s+(\d+)\.\s+(.+?)\s*$", re.M)
 SPECIAL_HEADING_RE = re.compile(r"^##\s+\[([a-z_]+)\]\s*(.*?)\s*$", re.M)
 LAYOUT_DIRECTIVE_RE = re.compile(r"<!--\s*layout:\s*([a-z_]+)\s*-->")

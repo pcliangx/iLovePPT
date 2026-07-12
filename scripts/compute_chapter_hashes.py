@@ -35,6 +35,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+# 与 derive_plan.py CHAPTER_HEADING_RE / check_source_fidelity.py 同款切页
+# 正则,三处须同步
 CHAPTER_HEADING_RE = re.compile(r"^##\s+(\d+)\.\s+(.+)$", re.M)
 
 

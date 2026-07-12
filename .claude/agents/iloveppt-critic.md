@@ -215,7 +215,7 @@ report_path: <working_dir>/critic/deck_v{N}_critic_cd.r{R}.md  # 主线程指定
     page 40 第 2 段 "全链路省时 60%" → "端到端省时 60% / 从 A 到 Z 省时 60%"
 ```
 
-**Why hard gate · 4 道防线**:本次 deck 项目就是 critic D r1 兜底 catch 了 2 处违反(p23 "完整闭环" / p40 "全链路省时"),迫使 author rework + critic D r2 复审。B9 让 critic Stage C 提早 catch outline 里的违反(代价低);Stage D 复审 content 全文(覆盖率高);author 自检 + build.py + audience 是另外 3 道防线。
+**Why hard gate · 4 道防线**:本次 deck 项目就是 critic cd r1 兜底 catch 了 2 处违反(p23 "完整闭环" / p40 "全链路省时"),迫使 author rework + critic cd r2 复审。B9 在 stage=cd 一次合审中同时覆盖 outline(提早 catch,代价低)+ content 全文(覆盖率高);author 自检 + build.py + audience 是另外 3 道防线。
 
 #### B8 详解 · validate_layout_renderable(三层全 miss + critical → severity 3)
 

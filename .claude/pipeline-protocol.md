@@ -663,7 +663,7 @@ review_needed_pages: [...]          # 3 轮仍 fail · category: architectural /
 visual_qa:
   passed: <int>
   total: <int>
-visual_step4:                       # Step 4 三路 + RAG 第 4 路状态
+visual_step4:                       # Step 4 三路降级状态
   capability:
     cairosvg: enabled | disabled
     unsplash: enabled | disabled
@@ -722,7 +722,7 @@ decks/<slug>/
 │   ├── deck_v{N}_visual_qa.r{R}.md  # iloveppt-builder Step 0-4 详细报告(每次 build 一份)
 │   └── deck_v{N}_render/       # PNG 渲染
 └── audience/
-    └── audience_review_r{N}.md
+    └── deck_v{N}_audience.r{R}.md
 ```
 
 **关键规则**:
