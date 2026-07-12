@@ -23,7 +23,7 @@ depth: standard | deep                               # 默认 standard(5-8 源);
 
 ## Step 0 · 启动 + 素材盘点
 
-1. Read `working_dir/brainstorm/brief.md`(若存在)取 topic/scqa/audience
+1. Read `working_dir/brainstorm/deck_v1_brief.md`(若存在)取 topic/scqa/audience
 2. 盘点 `user_attachments` + `working_dir/_assets/raw/` 已有素材 → 决定**缺口**(哪些论点缺证据 / 缺数据 / 缺对标)
 3. **不重复采**:用户已给的素材解析入 manuscript,只对缺口做 web 研究
 

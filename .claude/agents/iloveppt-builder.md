@@ -551,9 +551,9 @@ query_cache:
 - fuzz threshold 默认 80(`token_set_ratio`) · cache 命中要求语义近似,不强求字面一致 · 同一 query 多次 add 走累加 hit_count 路径(让常用 query 浮上去)
 - **不**跨 service cross-hit(iconify cache 不返给 Unsplash)
 
-### Step 5 · 写 visual_report_r{N}.md + 返回最终 YAML
+### Step 5 · 写 deck_v{N}_visual_qa.r{R}.md + 返回最终 YAML
 
-**找下一轮 N**:`Glob <working_dir>/builder/visual_report_r*.md` → 解析后缀号 → `next_r = max(existing) + 1`(若无文件 → `next_r = 1`)。
+**找下一轮 R**:`Glob <working_dir>/builder/deck_v{N}_visual_qa.r*.md` → 解析 `.r{R}` 后缀号 → `next_r = max(existing) + 1`(若无文件 → `next_r = 1`)。
 
 `Write <working_dir>/builder/deck_v{N}_visual_qa.r{R}.md`,含:
 - 4 类机会扫描记录(每页 / 每 issue)

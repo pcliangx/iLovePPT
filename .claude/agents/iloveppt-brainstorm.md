@@ -277,7 +277,7 @@ questions:
 
 不直接 dispatch_author —— 必须**串行两步**(先写文件,再发消息):
 
-**Step B.1(先)**:`Write` `<working_dir>/brainstorm/brief.md`,完整 schema():
+**Step B.1(先)**:`Write` `<working_dir>/brainstorm/deck_v1_brief.md`(§0a 命名;正文其余处简称 brief.md 均指此文件),完整 schema():
 
 ```markdown
 ---
@@ -342,15 +342,15 @@ constraints:
 ```yaml
 next_action: ask_user
 message_to_user: |
-  字段已收齐,brief 写到 <working_dir>/brainstorm/brief.md。请确认:
+  字段已收齐,brief 写到 <working_dir>/brainstorm/deck_v1_brief.md。请确认:
   
   • 顶端论点:<top_recommendation>
   • audience: [primary, secondary, ...](primary 评分,其余参考) · duration: <值>min · mode: <值>
   • theme: <值>  · 素材 N 项
   
-  确认无误回复 "OK"(我就交给 author 出 outline),或直接编辑 brainstorm/brief.md 后回复 "OK,看改后版本"。
+  确认无误回复 "OK"(我就交给 author 出 outline),或直接编辑 brainstorm/deck_v1_brief.md 后回复 "OK,看改后版本"。
 context_for_user:
-  brief_path: <working_dir>/brainstorm/brief.md
+  brief_path: <working_dir>/brainstorm/deck_v1_brief.md
 ```
 
 写 state(`brief_md_path: ..., brief_approved: false`),等下一次派发。

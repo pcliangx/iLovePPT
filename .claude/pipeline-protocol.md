@@ -18,7 +18,7 @@ Phase A:收 brief(team 模式,持续窗口)
    ↓ SendMessage(brainstorm, user_intent)
 brainstorm team window 持续在线
    ↓ ask_user 多轮(单进程,state.json 跨轮恢复)
-brainstorm Write brief.md + 跑 Step 3.6 brief self-audit(原 critic Stage B 已并入)
+brainstorm Write deck_v1_brief.md + 跑 Step 3.6 brief self-audit(原 critic Stage B 已并入)
    ↓ SendMessage(main, next_action: dispatch_author, brief_md_path)
 主线程关闭 brainstorm team
 
@@ -379,7 +379,7 @@ Task(iloveppt-author, args={
 ### §2.7 brief.md gate
 
 brainstorm 在返回 `dispatch_author` **之前**必须完成两步 + self-audit(brainstorm prompt 内部逻辑,主线程不感知):
-1. 先 `Write brief.md`(文件落盘成功)
+1. 先 `Write deck_v1_brief.md`(文件落盘成功,§0a 命名)
 2. 跑 Step 3.6 brief self-audit 5 项(原 critic Stage B 已并入;Step 3.5 RAG pattern 预选已退役)
 3. self-audit pass / pass_with_notes → 返回 `dispatch_author`;needs_self_revision → 返回 `needs_self_revision` 给用户改
 
@@ -541,9 +541,9 @@ agent: iloveppt-brainstorm
 status: ok
 next_action: dispatch_author
 artifacts:
-  - path: <abs path to brief.md>
+  - path: <abs path to deck_v1_brief.md>
     kind: brief_md
-brief_md_path: <abs path to brief.md>
+brief_md_path: <abs path to deck_v1_brief.md>
 brief_audit:                        # P2-3.1 inlined self-audit 结果(原 critic Stage B)
   verdict: pass | pass_with_notes
   section_b1_required_fields: pass
@@ -719,7 +719,7 @@ decks/<slug>/
 ├── builder/
 │   ├── deck_v{N}.pptx
 │   ├── deck_plan.json          # iloveppt-builder Step 3 字数 / 视觉修复直接改这里(单一文件,不分 v)
-│   ├── visual_report_r{N}.md   # iloveppt-builder Step 0-4 详细报告(每次 build 一份)
+│   ├── deck_v{N}_visual_qa.r{R}.md  # iloveppt-builder Step 0-4 详细报告(每次 build 一份)
 │   └── deck_v{N}_render/       # PNG 渲染
 └── audience/
     └── audience_review_r{N}.md

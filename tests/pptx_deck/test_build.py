@@ -431,3 +431,40 @@ def test_build_deck_with_red_line_words_0_hit_passes(tmp_path):
     plan = load_plan(p)
     out = build_deck(plan)
     assert out.exists()
+
+
+def test_check_red_line_words_ignores_layout_enum_and_structural_keys(tmp_path):
+    """红线词撞 layout enum(如 'table')/ JSON key / _plan_dir 路径 → 不误伤合法 build"""
+    from build import _check_red_line_words
+    brief = _write_brief(tmp_path, ["table", "layout"])
+    content = _write_content(tmp_path, "# content\n干净正文\n")
+    deck_plan = {
+        "theme": "tech_blue", "output": "./d.pptx",
+        "_plan_dir": "/Users/table/decks/demo",
+        "slides": [{
+            "layout": "table",
+            "title": "干净标题",
+            "headers": ["列一", "列二"],
+            "rows": [["值一", "值二"]],
+        }],
+    }
+    # layout enum 值 / key 名 / _plan_dir 都不是文案,不应 raise
+    _check_red_line_words(brief, content, deck_plan)
+
+
+def test_check_red_line_words_still_catches_nested_slide_text(tmp_path):
+    """slide 嵌套文案字段(cards[].desc)含禁词 → 仍然 fail loud"""
+    from build import _check_red_line_words
+    brief = _write_brief(tmp_path, ["赋能"])
+    content = _write_content(tmp_path, "# content\n干净正文\n")
+    deck_plan = {
+        "theme": "tech_blue", "output": "./d.pptx",
+        "slides": [{
+            "layout": "cards",
+            "title": "干净标题",
+            "cards": [{"title": "卡片一", "desc": "为业务赋能提效"}],
+        }],
+    }
+    with pytest.raises(ValueError) as e:
+        _check_red_line_words(brief, content, deck_plan)
+    assert "赋能" in str(e.value)
