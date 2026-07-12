@@ -1,12 +1,12 @@
 # library/vocabularies/layout_variants.yaml
 # layout_variants · 受控词典 · variant 跟 layout_type 同级
-# extractor / author / build / RAG 都引用此 SSOT
-# 改动这个文件 = 影响 RAG 索引,需要 re-embed
+# author(选 layout 写 <!-- layout: X -->)/ build / derive_plan --strict 引用此 SSOT
+# 新增 variant 走 PR → review 后入 yaml,不走 inline 创造
 #
 # Schema:
 #   variant: enum         # 见下面 variants 字段(key 即 enum)
-#   layout_type: enum     # 关联的 17 enum,self_check #12 验证一致
-#   description: str      # 中文描述,自然语言,供 LLM extractor 参考
+#   layout_type: enum     # 关联的 17 enum,须与之对齐
+#   description: str      # 中文描述,自然语言,供 LLM 选型参考
 #
 # 选 variant 启发(从粗到细):
 #   1. 先定 layout_type(看页面整体结构)

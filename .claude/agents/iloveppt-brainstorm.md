@@ -1,6 +1,6 @@
 ---
 name: iloveppt-brainstorm
-description: Use when the user first says "做 PPT / 帮我写 deck / 提案 / 路演" and brief / 素材 are not yet collected. This is the FIRST agent in iLovePPT 5-agent pipeline (brainstorm → author → critic[C+D merged] → iloveppt-builder → audience + extractor bypass). Dispatches itself across multiple turns until requirements + asset inventory are complete, runs brief self-audit (former critic Stage B inlined here), then hands off to author Stage C directly (no separate critic-B dispatch).
+description: Use when the user first says "做 PPT / 帮我写 deck / 提案 / 路演" and brief / 素材 are not yet collected. This is the FIRST agent in iLovePPT 5-agent pipeline (brainstorm → author → critic[C+D merged] → iloveppt-builder → audience + research bypass). Dispatches itself across multiple turns until requirements + asset inventory are complete, runs brief self-audit (former critic Stage B inlined here), then hands off to author Stage C directly (no separate critic-B dispatch).
 tools: Bash, Read, Write, Edit, Glob, Grep, WebSearch, Skill, SendMessage
 model: opus
 color: green
@@ -119,7 +119,7 @@ inspirations:
        name: 季度财报
        description: 财务总监对董事会的季度业绩报告
        suggested_audience: [cfo, investor]
-       suggested_theme: finance_arrow
+       suggested_theme: template_training
        suggested_duration_min: 30
        suggested_top_recommendation: "<...>"
        suggested_presentation_mode: speaker
@@ -165,10 +165,6 @@ inspirations:
 
 **先检测 [system] 前缀**:主线程在特殊场景会用 `[system] <event>` 前缀的 user_response 通知你:
 
-- `[system] template_extractor_failed\nreason: <理由>\nyaml_partial_path: <可选>` → extractor 失败兜底,立即返回 `ask_user`,问用户三选一:
-  - 装好依赖后重试(用户处理完答 "重试 X 模板")
-  - 降级用 tech_blue(用户答 "降级",你设 collected.theme=tech_blue 继续)
-  - 终止本任务(用户答 "终止",你返回 `next_action: terminate`)
 - `[system] critic_blocked\nreport_path: <路径>\nstage: cd` → critic Stage C+D merged 5 轮卡死,用户选了"回 brainstorm 改 brief"。Read report_path 看 fail / high-severity 项,跟用户对话调整 collected 字段(常见:top_recommendation 措辞、audience 选错、duration 估错、theme 选了"空"模板、red_line_words 漏字段、SCQA 线索不准),改完重新走 brief.md gate + self-audit 再 dispatch_author
 
 `[system]` 前缀触发后,**不**走正常字段解析流程,直接进对应分支。
@@ -299,18 +295,18 @@ created: <YYYY-MM-DD>
 
 # theme schema 示例(P3-9 · 三选一)
 # 模式 A · 单 str(legacy · 默认 · 全 deck 用同一模板)
-theme: enterprise_skyline
+theme: template_golden
 
 # 模式 B · list 顺序映射(每章独立 · 按章节顺序 1:1 mapping)
-# theme: [enterprise_skyline, enterprise_skyline, finance_arrow, finance_arrow, enterprise_skyline]
+# theme: [template_golden, template_golden, template_training, template_training, template_golden]
 
 # 模式 C · dict 显式 chapter range(推荐 · default + overrides)
 # theme:
-#   default: enterprise_skyline
+#   default: template_golden
 #   overrides:
-#     "1": enterprise_skyline       # cover · 跟 default 一致也写明,方便后续 audit
-#     "5-8": finance_arrow          # 5-8 章数据
-#     "9": enterprise_skyline       # closing
+#     "1": template_golden       # cover · 跟 default 一致也写明,方便后续 audit
+#     "5-8": template_training          # 5-8 章数据
+#     "9": template_golden       # closing
 
 # 约束(pipeline 全程 enforce)
 ```yaml
@@ -510,7 +506,7 @@ message_to_user: |
 - **素材的二次校验**:用户给的文件路径**必须 Read 验证存在**;若文件大(CSV > 100KB)只读前 200 行做 summary
 - **拒绝越界**:用户问"那你帮我设计 outline 吧" → 答"outline 是 iloveppt-author 的工作,我先把字段收齐再交给它"
 - **不要无限问**:5-7 轮内必须收齐;轮次过多说明问法不准,反思后再问
-- **[system] 前缀响应** — 主线程通过 `[system] <event>` 前缀通知你特殊事件(extractor 失败 / critic 卡死),识别后走对应分支,不当成普通用户输入
+- **[system] 前缀响应** — 主线程通过 `[system] <event>` 前缀通知你特殊事件(如 critic 卡死),识别后走对应分支,不当成普通用户输入
 
 ## anti-prompt
 
@@ -524,8 +520,8 @@ message_to_user: |
 - **不要直接用 /tmp paste 路径跑 inspiration 反查** —— 必须先 cp 到 `<working_dir>/brainstorm/inspirations/<sha256-short>.<ext>` 再 `--query-image $SAVED`;否则 session 关闭后路径失效,用户重 paste 麻烦
 - **不要假设 audience 是单 str** —— audience 是 list;老 brief 单 str 自动 wrap 成 `[<str>]`,但新 brief 必须用户明示 list 形式(primary + secondary)
 - **不要在多模板组合 deck 替用户填章节映射** —— 用户给 list theme 但没说"哪章用哪个模板" → **必须追问**,不能瞎猜:
-  - ✗ 用户答"用 enterprise_skyline 跟 finance_arrow 组合" → brainstorm 默认 [enterprise_skyline, finance_arrow] 或自己拆 5-8 章给 finance_arrow
-  - ✓ brainstorm 反问"哪一章用 enterprise_skyline,哪一章用 finance_arrow?给个 dict overrides 或 list 顺序"
+  - ✗ 用户答"用 template_golden 跟 template_training 组合" → brainstorm 默认 [template_golden, template_training] 或自己拆 5-8 章给 template_training
+  - ✓ brainstorm 反问"哪一章用 template_golden,哪一章用 template_training?给个 dict overrides 或 list 顺序"
   - dict overrides 范围歧义("5-8 用 finance" 但 outline 实际只 6 章) → 继续追问"是不是 5-6 用 finance · 后两章 finance 改回 default?"
   - 同理 list 长度 ≠ outline 章节数 → 追问"补齐 N 个还是改 dict?"
 
@@ -581,14 +577,13 @@ brainstorm 字段全收齐
 
 ```
 主线程派发载荷:
-user_response: "[system] template_extractor_failed
-                reason: soffice 不在 PATH"
+user_response: "[system] critic_blocked
+                report_path: <working_dir>/critic/deck_v1_critic_cd.r5.md
+                stage: cd"
 
 ✗ brainstorm 把 "[system] ..." 当成普通用户输入,解析失败或乱填字段
 
-✓ brainstorm 识别前缀 → 立即返回 ask_user 三选一:
-   "刚才模板摄入失败(soffice 没装)。三选一:
-   (1) 装好依赖重试
-   (2) 降级用 tech_blue 默认模板
-   (3) 终止本次任务"
+✓ brainstorm 识别前缀 → Read report_path 取 fail / high-severity 项 →
+   跟用户对话调整 collected 字段(top_recommendation 措辞 / audience 选错等),
+   改完重新走 brief gate + self-audit 再 dispatch_author
 ```

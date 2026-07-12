@@ -8,9 +8,6 @@
 本文件保持入口稳定:
 - CLI:`python3 build.py deck_plan.json [--no-render]`
 - import:`from build import build_deck, load_plan, ...` 等公共 API 仍可用(re-export)
-- monkeypatch:`monkeypatch.setattr(build, "_repo_templates_dir", ...)` 仍生效
-  (本模块定义 _find_template / _list_available_templates / load_theme 时通过本
-   模块自身命名空间查 _repo_templates_dir,让测试拦得到)
 
 智能部分(brief→deck_plan / 视觉自检)由 Claude 按文档流程做,不在本文件。
 """
@@ -18,8 +15,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from types import ModuleType
-from typing import Any
 
 HERE = Path(__file__).parent
 # 加 pptx-deck 自身 + pptx skill 到 sys.path(base.py 也做,这里冗余但向后兼容
@@ -28,95 +23,28 @@ for _p in [str(HERE.parent / "pptx"), str(HERE)]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-# 主要 API 直接 re-export(build_deck / load_plan / render 等无 monkeypatch 风险)
+# 全部 API 直接 re-export builder.base 的唯一实现。
+# (历史上 _find_template / load_theme 在这里有一份为 monkeypatch 服务的重复
+# 实现,但 build_deck 走的是 base 版,双份逻辑只会漂移;现无测试依赖该
+# contract,删除重复,单实现收口 base。)
 from builder.base import (  # noqa: E402
     FOOTERED_LAYOUTS,
     ThemeSpec,
     parse_theme,
     load_plan,
+    load_theme,
     build_deck,
     render,
     _extract_design_tokens,
     _extract_theme_from_pptx,
     _parse_red_line_words,
     _check_red_line_words,
+    _repo_templates_dir,
+    _find_template,
+    _list_available_templates,
     THEMES,
     PPTX_BASE_THEMES,
 )
-from builder import base as _base  # noqa: E402
-
-
-# ===========================================================================
-# 模板查找 API:本模块定义 wrapper,让 monkeypatch.setattr(build, "_repo_templates_dir", ...)
-# 真正影响 build.load_theme / build._find_template 的调用链。
-# (实现细节都在 _base 里,这里只是把入口拢到 build 命名空间。)
-# ===========================================================================
-
-def _repo_templates_dir() -> Path:
-    """仓库根的 library/pptx-templates/_source/ 目录。委托给 builder.base。"""
-    return _base._repo_templates_dir()
-
-
-def _find_template(name: str, plan_dir: str | None = None) -> Path | None:
-    """按短名查找 .pptx 模板。
-
-    重要:这里**不**直接调 _base._find_template,而是重新实现一遍 lookup 逻辑,
-    让 monkeypatch.setattr(build, "_repo_templates_dir", ...) 真正生效
-    (历史测试依赖这个 contract)。
-    """
-    candidates: list[Path] = []
-    if plan_dir:
-        candidates.append(Path(plan_dir) / "templates" / f"{name}.pptx")
-    candidates.append(_repo_templates_dir() / f"{name}.pptx")
-    for p in candidates:
-        if p.exists():
-            return p
-    return None
-
-
-def _list_available_templates() -> list[str]:
-    """返回模板 _source 目录下所有 .pptx 短名。委托 wrapper 让 monkeypatch 生效。"""
-    tdir = _repo_templates_dir()
-    if not tdir.exists():
-        return []
-    return sorted(p.stem for p in tdir.glob("*.pptx"))
-
-
-def load_theme(theme_id: str, plan_dir: str | None = None) -> ModuleType:
-    """解析 theme_id 到 theme 模块。
-
-    跟 _base.load_theme 同样语义,但通过本模块的 _find_template / _list_available_templates
-    走,让 monkeypatch.setattr(build, "_repo_templates_dir", ...) 也作用于
-    `build.load_theme("nonexistent_theme")` 这种调用。
-    """
-    # 内置 yaml theme(themes/<name>.yaml)——SSOT 主路径(同 _base.load_theme)
-    from themes import _base as _theme_base
-    try:
-        cfg, mod = _theme_base.load_and_apply(theme_id)
-    except FileNotFoundError:
-        pass
-    else:
-        mod._THEME_CONFIG = cfg
-        return mod
-    if str(theme_id).endswith(".pptx") or "/" in str(theme_id):
-        path = Path(theme_id).expanduser()
-        if not path.is_absolute() and plan_dir:
-            path = (Path(plan_dir) / path).resolve()
-        if not path.exists():
-            raise FileNotFoundError(f"theme .pptx 不存在: {path}")
-        return _extract_theme_from_pptx(str(path))
-    found = _find_template(theme_id, plan_dir)
-    if found is not None:
-        return _extract_theme_from_pptx(str(found))
-    builtin = ", ".join(_theme_base.list_themes()) or "tech_blue"
-    available = _list_available_templates()
-    available_str = ", ".join(available) if available else "(空,把 .pptx 放进 library/pptx-templates/_source/)"
-    raise ValueError(
-        f"未知 theme: {theme_id!r}. "
-        f"内置: {builtin}. "
-        f"library/pptx-templates/_source/ 可用: {available_str}. "
-        f"或直接给 .pptx 绝对/相对路径。"
-    )
 
 
 __all__ = [

@@ -68,6 +68,7 @@ NS = {
 SECTIONS = ("fonts", "shapes", "geometry", "hyperlinks", "embedded", "security", "metadata", "themes", "masters")
 
 # CJK 统一表意文字(基本区 + 扩展 A + 兼容区)—— 命中即该 run 需要 ea 字体
+# (与 fix_ea_fonts.py HAN_RE 保持同步,改一处须改两处)
 HAN_RE = re.compile(r"[㐀-䶿一-鿿豈-﫿]")
 
 EMU_PER_INCH = 914400

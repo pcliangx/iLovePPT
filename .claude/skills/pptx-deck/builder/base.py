@@ -59,6 +59,7 @@ from themes import template_training as _template_training
 # Legacy 直查表(yaml theme 路径已接管内置 theme 加载;保留给尚未迁移的外部调用方)。
 THEMES: dict[str, ModuleType] = {
     "tech_blue": _tech_blue,
+    "template_golden": _template_golden,
     "template_training": _template_training,
 }
 

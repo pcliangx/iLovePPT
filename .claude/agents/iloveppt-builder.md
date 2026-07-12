@@ -51,14 +51,14 @@ theme: tech_blue                                              # 或 .pptx 模板
 critic_cd_report_path: <working_dir>/critic/deck_v{N}_critic_cd.r{R}.md   # mode=full 时必填(主线程传当前最新 pass 的 r{R} 路径;P2-3.2 后从 critic_d_report_path 改名)
 mode: full | visual_redo                                      # 默认 full(Step 0-5 全跑);visual_redo 跳 Step 0-3,只跑 Step 4 + rebuild + final QA
 # mode=visual_redo 时额外必填:
-prev_audience_review_path: <working_dir>/audience/audience_review_r{N-1}.md  # 取 needs_visual_redo 页号 + issues
+prev_audience_review_path: <working_dir>/audience/deck_v{N}_audience.r{R-1}.md  # 取 needs_visual_redo 页号 + issues
 prev_visual_report_path: <working_dir>/builder/deck_v{N}_visual_qa.r{R-1}.md       # 可选 · 取上轮 visual_edits / rolled_back 避免重蹈覆辙
 ```
 
 **多模板 brief.theme schema**(`theme` 入参可能 3 种形态):
-- **str**(legacy)→ `tech_blue` / `enterprise_skyline` / `/abs/path/to/template.pptx`
-- **list**(顺序映射)→ `[enterprise_skyline, finance_arrow, enterprise_skyline]`,按 chapter index 1:1 mapping
-- **dict**(显式 range)→ `{default: enterprise_skyline, overrides: {"5-8": finance_arrow}}`
+- **str**(legacy)→ `tech_blue` / `template_golden` / `/abs/path/to/template.pptx`
+- **list**(顺序映射)→ `[template_golden, template_training, template_golden]`,按 chapter index 1:1 mapping
+- **dict**(显式 range)→ `{default: template_golden, overrides: {"5-8": template_training}}`
 
 builder Step 1 用 `builder.parse_theme(brief.theme)` 解析成 `ThemeSpec` · 详见 § "Step 1.0 · 多模板 brief.theme 解析"。
 
@@ -161,16 +161,16 @@ deck_v{N}_plan.json 顶层加 `theme_spec` 字段(完整透传 brief.theme 原 s
 {
   "theme_spec": {
     "mode": "dict",
-    "default": "enterprise_skyline",
+    "default": "template_golden",
     "overrides": {
-      "1": "enterprise_skyline",
-      "5-8": "finance_arrow",
-      "9": "enterprise_skyline"
+      "1": "template_golden",
+      "5-8": "template_training",
+      "9": "template_golden"
     }
   },
   "slides": [
-    {"layout": "cover", "chapter_index": 1, "effective_theme": "enterprise_skyline", ...},
-    {"layout": "cards", "chapter_index": 5, "effective_theme": "finance_arrow", ...}
+    {"layout": "cover", "chapter_index": 1, "effective_theme": "template_golden", ...},
+    {"layout": "cards", "chapter_index": 5, "effective_theme": "template_training", ...}
   ]
 }
 ```
@@ -666,7 +666,7 @@ errors:
 - 不要在 review_needed_pages 里塞"建议但 agent 自己改不了的"——必须真的尝试过 3 轮
 - 不要假装跑了 visual QA 而不真读 PNG——`Read` 每张 page-N.jpg 是硬要求
 - **不要假设 brief.theme 永远是 str** —— 可能是 list / dict;builder 必须调 `builder.parse_theme(brief.theme)` 拿 ThemeSpec,按 chapter index `resolve()` 取 effective_theme,不能直接当字符串传给 source pptx 路径
-- **不要在多模板 deck 让 chapter 5(finance_arrow)用 chapter 1(enterprise_skyline)字体** —— 跨模板字体统一用 primary theme,但**不能反过来**说"chapter 5 用 finance_arrow 自己字体" —— 半 deck 用 SimHei 半 deck 用 PingFang 是反例
+- **不要在多模板 deck 让 chapter 5(template_training)用 chapter 1(template_golden)字体** —— 跨模板字体统一用 primary theme,但**不能反过来**说"chapter 5 用 template_training 自己字体" —— 半 deck 用 SimHei 半 deck 用 PingFang 是反例
 
 ## 示范(few-shot)
 

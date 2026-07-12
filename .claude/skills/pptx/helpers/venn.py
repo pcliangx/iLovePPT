@@ -83,7 +83,8 @@ def make_venn(
         circle = s.shapes.add_shape(MSO_SHAPE.OVAL, x, y, circle_d, circle_d)
         circle.fill.solid()
         circle.fill.fore_color.rgb = fills[i % len(fills)]
-        # 50% transparency 透明度 — python-pptx 无内置,用 lxml 写 alpha
+        # 50% transparency 透明度 — python-pptx 无内置,用 lxml 写 alpha。
+        # fill._xPr 是 python-pptx 私有属性(1.0.x 可用),升级 python-pptx 时需复核
         from lxml import etree
         from pptx.oxml.ns import qn
         spPr = circle.fill._xPr.find(qn("a:solidFill"))

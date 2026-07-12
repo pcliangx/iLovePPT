@@ -301,7 +301,7 @@ rounds_used: <int>
    verdict_final: needs_revision  # = blocking persona 的 verdict
    ```
 
-5. **报告 breakdown**:`audience_review_r{N}.md` 顶部增加 § "Per-persona breakdown" 列出每个 persona 的 weakest_dim / weakest_pages / 主要 issue,让用户知道是哪个 persona 卡住了
+5. **报告 breakdown**:`deck_v{N}_audience.r{R}.md` 顶部增加 § "Per-persona breakdown" 列出每个 persona 的 weakest_dim / weakest_pages / 主要 issue,让用户知道是哪个 persona 卡住了
 
 **降级**:
 - list 长度 == 1 → 退化为单 persona 流程(不写 per_persona_scores,直接走原 Step 1)
@@ -471,11 +471,11 @@ top_3_must_fix:
 
 ### Step 4 · 写报告
 
-`Write` `<working_dir>/audience/audience_review_r{N}.md`(若 `audience/` 不存在,mkdir)。
+`Write` `<working_dir>/audience/deck_v{N}_audience.r{R}.md`(若 `audience/` 不存在,mkdir)。
 
-**找下一轮 N**:`Glob <working_dir>/audience/audience_review_r*.md` → 解析后缀号 → `next_r = max(existing) + 1`(若无文件 → `next_r = 1`)。
+**找下一轮 R**:`Glob <working_dir>/audience/deck_v{N}_audience.r*.md` → 解析 `.r{R}` 后缀号 → `next_r = max(existing) + 1`(若无文件 → `next_r = 1`)。
 
-例:第 1 次跑 → 写 `audience/audience_review_r1.md`;overall_score < 9 → 主线程派 author / iloveppt-builder mode=visual_redo 改 → 重派 audience → 写 `audience_review_r2.md`(r1 保留)。
+例:第 1 次跑 → 写 `audience/deck_v1_audience.r1.md`;overall_score < 9 → 主线程派 author / iloveppt-builder mode=visual_redo 改 → 重派 audience → 写 `deck_v1_audience.r2.md`(r1 保留)。
 
 报告 schema:
 
@@ -531,7 +531,7 @@ verdict: excellent
 triage: none
 persona_used: engineer                    # 单 persona key
 artifacts:
-  - path: <working_dir>/audience/audience_review_r{N}.md
+  - path: <working_dir>/audience/deck_v{N}_audience.r{R}.md
     kind: audience_report
 per_page_scores:                          # P2-2 新 schema
   - page: 1
@@ -561,7 +561,7 @@ verdict: needs_minor
 triage: needs_visual_redo
 persona_used: engineer
 artifacts:
-  - path: <working_dir>/audience/audience_review_r{N}.md
+  - path: <working_dir>/audience/deck_v{N}_audience.r{R}.md
     kind: audience_report
 per_page_scores: [...]                    # 同上 12 项 schema
 top_3_must_fix:
@@ -589,7 +589,7 @@ verdict: needs_minor
 triage: needs_author_rewrite
 persona_used: engineer
 artifacts:
-  - path: <working_dir>/audience/audience_review_r{N}.md
+  - path: <working_dir>/audience/deck_v{N}_audience.r{R}.md
     kind: audience_report
 per_page_scores: [...]
 top_3_must_fix: [...]
@@ -623,7 +623,7 @@ per_persona_scores:                       # P2-13 新字段
     weakest_dim: 论据强度
     weakest_pages: [12]
 artifacts:
-  - path: <working_dir>/audience/audience_review_r{N}.md
+  - path: <working_dir>/audience/deck_v{N}_audience.r{R}.md
     kind: audience_report
 per_page_scores:                          # 含两份 — 每页对每 persona 各算一次
   - page: 1

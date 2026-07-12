@@ -63,18 +63,25 @@ def fix_slide_xml(xml_bytes: bytes, fallback_font: str) -> tuple[bytes, int]:
         if rpr is None:
             continue  # 无 rPr 走继承链,audit 归 INFO/WARNING,不属于 latin-only bug
         latin = rpr.find(_q("latin"))
-        if latin is None or rpr.find(_q("ea")) is not None:
+        if latin is None:
             continue
+        ea = rpr.find(_q("ea"))
+        if ea is not None and (ea.get("typeface") or "").strip():
+            continue  # 已有非空 <a:ea>,无需修
         latin_face = latin.get("typeface") or ""
         ea_face = latin_face if CJK_FONT_NAME_RE.search(latin_face) else fallback_font
-        # schema 顺序:latin → ea → cs(插在 latin 之后合法)
-        ea = etree.Element(_q("ea"))
+        if ea is None:
+            # schema 顺序:latin → ea → cs(插在 latin 之后合法)
+            ea = etree.Element(_q("ea"))
+            latin.addnext(ea)
+        # 空 typeface="" 的 <a:ea> 与缺元素等价(audit 同判 ERROR),一并补
         ea.set("typeface", ea_face)
-        latin.addnext(ea)
-        if rpr.find(_q("cs")) is None:
+        cs = rpr.find(_q("cs"))
+        if cs is None:
             cs = etree.Element(_q("cs"))
-            cs.set("typeface", ea_face)
             ea.addnext(cs)
+        if not (cs.get("typeface") or "").strip():
+            cs.set("typeface", ea_face)
         fixed += 1
     if not fixed:
         return xml_bytes, 0
