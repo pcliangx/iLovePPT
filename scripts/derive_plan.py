@@ -365,7 +365,8 @@ def main() -> int:
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="缺 layout 注释 / layout 三层不可渲染 → exit 1(author 自检 / CI 用)。",
+        help="缺 layout 注释 / layout 三层不可渲染 / theme 加载失败(无法校验)"
+             "→ exit 1(author 自检 / CI 用)。",
     )
     args = parser.parse_args()
 
@@ -407,9 +408,11 @@ def main() -> int:
                 file=sys.stderr,
             )
 
+    # strict 下 theme 加载失败(error 哨兵)也 fail:无法校验 ≠ 校验通过,
+    # 否则"author 写完即拦不可渲染 layout"的承诺在环境坏时静默失效
     if args.strict and (
         plan.get("_warnings_missing_layout")
-        or any("error" not in w for w in unrenderable)
+        or unrenderable
     ):
         return 1
     return 0

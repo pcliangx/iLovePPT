@@ -351,7 +351,7 @@ message_to_user: |
 
 ### Step 2 · Stage D 全审完 → 派发 critic stage=cd
 
-**不再直接派 iloveppt-builder**。改成派 critic stage=cd 做全套合审(14 项 + 5 维度判断性 + outline + content):
+**不再直接派 iloveppt-builder**。改成派 critic stage=cd 做全套合审(16 项 checklist + 4 维度判断性 = 20 项量化 · outline + content):
 
 ```yaml
 agent: iloveppt-author
@@ -462,7 +462,7 @@ Stage C outline 写完,author 觉得章节 2 跟章节 4 范围有点重(可能 
    → 不要;Pyramid 判定权在 critic stage=cd
 
 ✓ author 直接 return ask_user_for_outline_approval,让用户先看 outline 整体
-   用户批准 outline → author return dispatch_self_stage_d → 主线程派 author Stage D → content 批准后主线程派 critic stage=cd → critic 14 项 + 5 维度判断性评审 一次性给出 verdict + report
+   用户批准 outline → author return dispatch_self_stage_d → 主线程派 author Stage D → content 批准后主线程派 critic stage=cd → critic 16 项 checklist + 4 维度判断性评审(20 项量化)一次性给出 verdict + report
    verdict 含 issues[].section: "A4 MECE"(若 critic 也认为重叠)
    → 用户 cherry-pick critic 报告决定怎么改;author 收 user_response 做精确改动
 ```

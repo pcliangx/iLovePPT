@@ -77,3 +77,39 @@ def test_unknown_theme_degrades_to_warning(tmp_path):
     plan = dp.derive_plan(p)
     bad = plan["_warnings_unrenderable_layout"]
     assert len(bad) == 1 and "error" in bad[0]  # 降级为警告,不 raise
+
+
+def test_derived_sha256_matches_content_and_detects_edit(tmp_path):
+    """builder Step 0.5 SSOT verify 依赖:derived_from_sha256 是 content.md
+    bytes 的 sha256;content 改动后 stored hash 必然 mismatch(DERIVATION_MISMATCH
+    的判定依据)。"""
+    import hashlib
+    p = _write(tmp_path)
+    plan = dp.derive_plan(p)
+    assert plan["derived_from_sha256"] == hashlib.sha256(p.read_bytes()).hexdigest()
+    stored = plan["derived_from_sha256"]
+    p.write_text(p.read_text(encoding="utf-8") + "\n改动一行\n", encoding="utf-8")
+    assert dp.sha256_file(p) != stored
+
+
+def test_strict_theme_load_failure_exits_1(tmp_path, monkeypatch, capsys):
+    """--strict 下 theme 加载失败(无法校验)必须 exit 1 —— 无法校验 ≠ 校验通过。"""
+    p = _write(tmp_path)
+    text = p.read_text(encoding="utf-8").replace("theme: tech_blue",
+                                                  "theme: nonexistent_xyz")
+    p.write_text(text, encoding="utf-8")
+    monkeypatch.setattr(sys, "argv",
+                        ["derive_plan.py", str(p), "--strict", "--dry-run"])
+    assert dp.main() == 1
+    capsys.readouterr()
+
+
+def test_nonstrict_theme_load_failure_exits_0(tmp_path, monkeypatch, capsys):
+    """非 strict:theme 加载失败仅 stderr 告警(advisory),exit 0。"""
+    p = _write(tmp_path)
+    text = p.read_text(encoding="utf-8").replace("theme: tech_blue",
+                                                  "theme: nonexistent_xyz")
+    p.write_text(text, encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["derive_plan.py", str(p), "--dry-run"])
+    assert dp.main() == 0
+    capsys.readouterr()

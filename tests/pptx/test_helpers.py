@@ -30,6 +30,26 @@ def test_set_font_writes_ea_typeface():
     assert cs.get("typeface") == "Microsoft YaHei"
 
 
+def test_fix_ph_font_writes_ea_typeface_on_placeholder():
+    """占位符从 slide master 继承 <a:ea>,必须 _fix_ph_font 在 run 级补写
+    <a:ea>+<a:cs> —— CLAUDE.md #1 产物破损源的占位符路径。"""
+    prs = _new_prs()
+    slide = prs.slides.add_slide(prs.slide_layouts[0])  # title layout(带占位符)
+    title = slide.shapes.title
+    title.text_frame.text = "中文占位符标题"
+    H._fix_ph_font(title, name="Microsoft YaHei", size_pt=32)
+    from pptx.oxml.ns import qn
+    run = title.text_frame.paragraphs[0].runs[0]
+    rPr = run._r.find(qn("a:rPr"))
+    assert rPr is not None
+    ea = rPr.find(qn("a:ea"))
+    cs = rPr.find(qn("a:cs"))
+    assert ea is not None, "_fix_ph_font 必须写 <a:ea>"
+    assert ea.get("typeface") == "Microsoft YaHei"
+    assert cs is not None, "_fix_ph_font 必须写 <a:cs>"
+    assert cs.get("typeface") == "Microsoft YaHei"
+
+
 def test_card_creates_rounded_rect():
     prs = _new_prs()
     slide = prs.slides.add_slide(prs.slide_layouts[6])

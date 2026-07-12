@@ -265,14 +265,32 @@ class PptxAudit:
         return (13.333, 7.5)
 
     def _shape_boxes(self) -> dict[int, list[dict[str, Any]]]:
-        """每页 shape bbox 列表(inches)· 只收有 xfrm 的 shape。"""
+        """每页 shape bbox 列表(inches)· 只收有 xfrm 的 shape。
+
+        组合形状(p:grpSp)子形状的 a:off/a:ext 在组内子坐标系(chOff/chExt
+        映射),直接当 slide 绝对坐标会产生假 off_canvas / text_overlap ——
+        跳过组内子形状,用组本身的 bbox(slide 坐标)代表整组参与几何检查。
+        """
+        grp_tag = _q("p:grpSp")
+
+        def _inside_group(el: ET.Element, parent_of: dict) -> bool:
+            cur = parent_of.get(el)
+            while cur is not None:
+                if cur.tag == grp_tag:
+                    return True
+                cur = parent_of.get(cur)
+            return False
+
         by_slide: dict[int, list[dict[str, Any]]] = {}
         for num, part in self.slides:
             root = self._xml(part)
             if root is None:
                 continue
+            parent_of = {c: p for p in root.iter() for c in p}
             boxes: list[dict[str, Any]] = []
             for name, ph_type, kind, elem in self._iter_shapes(root):
+                if _inside_group(elem, parent_of):
+                    continue
                 xfrm = elem.find(f".//{_q('a:xfrm')}")
                 if xfrm is None:
                     xfrm = elem.find(f".//{_q('p:xfrm')}")
@@ -294,6 +312,27 @@ class PptxAudit:
                     "w": int(ext.get("cx", 0)) / EMU_PER_INCH,
                     "h": int(ext.get("cy", 0)) / EMU_PER_INCH,
                     "text": text, "font_pt": sz,
+                })
+            # 顶层组:组的 xfrm(p:grpSpPr/a:xfrm 的 off/ext)是 slide 坐标
+            for grp in root.iter(grp_tag):
+                if _inside_group(grp, parent_of):
+                    continue  # 嵌套组由外层 bbox 覆盖
+                xfrm = grp.find(f"{_q('p:grpSpPr')}/{_q('a:xfrm')}")
+                if xfrm is None:
+                    continue
+                off, ext = xfrm.find(_q("a:off")), xfrm.find(_q("a:ext"))
+                if off is None or ext is None:
+                    continue
+                cnvpr = grp.find(f"{_q('p:nvGrpSpPr')}/{_q('p:cNvPr')}")
+                boxes.append({
+                    "name": cnvpr.get("name", "") if cnvpr is not None else "",
+                    "kind": "grpSp", "placeholder": None,
+                    "x": int(off.get("x", 0)) / EMU_PER_INCH,
+                    "y": int(off.get("y", 0)) / EMU_PER_INCH,
+                    "w": int(ext.get("cx", 0)) / EMU_PER_INCH,
+                    "h": int(ext.get("cy", 0)) / EMU_PER_INCH,
+                    "text": "".join((t.text or "") for t in grp.iter(_q("a:t"))),
+                    "font_pt": 0,
                 })
             by_slide[num] = boxes
         return by_slide

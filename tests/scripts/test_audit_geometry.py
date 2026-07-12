@@ -111,3 +111,32 @@ def test_summary_counts(report):
     assert report["summary"]["warnings"] == 3
     assert report["summary"]["by_check"] == {
         "off_canvas": 1, "text_overlap": 1, "title_alignment": 1}
+
+
+def test_group_children_use_group_bbox_not_child_coords(tmp_path):
+    """组合形状(grpSp)子形状的 a:off 是组内子坐标系 —— 几何检查必须用组
+    bbox(slide 坐标),不得把子坐标当绝对坐标产生假 off_canvas。"""
+    prs = Presentation()
+    prs.slide_width = Inches(13.333)
+    prs.slide_height = Inches(7.5)
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    _textbox(s, 0.55, 0.6, 8, 0.9, "组合形状页标题", 32)
+    grp = s.shapes.add_group_shape()
+    tb = grp.shapes.add_textbox(Inches(12.0), Inches(3.0), Inches(3.0), Inches(1.0))
+    tb.text_frame.paragraphs[0].add_run().text = "组内文字"
+    # 组整体移回画布内;子形状 a:off 保持组内坐标(12,3)不变
+    grp.left, grp.top = Inches(1), Inches(3)
+    out = tmp_path / "grouped.pptx"
+    prs.save(str(out))
+
+    boxes = audit_pptx.PptxAudit(out)._shape_boxes()[1]
+    grp_boxes = [b for b in boxes if b["kind"] == "grpSp"]
+    assert len(grp_boxes) == 1
+    assert "组内文字" in grp_boxes[0]["text"]
+    assert abs(grp_boxes[0]["x"] - 1.0) < 0.05
+    # 子形状不得以组内原始坐标单独入列(修前:x=12 被当 slide 绝对坐标)
+    assert not any(b["kind"] == "sp" and "组内文字" in b["text"] for b in boxes)
+
+    report = audit_pptx.audit(out, ["geometry"])["geometry"]
+    assert not any(f["check"] == "off_canvas" for f in report["findings"]), \
+        "组内子形状坐标不应触发假 off_canvas"

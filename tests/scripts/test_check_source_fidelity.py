@@ -93,6 +93,22 @@ def test_regex_claim(content_md, tmp_path):
     assert report["claims"][0]["status"] == "pass"
 
 
+def test_pptx_slide_basis_skips_misplaced(content_md, tmp_path):
+    """.pptx 页号=slide 物理序号(含 cover/toc)≠ expect_pages 章号口径 →
+    page_basis="slide" 时 misplaced 判定跳过,只判 missing。"""
+    claims = _claims_file(tmp_path, [
+        {"id": "rev", "patterns": ["120000万"], "expect_pages": [1]},
+    ])
+    pages = {3: "Q1 营收 120,000 万元"}  # 模拟 cover/toc 把章 1 顶到 slide 3
+    report = csf.check_claims(csf.load_claims(claims), pages, page_basis="slide")
+    assert report["claims"][0]["status"] == "pass"  # 修前:误报 misplaced
+    assert report["summary"]["page_basis"] == "slide"
+    # chapter 口径(content.md)下同输入仍判 misplaced,落位语义保留
+    report2 = csf.check_claims(csf.load_claims(claims), pages)
+    assert report2["claims"][0]["status"] == "misplaced"
+    assert report2["summary"]["page_basis"] == "chapter"
+
+
 def test_pptx_input(tmp_path):
     pptx_mod = pytest.importorskip("pptx")
     from pptx.util import Inches

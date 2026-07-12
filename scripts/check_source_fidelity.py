@@ -18,15 +18,20 @@ claims yaml schema:
         desc: "Q1 营收 1.2 亿元"       # 人读说明
         patterns: ["1.2亿", "120,000,000"]   # 任一命中即 found(归一化子串匹配)
         regex: "营收[^\\n]{0,10}1\\.2"  # 可选 · 与 patterns 并存(any-of · 对原文匹配)
-        expect_pages: [5, 6]          # 可选 · 命中页与之有交集才算落位正确
+        expect_pages: [5, 6]          # 可选 · 章号口径(content.md `## N`)·
+                                      # 命中页与之有交集才算落位正确(仅 .md 输入判定)
         required: true                # 默认 true · false 时缺失不导致 fail
 
 归一化规则:NFKC(全角→半角)→ 去空白/千分位逗号/顿号 → casefold。
 "１２０,０００" 与 "120000" 因此互相命中。
 
-deck 输入二选一:
-  *.pptx        每页文本 = slide XML 全部 <a:t>(含表格),页号 = slide 序号
-  *content.md   按 `## N.` 标题切页,页号 = N(与 deck_plan slides 1:1 对应)
+deck 输入二选一(⚠️ 两者页号口径不同):
+  *.pptx        每页文本 = slide XML 全部 <a:t>(含表格),页号 = slide 物理序号
+                (含 cover/toc/divider,与 content.md 章号**不**1:1);因此 .pptx
+                输入只判 missing,expect_pages 落位(misplaced)判定自动跳过
+  *content.md   按 `## N.` 标题切页,页号 = 章号 N —— claims 的 expect_pages
+                按此口径写,落位判定仅在 content.md 输入下生效
+报告 summary.page_basis 标注本次口径:chapter(.md)| slide(.pptx)
 
 Exit code: 0 全部 required claim found 且落位正确;1 有 missing / misplaced;2 用法错误
 
@@ -148,7 +153,11 @@ def extract_pages(path: str | Path) -> dict[int, str]:
 
 # ---- 核对 ------------------------------------------------------------------
 
-def check_claims(claims: list[Claim], pages: dict[int, str]) -> dict[str, Any]:
+def check_claims(claims: list[Claim], pages: dict[int, str],
+                 *, page_basis: str = "chapter") -> dict[str, Any]:
+    """page_basis: "chapter"(content.md 章号,expect_pages 同口径)|
+    "slide"(.pptx 物理序号,与 expect_pages 章号口径不同 → 跳过 misplaced 判定,
+    只判 missing)。"""
     norm_pages = {n: normalize(t) for n, t in pages.items()}
     results: list[dict[str, Any]] = []
     n_missing = n_misplaced = n_pass = 0
@@ -162,7 +171,8 @@ def check_claims(claims: list[Claim], pages: dict[int, str]) -> dict[str, Any]:
         if not hit_pages:
             status = "missing"
             n_missing += 1
-        elif c.expect_pages and not set(hit_pages) & set(c.expect_pages):
+        elif (page_basis == "chapter" and c.expect_pages
+              and not set(hit_pages) & set(c.expect_pages)):
             status = "misplaced"
             n_misplaced += 1
         else:
@@ -185,6 +195,7 @@ def check_claims(claims: list[Claim], pages: dict[int, str]) -> dict[str, Any]:
             "missing": n_missing,
             "misplaced": n_misplaced,
             "pages_scanned": len(pages),
+            "page_basis": page_basis,
             "verdict": "fail" if fail else "pass",
         },
         "claims": results,
@@ -195,8 +206,12 @@ def _render_text(report: dict[str, Any]) -> str:
     s = report["summary"]
     lines = [
         f"verdict={s['verdict']}  total={s['total']} pass={s['pass']} "
-        f"missing={s['missing']} misplaced={s['misplaced']}  (pages={s['pages_scanned']})"
+        f"missing={s['missing']} misplaced={s['misplaced']}  "
+        f"(pages={s['pages_scanned']} basis={s.get('page_basis', 'chapter')})"
     ]
+    if s.get("page_basis") == "slide":
+        lines.append("  note: .pptx 输入页号=slide 物理序号,与 expect_pages 章号"
+                     "口径不同,misplaced 判定已跳过(只判 missing)")
     for r in report["claims"]:
         mark = {"pass": "✓", "missing": "✗ MISSING", "misplaced": "✗ MISPLACED"}[r["status"]]
         opt = "" if r["required"] else " (optional)"
@@ -219,7 +234,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"输入错误: {e}", file=sys.stderr)
         return 2
 
-    report = check_claims(claims, pages)
+    basis = "slide" if Path(args.deck).suffix.lower() == ".pptx" else "chapter"
+    report = check_claims(claims, pages, page_basis=basis)
     print(json.dumps(report, ensure_ascii=False, indent=2) if args.format == "json"
           else _render_text(report))
     return 0 if report["summary"]["verdict"] == "pass" else 1
