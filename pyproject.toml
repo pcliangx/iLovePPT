@@ -17,6 +17,11 @@ dependencies = [
 [project.optional-dependencies]
 read = ["markitdown[pptx]"]
 diagram = ["matplotlib>=3.7"]
+dev = ["pytest>=7.0"]        # pip 路径(CI 用 pip install -e ".[dev]")
+
+# uv 默认 sync dev group → `uv run pytest` 开箱可用(否则 uv 回退到
+# ephemeral 旧解释器 pytest,报 12 个假 collection error)
+[dependency-groups]
 dev = ["pytest>=7.0"]
 
 [tool.setuptools]
@@ -27,5 +32,4 @@ pythonpath = [
     ".claude/skills/pptx",
     ".claude/skills/pptx-deck",
 ]
-testpaths = ["tests", "library/pptx-templates/scripts/tests"]
-asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]

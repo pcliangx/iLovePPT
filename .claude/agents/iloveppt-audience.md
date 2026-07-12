@@ -171,8 +171,9 @@ grep -oE "Text here|Copy paste fonts|Supporting text here|…text|\.\.\.text|SUB
 python3 ${CLAUDE_PROJECT_DIR}/scripts/check_source_fidelity.py <working_dir>/builder/deck_v{N}.pptx --claims <claims_path>
 ```
 
-- exit 0 → pass(所有 required claim 在 deck 文本里找到且落位正确)
-- exit 1 → fail:JSON 报告里 `status: missing`(关键数字丢了)/ `misplaced`(数字落错章节页)都是**内容问题** → triage=needs_author_rewrite,`failures` 记 claim id + status + expect_pages 证据
+- **页号口径**:.pptx 输入页号 = slide 物理序号(含 cover/toc),与 claims `expect_pages` 的章号口径不同 → 脚本只判 missing,misplaced 自动跳过(`summary.page_basis: slide`);落位判定已由 author Stage D 5.5 对 content.md 自检覆盖
+- exit 0 → pass(所有 required claim 在 deck 文本里找到)
+- exit 1 → fail:JSON 报告里 `status: missing`(关键数字丢了)是**内容问题** → triage=needs_author_rewrite,`failures` 记 claim id + status + expect_pages 证据
 - **(claims_path 入参缺 → 跳过本项 → 标 spot_check.source_fidelity: skipped)**
 
 #### Spot-check verdict

@@ -15,10 +15,10 @@
     red_line_check.py --content content.md --red-lines "大概,估计,大约" --format text
     red_line_check.py --content content.md --red-lines red_lines.txt --threshold 85 --format json
 
-exit code:
+exit code(与 audit_pptx / check_source_fidelity 同一约定):
     0  无命中
-    2  有命中(便于 hook / CI)
-    1  脚本错误(依赖缺失 / 文件读不到)
+    1  有命中(gate fail · 便于 hook / CI)
+    2  脚本错误(依赖缺失 / 文件读不到)
 """
 
 from __future__ import annotations
@@ -33,14 +33,14 @@ try:
 except ImportError:
     print("ERROR: rapidfuzz 未装。\n  pip install rapidfuzz pypinyin",
           file=sys.stderr)
-    sys.exit(1)
+    sys.exit(2)
 
 try:
     from pypinyin import pinyin, Style
 except ImportError:
     print("ERROR: pypinyin 未装。\n  pip install rapidfuzz pypinyin",
           file=sys.stderr)
-    sys.exit(1)
+    sys.exit(2)
 
 
 def _to_pinyin(s: str) -> str:
@@ -146,7 +146,7 @@ def main() -> int:
     content_path = Path(args.content)
     if not content_path.exists():
         print(f"ERROR: content 文件不存在: {content_path}", file=sys.stderr)
-        return 1
+        return 2
 
     rl_arg = Path(args.red_lines)
     if rl_arg.exists():
@@ -172,7 +172,7 @@ def main() -> int:
                 if h.get("context") and h["kind"] != "pinyin":
                     print(f"            ctx: ...{h['context']}...")
 
-    return 2 if hits else 0
+    return 1 if hits else 0
 
 
 if __name__ == "__main__":
