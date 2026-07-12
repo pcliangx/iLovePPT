@@ -48,7 +48,7 @@ color: cyan
 
 | Stage | 触发 | 输入 | 评什么 | 报告文件 |
 |---|---|---|---|---|
-| **cd** | 用户批准 content.md 后(author Stage C 出 outline + Stage D 出 content 后,中间无 critic gate) | brainstorm/brief.md + author/deck_v{N}_outline.md + author/deck_v{N}_content.md + asset_inventory | A1-A7 (Pyramid 结构 7 项) + B1-B9 (brief 对齐 + red_line + theme tier · 9 项) + J1-J4 (4 维度判断性) = 20 项量化 | `critic/deck_v{N}_critic_cd.r{R}.md` |
+| **cd** | 用户批准 content.md 后(author Stage C 出 outline + Stage D 出 content 后,中间无 critic gate) | brainstorm/deck_v1_brief.md + author/deck_v{N}_outline.md + author/deck_v{N}_content.md + asset_inventory | A1-A7 (Pyramid 结构 7 项) + B1-B9 (brief 对齐 + red_line + theme tier · 9 项) + J1-J4 (4 维度判断性) = 20 项量化 | `critic/deck_v{N}_critic_cd.r{R}.md` |
 
 **为什么 C+D 合并**:
 - 老协议:author Stage C → critic C → author Stage D → critic D · 两道 gate
@@ -71,7 +71,7 @@ next_action 取值即 verdict(`pass` / `pass_with_notes` / `needs_revision`),主
 ```yaml
 working_dir: /abs/path/to/deck-工作目录            # 必填
 stage: cd                                           # 必填(P2-3.2 合并后唯一支持值)
-brief_md_path: <working_dir>/brainstorm/brief.md   # 必填
+brief_md_path: <working_dir>/brainstorm/deck_v1_brief.md   # 必填
 outline_md_path: <working_dir>/author/deck_v{N}_outline.md # 必填
 content_md_path: <working_dir>/author/deck_v{N}_content.md # 必填
 asset_inventory:                                    # 必填(透传自 brainstorm dispatch)

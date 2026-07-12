@@ -528,7 +528,9 @@ def _check_red_line_words(brief_path: str | Path | None,
 
     检查范围:
     - content.md 全文(若可读)
-    - deck_plan.json 序列化后所有文本字段(含 builder Step 3 字数修复引入的新词)
+    - deck_plan slides 内文案字段值(含 builder Step 3 字数修复引入的新词);
+      跳过 layout enum 值 / key 名 / 下划线结构 key(_plan_dir 等)—— 红线词
+      与 layout 名(如 table)重合时不误伤合法 build
     """
     if brief_path is None:
         return
@@ -548,13 +550,27 @@ def _check_red_line_words(brief_path: str | Path | None,
                     f"critic 漏检 + author 自检也漏。fix: author rework 删该词。"
                 )
     # deck_plan text fields(builder 自动修复 / 字数缩写时可能引入)
-    plan_str = json.dumps(deck_plan, ensure_ascii=False)
-    for w in words:
-        if w and w in plan_str:
-            raise ValueError(
-                f"红线词 {w!r} 在 deck_plan.json 残留(可能 builder 自动修复时引入)。"
-                f"fix: 检查最近一轮 builder 改写,改回不踩词的措辞。"
-            )
+    # 只查 slides 里承载文案的字符串值:layout 是 enum 不是文案,下划线 key 是
+    # 结构字段(_plan_dir 等);整份 json.dumps 会把 enum / key / 路径都卷进来误伤
+    def _iter_text_values(node: Any) -> Any:
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k == "layout" or (isinstance(k, str) and k.startswith("_")):
+                    continue
+                yield from _iter_text_values(v)
+        elif isinstance(node, (list, tuple)):
+            for v in node:
+                yield from _iter_text_values(v)
+        elif isinstance(node, str):
+            yield node
+
+    for text in _iter_text_values(deck_plan.get("slides") or []):
+        for w in words:
+            if w and w in text:
+                raise ValueError(
+                    f"红线词 {w!r} 在 deck_plan.json 残留(可能 builder 自动修复时引入)。"
+                    f"fix: 检查最近一轮 builder 改写,改回不踩词的措辞。"
+                )
 
 
 # ===========================================================================

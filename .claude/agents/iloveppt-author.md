@@ -213,7 +213,7 @@ artifacts:
 rounds_used: <int>
 stage_d_args:                              # 主线程立即 Task author stage=D 用的参数
   stage: D
-  brief_md_path: <working_dir>/brainstorm/brief.md
+  brief_md_path: <working_dir>/brainstorm/deck_v1_brief.md
   outline_md_path: <working_dir>/author/deck_v{N}_outline.md
   asset_inventory: [...]
 message_to_user: |
@@ -282,7 +282,7 @@ message_to_user: |
 
    ```bash
    # 从 brief.md 取 red_line_words(yq 不可用时用 grep awk 兜底)
-   BRIEF=<working_dir>/brainstorm/brief.md
+   BRIEF=<working_dir>/brainstorm/deck_v1_brief.md
    CONTENT=<working_dir>/author/deck_v{N}_content.md
    # 解析 frontmatter 的 yaml block:取 constraints.red_line_words 列表
    WORDS=$(python3 -c "
@@ -364,7 +364,7 @@ artifacts:
 rounds_used: <int>
 critic_args:
   stage: cd                                # P2-3.2 后唯一支持的 stage
-  brief_md_path: <working_dir>/brainstorm/brief.md
+  brief_md_path: <working_dir>/brainstorm/deck_v1_brief.md
   outline_md_path: <working_dir>/author/deck_v1_outline.md
   content_md_path: <working_dir>/author/deck_v1_content.md
   asset_inventory: [...]

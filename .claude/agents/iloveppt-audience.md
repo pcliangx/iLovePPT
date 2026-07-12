@@ -109,7 +109,7 @@ brief:                                             # 可选,提供上下文
   scqa: { situation, complication, question, answer }
   presentation_mode: speaker | handout            # 影响"信息密度"评分基准
 working_dir: /abs/path/to/deck-工作目录            # 必填,写 review 报告的目录
-brief_md_path: <working_dir>/brainstorm/brief.md   # 可选(Step 0/0.5 红线词 + spot-check 用,缺则跳过)
+brief_md_path: <working_dir>/brainstorm/deck_v1_brief.md   # 可选(Step 0/0.5 红线词 + spot-check 用,缺则跳过)
 content_md_path: <working_dir>/author/deck_v{N}_content.md  # 可选(Step 0.5 红线词 grep 用,缺则跳过)
 deck_plan_path: <working_dir>/builder/deck_v{N}_plan.json   # 可选(Step 0 spot-check placeholder grep 用,缺则跳过该项)
 builder_visual_edits: []                          # 可选(Step 0 spot-check chart-source 用,builder 透传)
@@ -229,7 +229,7 @@ rounds_used: <int>
 
 第 5 道防线兜底:author 自检 / critic Stage C·D / build.py 全漏的极小概率事件,在 audience 评分前再 grep 一次。命中即拦,**评分前先 surface 报告顶部、verdict 强制 `needs_author_rewrite`、不 ship**。
 
-1. Read `<working_dir>/brainstorm/brief.md`,parse `constraints.red_line_words` 取词清单(参考 author Step 1C.5 同款 yaml parse 逻辑)。字段缺 / brief 不可读 → 跳过 Step 0.5(已被 brainstorm Step 3.6 B.4 self-audit 兜底),继续 Step 1
+1. Read `<working_dir>/brainstorm/deck_v1_brief.md`,parse `constraints.red_line_words` 取词清单(参考 author Step 1C.5 同款 yaml parse 逻辑)。字段缺 / brief 不可读 → 跳过 Step 0.5(已被 brainstorm Step 3.6 B.4 self-audit 兜底),继续 Step 1
 2. Read `<working_dir>/author/deck_v{N}_content.md`(N 用入参 / state 推断的当前轮 deck 号);找不到 → 跳过 Step 0.5
 3. 对每个 word `grep -nE "<word>"` content.md,记录命中行号 + 引文
 4. **任一命中 → 立即返回**(不跑后续 Step 1-4 评分):
